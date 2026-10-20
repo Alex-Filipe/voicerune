@@ -1,11 +1,11 @@
 # Fases
 
-**Status atual:** Fase 0 em andamento.
-**Próximo passo:** instalar a toolchain Rust no Windows (ver `08-ambiente.md`) e compilar o workspace vazio.
+**Status atual:** Fase 0 concluída.
+**Próximo passo:** iniciar a Fase 1 — protótipo Mic → IA → VB-Cable (ver `03-audio.md` e `04-ia-ruido.md`).
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
-| 0. Fundação | Estrutura, docs, git, workspace Rust vazio | `cargo build` passa no Windows | em andamento |
+| 0. Fundação | Estrutura, docs, git, workspace Rust vazio | `cargo build` passa no Windows | concluída |
 | 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | — |
 | 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | — |
 | 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | — |
@@ -19,3 +19,5 @@ Fases 2 e 3 podem andar em paralelo.
 ## Histórico
 - 2026-10-20 — Fase 0 iniciada: pasta, docs, git e esqueleto do workspace criados.
   Rust ainda não instalado no Windows → build pendente.
+- 2026-10-20 — Rust 1.99.1 (stable-msvc, via rustup) e VS Build Tools 2022 17.14 (workload C++)
+  instalados via winget. `cargo build` passa → Fase 0 concluída.

@@ -9,9 +9,9 @@
 
 ## Toolchain Windows — status em 2026-10-20
 - git 2.41 ✅
-- **Rust: não instalado** ❌ → instalar `rustup` (https://rustup.rs)
-- **MSVC Build Tools: não encontrados** ❌ → o Rust no Windows precisa do linker MSVC
-  (Visual Studio Build Tools 2022, workload "Desenvolvimento para desktop com C++").
+- Rust 1.99.1 / cargo 1.99.1 ✅ — via `winget install Rustlang.Rustup`, toolchain `stable-x86_64-pc-windows-msvc`.
+- VS Build Tools 2022 17.14 ✅ — via winget, workload `Microsoft.VisualStudio.Workload.VCTools` (linker MSVC).
+- `cargo build` do workspace passa ✅
 
 ## Build
 - `target/` fora do OneDrive: `C:\dev\cargo-target\mic-limpo` (configurado em `.cargo/config.toml`).
