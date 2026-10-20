@@ -305,6 +305,9 @@ mod tests {
 
     #[cfg(feature = "dfn")]
     #[test]
+    // Mede se a thread do DFN acompanha o tempo real: em debug o modelo é lento demais e perde
+    // amostras (~20 mil em 1 s), então só faz sentido em `cargo test --release`.
+    #[cfg_attr(debug_assertions, ignore = "tempo real do DFN: rodar com cargo test --release")]
     fn dfn_na_thread_propria_processa_todos_os_quadros() {
         let cfg = Config { folga_ms: 0, teto_ms: 1000, modelo: Tipo::Dfn, ..Config::default() };
         let (ctl, mut ent, mut sai) = criar(cfg).unwrap();
