@@ -42,3 +42,8 @@
 | 2026-10-20 | Cada controle muda só o seu campo do pedido | O mic segue "o padrão do sistema" até o usuário escolher um |
 | 2026-10-20 | Busca de dispositivo prefere o nome exato | O nome vem da lista da UI; "contém" podia cair num parecido |
 | 2026-10-20 | Medidor de −60 a 0 dBFS com queda suave; "CPU" mostra só a IA; atraso rotulado "do app" | Honestidade: o atraso não inclui o VB-Cable (~55–60 ms) |
+| 2026-10-20 | Bandeja pelo `SystemTrayIcon` do Slint 1.18 (feature `system-tray`), não o crate `tray-icon` | No Windows é `Shell_NotifyIconW` com o `windows` 0.62 que já usamos: nenhum crate novo (`ksni` só no Linux) |
+| 2026-10-20 | Feature `unstable-winit-030` do Slint para o flyout | Dá o evento de foco, o `skip_taskbar` e os cantos do DWM sem crate novo (o winit já vinha); API "unstable" fixada pelo `Cargo.lock` |
+| 2026-10-20 | Flyout posicionado pelo cursor + área útil do monitor (Win32), não pelo retângulo do ícone | O `clicked` do Slint não traz a posição do ícone; o cursor está no ícone no clique |
+| 2026-10-20 | Janela e flyout criados sob demanda; o estado mostrado mora no Rust e preenche cada tela nova | Fechar destrói o componente (~1 MB privada a menos); reabrir custa ~40–75 ms |
+| 2026-10-20 | O app abre com a janela; a bandeja fica sempre | "Iniciar minimizado" entra com "Iniciar com o sistema" (bloco 4) |

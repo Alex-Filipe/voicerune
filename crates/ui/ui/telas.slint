@@ -1,4 +1,4 @@
-// Telas do mic-limpo: janela principal (barra lateral + páginas) e flyout da bandeja.
+// Telas do mic-limpo: janela principal (barra lateral + páginas), ícone e flyout da bandeja.
 // Visual aprovado no mockup HTML (docs/mockups/a-lateral.html).
 
 import { ComboBox, Slider, Switch, Palette, AboutSlint } from "std-widgets.slint";
@@ -617,11 +617,42 @@ export component JanelaPrincipal inherits Window {
     }
 }
 
+// Ícone na bandeja (Shell_NotifyIconW no Windows): clique abre o flyout; botão direito, o menu.
+export component Bandeja inherits SystemTrayIcon {
+    icon: @image-url("icone.svg");
+    tooltip: "mic-limpo";
+    callback clicado();
+    callback abrir();
+    callback sair();
+    clicked => {
+        root.clicado();
+    }
+    Menu {
+        MenuItem {
+            title: "Abrir";
+            activated => {
+                root.abrir();
+            }
+        }
+
+        MenuItem {
+            title: "Sair";
+            activated => {
+                root.sair();
+            }
+        }
+    }
+}
+
 export component Flyout inherits Window {
     title: "mic-limpo";
     no-frame: true;
     always-on-top: true;
     width: 360px;
+    height: conteudo.preferred-height;
+    // Lidas pelo Rust antes de mostrar, para encostar o flyout na barra de tarefas.
+    out property <length> largura: self.width;
+    out property <length> altura: self.height;
     background: Cores.janela;
     default-font-size: 14px;
 
@@ -642,7 +673,7 @@ export component Flyout inherits Window {
         border-color: Cores.borda;
     }
 
-    VerticalLayout {
+    conteudo := VerticalLayout {
         padding: 14px;
         spacing: 12px;
         HorizontalLayout {
@@ -684,9 +715,12 @@ export component Flyout inherits Window {
         }
 
         HorizontalLayout {
+            spacing: 8px;
             Rotulo {
                 text: Dados.resumo-rota;
                 horizontal-stretch: 1;
+                // Nomes reais são longos ("Voicemeeter Out B1 (VB-Audio ...)"): corta com "…".
+                overflow: elide;
             }
 
             Rotulo {

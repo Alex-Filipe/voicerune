@@ -11,7 +11,7 @@ crates/
                   no Windows, CoreAudio no macOS) e `wasapi` (baixa latência, só Windows).
                   Único crate do produto que fala com API de áudio. `Pedido.backend` escolhe.
   app/          → `mic-limpo`, o programa do usuário: lib `controlador` (ajustes do usuário →
-                  motor + fluxos, troca sem corte) + binário com a janela (Slint). Bandeja no bloco 3.
+                  motor + fluxos, troca sem corte) + binário com a janela e a bandeja (Slint).
   ferramentas/  → `mic-limpo-dev`, só para desenvolvimento: rodar/listar (o app sem janela),
                   bench, latencia, comparar, sondar. Não vai para o usuário final.
   ui/           → `mic-limpo-ui`: telas em Slint (janela principal + flyout), compiladas no build;
@@ -57,16 +57,22 @@ Dependências: `app` → `core` + `audio` + `ui`; `ferramentas` → `app` (lib) 
 - (resolvido) erros de stream vão por canal (`Pedido.avisos`), não mais `eprintln!`.
 - Plugin HAL (macOS) e driver (Windows) da fase 6 ficarão em crates próprios.
 
-## Threads do app (fase 4, bloco 2)
+## Threads do app (fase 4, blocos 2 e 3)
 - **Janela** (Slint): só lê e mostra. Cada controle manda o seu campo do pedido (`Ajustes`) por
-  canal; estado da janela num `thread_local` (`Ui`). Timer de 33 ms para o medidor (não redesenha
-  com a janela minimizada) e, a cada 30 ticks, atraso/CPU/falhas.
+  canal; estado num `thread_local` (`Ui`) que guarda a janela e o flyout como `Option` (criados e
+  destruídos sob demanda) e o que eles mostram. Timer de 33 ms para o medidor **só enquanto a
+  janela ou o flyout existem** (não redesenha com a janela minimizada) e, a cada 30 ticks,
+  atraso/CPU/falhas. Só com a bandeja, a thread fica parada (0 ciclos em 10 s).
+- **Bandeja**: `SystemTrayIcon` do Slint (`Shell_NotifyIconW`, janela oculta na mesma thread);
+  enquanto visível, mantém o laço de eventos vivo sem janela.
 - **Controle** (`mic-limpo-controle`): dona do `Controlador`; dorme no `recv`. Junta o que chegou
   de uma vez (arrastar o ganho = um `aplicar`), reage a aviso fatal (reabre uma vez) e devolve o
   `Estado` com `slint::invoke_from_event_loop`.
 - **Avisos** (`mic-limpo-avisos`): repassa `audio::Aviso` para o canal da de controle.
-- Fechar a janela: `Sair` para a de controle, que solta motor e fluxos (medido: 24–32 ms).
+- Fechar a janela ("X"): destrói o componente e o app fica na bandeja. **Sair** (menu do ícone):
+  `Sair` para a de controle, que solta motor e fluxos (medido em debug: 48 ms até o processo acabar).
 
 ## Processo (decidido na fase 4)
 - **Processo único** para áudio e UI. Fechar a janela destrói o componente Slint e fica só a
-  bandeja; medir a RAM nesse estado. Processo separado (IPC local) só se a medição pedir.
+  bandeja. Medido (bloco 3): 24,0 MB / 4,5 MB privada só com a bandeja, contra 24,8 / 5,4 com a
+  janela: a janela custa ~1 MB, o resto é áudio + runtime. IPC local não se justifica.

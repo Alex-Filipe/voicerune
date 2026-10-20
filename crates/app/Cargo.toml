@@ -13,6 +13,15 @@ mic-limpo-audio.workspace = true
 mic-limpo-ui.workspace = true
 slint.workspace = true
 
+# Só para encostar o flyout na barra de tarefas (cursor, área útil e DPI do monitor).
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_HiDpi",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
 [features]
 default = ["dfn"]
 dfn = ["mic-limpo-core/dfn"]

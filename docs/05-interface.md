@@ -37,11 +37,13 @@ para crescer sem poluir a tela.
 | Flyout da bandeja | Liga/desliga, modo, medidor, rota e "Abrir ›" |
 
 ### Implementação em Slint (`crates/ui`)
-- `ui/telas.slint`: `JanelaPrincipal` e `Flyout`; estado no global `Dados` (o Rust preenche).
+- `ui/telas.slint`: `JanelaPrincipal`, `Flyout` e `Bandeja`; estado no global `Dados` (o Rust
+  preenche; cada tela tem o seu, o app repõe o estado em cada tela nova).
 - Estilo Fluent; cores próprias claro/escuro seguindo o tema do sistema e a **cor de destaque do
   Windows**. Tema pode ser forçado (Configurações → Tema).
 - Leveza: `.slint` compilado para Rust no build; sem features padrão do Slint (só `backend-winit`
-  + `renderer-software`: sem OpenGL); só a página visível é instanciada (`if`).
+  + `renderer-software`: sem OpenGL; desde o bloco 3 da Fase 4 também `system-tray` e
+  `unstable-winit-030`, sem crate novo no Windows); só a página visível é instanciada (`if`).
 - Prévia: `mic-limpo-ui-previa [--flyout] [--pagina N] [--claro|--escuro] [--medidor-parado]
   [--medir] [--sair-apos-ms N]`. Capturas em `docs/mockups/capturas/`.
 
@@ -87,14 +89,50 @@ Input; 10 s cada pelo `TotalProcessorTime` do processo):**
   o medidor animado (prévia da Fase 3) e ~8 % no Forte com voz (Fase 2).
 - **Não testado:** reabrir depois de um aviso fatal (precisa desconectar um dispositivo).
 
-### Para a Fase 4
-- Fechar a janela deve **destruir** o componente (não só esconder) e manter só a bandeja: a RAM
-  volta ao mínimo; reabrir custa ~0,1 s.
-- O medidor só deve animar com a janela/flyout visível (parado = 0 % de CPU). Bloco 2: o timer
-  segue acordando com a janela minimizada (sem redesenhar); some quando o componente for
-  destruído (bloco 3).
-- Flyout: posicionar junto da bandeja, cantos arredondados (DWM) e fechar ao perder o foco.
-- Avaliar o `system-tray` do próprio Slint 1.18 em vez do crate `tray-icon`.
+### Bandeja e flyout (Fase 4, bloco 3)
+- Ícone: componente `Bandeja` (`SystemTrayIcon` do Slint com `icone.svg`, dica "mic-limpo").
+  Clique abre ou fecha o flyout; botão direito abre o menu **Abrir / Sair**. No Windows 11 ele
+  nasce no grupo de ícones ocultos ("^"); o Alex pode arrastá-lo para a barra.
+- Flyout: criado a cada clique e destruído ao perder o foco. A altura do layout é lida antes de
+  mostrar e a posição vem do cursor + área útil do monitor (encostado na barra de tarefas, em
+  qualquer lado, margem de 12 px). Fica fora da barra de tarefas e tem cantos arredondados (DWM)
+  pelo gancho de atributos do winit. Um clique no ícone até 400 ms depois de fechar por perder o
+  foco é o mesmo clique e não reabre.
+- O que muda no flyout aparece na janela aberta, e vice-versa. Nome longo da rota é cortado com
+  "…" (antes empurrava o "Abrir ›" para fora).
+- Janela: o "X" esconde e destrói o componente logo depois, e o app fica na bandeja. Reabrir
+  volta na mesma posição e tamanho (se não estava minimizada nem maximizada) e com o tema escolhido.
+- Teste automático: script PowerShell manda as mensagens da bandeja (`WM_APP+1`) direto para a
+  janela oculta `SlintSystemTrayWindow` do processo e só manda teclas se o app estiver em primeiro
+  plano. Captura: `docs/mockups/capturas/app-flyout.png`.
+
+**Medições (2026-10-20, release; Leve; entrada padrão = Voicemeeter Out B1 em silêncio, saída
+CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2 rodadas):**
+
+| Caso | RAM (working set) | RAM privada | CPU do processo |
+|---|---|---|---|
+| Janela visível, medidor parado | 24,8 MB | 5,4–5,5 MB | 0,47–0,94 % de 1 núcleo |
+| **Só bandeja** | **24,0 MB** | **4,5 MB** | **0,31–0,47 % de 1 núcleo** |
+| Só bandeja, depois de 10 abre/fecha | 27,4–27,5 MB | 5,1–5,2 MB | 0,78–1,40 % de 1 núcleo |
+| Flyout aberto (1 rodada) | 27,7 MB | 5,3 MB | 0,78 % de 1 núcleo |
+
+- Thread da UI por `QueryThreadCycleTime`: 40 Mciclos em 10 s com a janela (timer a 30 Hz) e
+  **0** só com a bandeja, ou seja, o timer some de fato. O `TotalProcessorTime` da thread dá 0 nos
+  dois casos (granularidade de ~15,6 ms), não serve para isso.
+- Só com a bandeja a CPU é a do áudio (RNNoise ~0,4 %). Fechar a janela pela 1ª vez solta ~1 MB
+  privada; o resto (~24 MB de working set) é áudio + runtime, então o "mínimo" já é quase isso.
+- Reabrir (Abrir do menu → janela visível, debug): 37–46 ms (3×); "Abrir ›" do flyout: 75 ms.
+  Sair: processo acaba em 48 ms (debug).
+- **A medir:** depois de 10 abre/fecha, +3,4 MB de working set, +0,6 MB privada e +0,3–0,9 ponto
+  de CPU, com a thread da UI parada. Pode ser cache (fontes, alocador) ou algo que sobra por
+  janela (janela oculta, thread). Pelo código do Slint 1.18, o backend guarda só `Weak` do
+  adaptador, então soltar o componente deveria destruir a janela do winit. Teste proposto: 30
+  abre/fecha contando janelas ocultas e threads do processo, com a CPU por thread.
+- **Não testado:** clique real no ícone (os testes mandam a mensagem direto) e a nitidez do ícone
+  de 64 px reduzido pelo shell.
+
+### Pendências de UI
+- O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
 - Pendências visuais: barra de título nativa não segue o tema forçado; Mica/Acrylic
   (`window-vibrancy`) não testado. Ícone próprio da janela: `crates/ui/ui/icone.svg`.
 - Armadilha resolvida: **nunca** pôr `Palette.color-scheme = ColorScheme.unknown`. Os widgets do
