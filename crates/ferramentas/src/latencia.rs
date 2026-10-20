@@ -66,7 +66,7 @@ pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
     let (ctl, mut entrada, mut saida) = motor::criar(Config { ia: false, ..op.motor })?;
     let ck = Arc::new(Cliques { min_us: AtomicU64::new(u64::MAX), ..Default::default() });
     let backend = op.backend;
-    let pedido = |trecho: Option<String>| Pedido { backend, trecho, taxa: SAMPLE_RATE, buffer: op.buffer };
+    let pedido = |trecho: Option<String>| Pedido { backend, trecho, taxa: SAMPLE_RATE, buffer: op.buffer, avisos: None };
 
     // Entrada: ignora o mic e entrega silêncio com um clique a cada PERIODO_CLIQUE.
     let (c, mut cliques, mut contador) = (ck.clone(), vec![0.0f32; SAMPLE_RATE as usize], 0u64);

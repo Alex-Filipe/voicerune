@@ -10,8 +10,8 @@ crates/
   audio/        → backends de áudio atrás de callbacks simples: cpal (padrão; WASAPI compartilhado
                   no Windows, CoreAudio no macOS) e `wasapi` (baixa latência, só Windows).
                   Único crate do produto que fala com API de áudio. `Pedido.backend` escolhe.
-  app/          → `mic-limpo`, o programa do usuário: escolhe backend e liga ao motor.
-                  Hoje CLI; interface (Slint) e bandeja na fase 4.
+  app/          → `mic-limpo`, o programa do usuário. `controlador`: ajustes do usuário →
+                  motor + fluxos (troca sem corte). Hoje CLI; interface (Slint) e bandeja na fase 4.
   ferramentas/  → `mic-limpo-dev`, só para desenvolvimento: bench, latencia, comparar, sondar.
                   Não vai para o usuário final.
   ui/           → `mic-limpo-ui`: telas em Slint (janela principal + flyout), compiladas no build;
@@ -26,7 +26,9 @@ sonda). `core` e `audio` não dependem um do outro: o app converte `audio::Pacot
 - `motor::criar(Config)` devolve `(Arc<Controle>, Entrada, Saida)`.
 - O backend chama, na thread de áudio, `Entrada::processar(dados, canais, tempos)` e
   `Saida::preencher(dados, canais, tempos)`. As duas não alocam nem travam.
-- `Controle` (atômico) liga/desliga a IA e expõe as `Metricas` para quem quiser mostrar.
+- `Controle` (atômico) liga/desliga a IA, muda o ganho de saída (rampa de um pacote, satura em
+  ±1), dá o pico da entrada para o medidor (`tomar_pico`, antes da IA), avisa quando a saída
+  começou a tocar (`tocando`) e expõe as `Metricas` (`cpu_pct`, `latencia_ms`, `falhas`).
 - `Config.modelo` (`rnnoise` | `dfn`) e `Config.limite_db` escolhem a IA. `criar` devolve
   `Result` (carregar o DFN leva ~0,2 s e pode falhar).
 - Modelo que aloca ou não é `Send` (DFN: tract usa `Rc`) roda na thread própria
@@ -52,9 +54,9 @@ sonda). `core` e `audio` não dependem um do outro: o app converte `audio::Pacot
 - Versões das dependências centralizadas em `[workspace.dependencies]`.
 
 ## Pendências conhecidas
-- `audio` imprime erros de stream com `eprintln!`; trocar por canal de erro quando houver UI.
+- (resolvido) erros de stream vão por canal (`Pedido.avisos`), não mais `eprintln!`.
 - Plugin HAL (macOS) e driver (Windows) da fase 6 ficarão em crates próprios.
 
-## Hipótese (decidir na fase 4)
-- **Processo de áudio separado da UI:** a janela fecha de verdade e o processamento continua
-  leve. IPC local (named pipe com ACL do usuário no Windows; socket Unix 0600 no macOS).
+## Processo (decidido na fase 4)
+- **Processo único** para áudio e UI. Fechar a janela destrói o componente Slint e fica só a
+  bandeja; medir a RAM nesse estado. Processo separado (IPC local) só se a medição pedir.

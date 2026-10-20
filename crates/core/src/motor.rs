@@ -7,7 +7,7 @@
 //! ring buffer da saída.
 
 use std::error::Error;
-use std::sync::atomic::{AtomicBool, Ordering::{Acquire, Relaxed, Release}};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering::{Acquire, Relaxed, Release}};
 use std::sync::Arc;
 use std::thread::{self, Thread};
 use std::time::Instant;
@@ -33,11 +33,13 @@ pub struct Config {
     pub modelo: Tipo,
     /// Atenuação máxima do ruído em dB (`None` = sem limite).
     pub limite_db: Option<f32>,
+    /// Ganho aplicado na saída, depois da IA.
+    pub ganho_db: f32,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Self { folga_ms: 10, teto_ms: 20, ia: true, modelo: Tipo::Rnnoise, limite_db: None }
+        Self { folga_ms: 10, teto_ms: 20, ia: true, modelo: Tipo::Rnnoise, limite_db: None, ganho_db: 0.0 }
     }
 }
 
@@ -53,6 +55,13 @@ pub struct Tempos {
 #[derive(Default)]
 pub struct Controle {
     ia: AtomicBool,
+    /// Ganho linear da saída (bits de um f32).
+    ganho: AtomicU32,
+    /// Pico de |amostra| da entrada desde a última leitura (bits de um f32 ≥ 0: para floats
+    /// não negativos a ordem dos bits é a dos valores, então `fetch_max` funciona).
+    pico: AtomicU32,
+    /// A saída já entregou áudio de verdade (saiu da espera inicial) ao menos uma vez.
+    tocando: AtomicBool,
     pub metricas: Metricas,
 }
 
@@ -63,6 +72,23 @@ impl Controle {
     pub fn set_ia(&self, ligada: bool) {
         self.ia.store(ligada, Relaxed);
     }
+    pub fn ganho_db(&self) -> f32 {
+        20.0 * self.ganho().log10()
+    }
+    pub fn set_ganho_db(&self, db: f32) {
+        self.ganho.store(10f32.powf(db / 20.0).to_bits(), Relaxed);
+    }
+    fn ganho(&self) -> f32 {
+        f32::from_bits(self.ganho.load(Relaxed))
+    }
+    /// Pico da entrada (0 a 1, antes da IA) desde a última chamada; zera ao ler.
+    pub fn tomar_pico(&self) -> f32 {
+        f32::from_bits(self.pico.swap(0, Relaxed))
+    }
+    /// Se a saída já entregou áudio processado ao dispositivo (para trocar de motor sem corte).
+    pub fn tocando(&self) -> bool {
+        self.tocando.load(Relaxed)
+    }
 }
 
 /// Cria o motor: o `Controle` fica com quem controla; `Entrada` e `Saida` vão para os callbacks.
@@ -70,6 +96,7 @@ impl Controle {
 pub fn criar(cfg: Config) -> Result<(Arc<Controle>, Entrada, Saida), Erro> {
     let ctl = Arc::new(Controle::default());
     ctl.set_ia(cfg.ia);
+    ctl.set_ganho_db(cfg.ganho_db);
     let (prod, cons) = rtrb::RingBuffer::new(CAPACIDADE);
     let amostras = |ms: u32| (SAMPLE_RATE * ms / 1000) as usize;
     let caminho = if cfg.modelo.thread_propria() {
@@ -83,6 +110,7 @@ pub fn criar(cfg: Config) -> Result<(Arc<Controle>, Entrada, Saida), Erro> {
         folga: amostras(cfg.folga_ms),
         teto: amostras(cfg.teto_ms),
         esperando: true,
+        ganho: ctl.ganho(),
         ctl: ctl.clone(),
     };
     Ok((ctl, entrada, saida))
@@ -184,9 +212,12 @@ impl Entrada {
         m.atraso_entrada_us.add(t.callback_ns.saturating_sub(t.dispositivo_ns) / 1000);
         let canais = canais.max(1);
         let n = (dados.len() / canais).min(mono.len());
+        let mut pico = 0.0f32;
         for (s, f) in mono[..n].iter_mut().zip(dados.chunks_exact(canais)) {
             *s = f.iter().sum::<f32>() / canais as f32;
+            pico = pico.max(s.abs());
         }
+        ctl.pico.fetch_max(pico.min(1.0).to_bits(), Relaxed);
         match caminho {
             Caminho::Local { den, prod } => {
                 aplicar(den, &mono[..n], prod, ctl);
@@ -209,12 +240,15 @@ pub struct Saida {
     folga: usize,
     teto: usize,
     esperando: bool,
+    /// Ganho linear em uso; segue o do `Controle` em rampa ao longo de um pacote (sem estalo).
+    ganho: f32,
     ctl: Arc<Controle>,
 }
 
 impl Saida {
     /// Preenche um pacote intercalado em `canais` canais com o áudio processado (mono copiado em
-    /// todos os canais). Começa só com `folga` de margem; depois de um underrun, espera reencher.
+    /// todos os canais), com o ganho aplicado e limitado a [-1, 1]. Começa só com `folga` de
+    /// margem; depois de um underrun, espera reencher.
     pub fn preencher(&mut self, dados: &mut [f32], canais: usize, t: Tempos) {
         let m = &self.ctl.metricas;
         m.atraso_saida_us.add(t.dispositivo_ns.saturating_sub(t.callback_ns) / 1000);
@@ -226,7 +260,10 @@ impl Saida {
             dados.fill(0.0);
             return;
         }
-        self.esperando = false;
+        if self.esperando {
+            self.esperando = false;
+            self.ctl.tocando.store(true, Relaxed);
+        }
         if fila > n + self.folga + self.teto {
             let excesso = fila - n - self.folga;
             if let Ok(c) = self.cons.read_chunk(excesso) {
@@ -235,9 +272,12 @@ impl Saida {
             m.descartes.fetch_add(1, Relaxed);
             m.descartadas.fetch_add(excesso as u64, Relaxed);
         }
+        let alvo = self.ctl.ganho();
+        let passo = (alvo - self.ganho) / n.max(1) as f32;
         for f in dados.chunks_mut(canais) {
+            self.ganho += passo;
             match self.cons.pop() {
-                Ok(x) => f.fill(x),
+                Ok(x) => f.fill((x * self.ganho).clamp(-1.0, 1.0)),
                 Err(_) => {
                     f.fill(0.0);
                     if !self.esperando {
@@ -286,8 +326,10 @@ mod tests {
         let mut buf = vec![0.0; 480];
         sai.preencher(&mut buf, 1, Tempos::default());
         assert_eq!(ctl.metricas.underruns.load(Relaxed), 0);
+        assert!(!ctl.tocando());
         ent.processar(&[0.1; 480], 1, Tempos::default());
         sai.preencher(&mut buf, 1, Tempos::default());
+        assert!(ctl.tocando());
         assert!(buf.iter().all(|&x| (x - 0.1).abs() < 1e-6));
         sai.preencher(&mut buf, 1, Tempos::default());
         assert_eq!(ctl.metricas.underruns.load(Relaxed), 1);
@@ -301,6 +343,33 @@ mod tests {
         sai.preencher(&mut buf, 1, Tempos::default());
         assert_eq!(ctl.metricas.descartes.load(Relaxed), 1);
         assert_eq!(ctl.metricas.descartadas.load(Relaxed), 4800 - 480);
+    }
+
+    #[test]
+    fn ganho_muda_em_rampa_e_satura_em_1() {
+        let (ctl, mut ent, mut sai) = sem_ia(0, 1000);
+        ctl.set_ganho_db(20.0 * 2f32.log10()); // ×2
+        assert!((ctl.ganho_db() - 6.0206).abs() < 1e-3);
+        ent.processar(&[0.25; 960], 1, Tempos::default());
+        let mut buf = vec![0.0; 480];
+        // 1º pacote: rampa de ×1 até ×2, sempre crescente e sem pular direto.
+        sai.preencher(&mut buf, 1, Tempos::default());
+        assert!(buf[0] < 0.26 && (buf[479] - 0.5).abs() < 1e-4);
+        assert!(buf.windows(2).all(|w| w[1] >= w[0]));
+        // 2º pacote: ganho cheio.
+        sai.preencher(&mut buf, 1, Tempos::default());
+        assert!(buf.iter().all(|&x| (x - 0.5).abs() < 1e-4));
+        ent.processar(&[0.8; 480], 1, Tempos::default());
+        sai.preencher(&mut buf, 1, Tempos::default());
+        assert!(buf.iter().all(|&x| x == 1.0));
+    }
+
+    #[test]
+    fn pico_da_entrada_e_zerado_ao_ler() {
+        let (ctl, mut ent, _sai) = sem_ia(10, 20);
+        ent.processar(&[0.1, 0.1, -0.7, -0.7, 0.3, 0.3], 2, Tempos::default());
+        assert!((ctl.tomar_pico() - 0.7).abs() < 1e-6);
+        assert_eq!(ctl.tomar_pico(), 0.0);
     }
 
     #[cfg(feature = "dfn")]

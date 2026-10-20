@@ -23,7 +23,7 @@ use windows::Win32::System::Threading::{
     AvRevertMmThreadCharacteristics, AvSetMmThreadCharacteristicsW, CreateEventW, WaitForSingleObject,
 };
 
-use crate::{Pacote, Res};
+use crate::{avisar, Aviso, Pacote, Res};
 
 const WAVE_FORMAT_IEEE_FLOAT: u16 = 3;
 const WAVE_FORMAT_EXTENSIBLE: u16 = 0xFFFE;
@@ -64,14 +64,14 @@ impl Drop for Fluxo {
     }
 }
 
-pub(crate) fn abrir(trecho: Option<String>, taxa: u32, cb: Callback) -> Res<(Fluxo, Aberto)> {
+pub(crate) fn abrir(trecho: Option<String>, taxa: u32, cb: Callback, avisos: Option<Sender<Aviso>>) -> Res<(Fluxo, Aberto)> {
     let (tx_pronto, rx_pronto) = mpsc::sync_channel::<Result<Aberto, String>>(1);
     let (tx_iniciar, rx_iniciar) = mpsc::channel::<()>();
     let parar = Arc::new(AtomicBool::new(false));
     let p = parar.clone();
     let thread = std::thread::Builder::new()
         .name("mic-limpo-wasapi".into())
-        .spawn(move || unsafe { thread_fluxo(trecho, taxa, cb, tx_pronto, rx_iniciar, p) })?;
+        .spawn(move || unsafe { thread_fluxo(trecho, taxa, cb, tx_pronto, rx_iniciar, p, avisos) })?;
     match rx_pronto.recv() {
         Ok(Ok(aberto)) => {
             let fluxo = Fluxo { iniciar: Some(tx_iniciar), parar, thread: Some(thread), periodo: aberto.periodo };
@@ -87,6 +87,7 @@ pub(crate) fn abrir(trecho: Option<String>, taxa: u32, cb: Callback) -> Res<(Flu
 
 /// Tudo o que a thread precisa depois de abrir o dispositivo.
 struct Sessao {
+    nome: String,
     cliente: IAudioClient3,
     evento: HANDLE,
     canais: usize,
@@ -101,13 +102,14 @@ unsafe fn thread_fluxo(
     pronto: mpsc::SyncSender<Result<Aberto, String>>,
     iniciar: Receiver<()>,
     parar: Arc<AtomicBool>,
+    avisos: Option<Sender<Aviso>>,
 ) {
     if CoInitializeEx(None, COINIT_MULTITHREADED).is_err() {
         let _ = pronto.send(Err("CoInitializeEx falhou".into()));
         return;
     }
     let entrada = matches!(cb, Callback::Entrada(_));
-    let sessao = match abrir_dispositivo(trecho.as_deref(), entrada, taxa) {
+    let sessao = match abrir_dispositivo(trecho.as_deref(), entrada, taxa, &avisos) {
         Ok((s, aberto)) => {
             let _ = pronto.send(Ok(aberto));
             s
@@ -123,7 +125,7 @@ unsafe fn thread_fluxo(
         let mut idx = 0u32;
         let mmcss = AvSetMmThreadCharacteristicsW(w!("Pro Audio"), &mut idx);
         if let Err(e) = rodar(&sessao, &mut cb, &parar) {
-            eprintln!("erro no fluxo WASAPI ({}): {e}", if entrada { "entrada" } else { "saída" });
+            avisar(&avisos, Aviso { entrada, fatal: true, texto: format!("{}: {e}", sessao.nome) });
         }
         if let Ok(h) = mmcss {
             let _ = AvRevertMmThreadCharacteristics(h);
@@ -135,7 +137,12 @@ unsafe fn thread_fluxo(
     CoUninitialize();
 }
 
-unsafe fn abrir_dispositivo(trecho: Option<&str>, entrada: bool, taxa: u32) -> Res<(Sessao, Aberto)> {
+unsafe fn abrir_dispositivo(
+    trecho: Option<&str>,
+    entrada: bool,
+    taxa: u32,
+    avisos: &Option<Sender<Aviso>>,
+) -> Res<(Sessao, Aberto)> {
     let fluxo = if entrada { eCapture } else { eRender };
     let en: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
     let dev = match trecho {
@@ -157,16 +164,22 @@ unsafe fn abrir_dispositivo(trecho: Option<&str>, entrada: bool, taxa: u32) -> R
     let nome = nome(&dev).unwrap_or_else(|_| "?".into());
     let cliente: IAudioClient3 = dev.Activate(CLSCTX_ALL, None)?;
     let fmt = cliente.GetMixFormat()?;
-    let resultado = configurar(&cliente, fmt, taxa, entrada);
+    let resultado = configurar(&cliente, fmt, taxa, entrada, avisos);
     let canais = (*fmt).nChannels as usize;
     CoTaskMemFree(Some(fmt as _));
     let (periodo, buffer, evento) = resultado.map_err(|e| format!("{nome}: {e}"))?;
-    let sessao = Sessao { cliente, evento, canais, taxa, buffer };
+    let sessao = Sessao { nome: nome.clone(), cliente, evento, canais, taxa, buffer };
     Ok((sessao, Aberto { nome, canais, periodo }))
 }
 
 /// Confere o formato do mixer e inicializa no menor período possível. Devolve (período, buffer, evento).
-unsafe fn configurar(c: &IAudioClient3, fmt: *mut WAVEFORMATEX, taxa: u32, entrada: bool) -> Res<(u32, u32, HANDLE)> {
+unsafe fn configurar(
+    c: &IAudioClient3,
+    fmt: *mut WAVEFORMATEX,
+    taxa: u32,
+    entrada: bool,
+    avisos: &Option<Sender<Aviso>>,
+) -> Res<(u32, u32, HANDLE)> {
     let f = *fmt;
     let subtipo = || std::ptr::addr_of!((*(fmt as *const WAVEFORMATEXTENSIBLE)).SubFormat).read_unaligned();
     let float = f.wFormatTag == WAVE_FORMAT_IEEE_FLOAT || (f.wFormatTag == WAVE_FORMAT_EXTENSIBLE && subtipo() == SUBTIPO_FLOAT);
@@ -188,10 +201,11 @@ unsafe fn configurar(c: &IAudioClient3, fmt: *mut WAVEFORMATEX, taxa: u32, entra
             let mut atual = 0u32;
             c.GetCurrentSharedModeEnginePeriod(&mut atual_fmt, &mut atual)?;
             CoTaskMemFree(Some(atual_fmt as _));
-            eprintln!(
-                "aviso: período de {minimo} quadros recusado ({e}); usando o atual, {atual} quadros{}",
+            let texto = format!(
+                "período de {minimo} quadros recusado ({e}); usando o atual, {atual} quadros{}",
                 if entrada { " (outro app usando o mic?)" } else { "" }
             );
+            avisar(avisos, Aviso { entrada, fatal: false, texto });
             c.InitializeSharedAudioStream(AUDCLNT_STREAMFLAGS_EVENTCALLBACK, atual, fmt, None)?;
             atual
         }

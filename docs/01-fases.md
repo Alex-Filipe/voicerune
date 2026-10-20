@@ -1,16 +1,25 @@
 # Fases
 
-**Status atual:** Fases 0–3 concluídas (branches das fases 2 e 3 mescladas na `main`).
-- Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3 (`--modelo dfn`, recomendado com
-  `--baixa-latencia`). UI em Slint aprovada (`crates/ui`, prévia `mic-limpo-ui-previa`, sem áudio).
+**Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), bloco 1 de 5 concluído.
+- Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. UI em Slint aprovada
+  (`crates/ui`, prévia `mic-limpo-ui-previa`, ainda sem áudio).
 - Latência com a IA ligada: Leve ~98 ms / Forte ~115 ms com `--baixa-latencia` (padrão ~130 /
-  ~149 ms); Voicemeeter atual ~128 ms. Nova meta pendente (Alex decide; sugestão: não piorar em
-  relação ao Voicemeeter).
+  ~149 ms); Voicemeeter atual ~128 ms. Nova meta pendente (Alex decide).
 
-**Próximo passo:** Fase 4 — app mínimo usável: ligar `crates/ui` ao motor (seletor Leve/Forte,
-baixa latência, ganho de saída), bandeja, presets e config (ver "Para a Fase 4" em
-`05-interface.md`). Pendências que não bloqueiam: teste com jogo aberto (baixa latência e Forte);
-underrun único na partida com DFN; gate do mic antes do app (melhorias do Windows).
+**Plano da Fase 4** (decidido: processo único; trocar Leve ↔ Forte recarrega o modelo):
+
+| Bloco | O quê | Status |
+|---|---|---|
+| 1. Motor controlável | ganho e medidor no `core`; `Controlador` no app troca modo/dispositivo/backend sem reiniciar; avisos por canal | concluído |
+| 2. UI ligada | `mic-limpo` abre a janela Slint com dados reais; `aplicar` fora da thread da janela; medidor só com a janela visível; reagir a aviso fatal | — |
+| 3. Bandeja + flyout | `SystemTrayIcon` do Slint 1.18 (`Shell_NotifyIconW`, sem crate extra); fechar destrói o componente; flyout junto da bandeja | — |
+| 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | — |
+| 5. Uso diário | Alex usa alguns dias | — |
+
+**Próximo passo:** bloco 2 — ligar `crates/ui` ao `Controlador` (decidir se a CLI atual vai para
+`mic-limpo-dev` ou fica atrás de uma opção). Pendências que não bloqueiam: teste com jogo aberto;
+underrun na partida do DFN (também visto numa troca); gate do mic antes do app; corte audível da
+troca não medido ponta a ponta (hipótese ~0).
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
@@ -18,7 +27,7 @@ underrun único na partida com DFN; gate do mic antes do app (melhorias do Windo
 | 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | concluída |
 | 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | concluída: Leve = RNNoise, Forte = DFN3 |
 | 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | concluída |
-| 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | — |
+| 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | em andamento (bloco 1/5) |
 | 5. macOS | Mesmo app no M4 com BlackHole | Funciona nos dois SOs | — |
 | 6. Dispositivo virtual próprio | Plugin HAL (Mac), depois driver Windows | Sem depender de VB-Cable/BlackHole | — |
 | 7. Extras | Roteamento avançado, atalhos, auto-start, instalador | Conforme necessidade | — |
@@ -86,3 +95,9 @@ underrun único na partida com DFN; gate do mic antes do app (melhorias do Windo
   Fase 4 parte de `crates/ui` (telas + global `Dados`) e das notas "Para a Fase 4" em `05-interface.md`.
 - 2026-10-20 — Branches das fases 2 (`claude/fase2-modelos-3e5d58`) e 3
   (`claude/fase3-mockup-ui-32f66c`) mescladas na `main`.
+- 2026-10-20 — Fase 4 iniciada (branch `claude/fase4-app`). Alex decidiu: processo único e
+  recarregar o modelo na troca. Bloco 1: `core` ganhou ganho de saída (rampa, satura), pico da
+  entrada e `tocando` (+2 testes; todos passam); `audio` manda avisos por canal e ignora o Xrun
+  espúrio do 1º pacote; `app` ganhou o `Controlador` (troca sem corte) e comandos na CLI
+  (l, f, b, g N, p). Medido: Leve→Forte ~0,26 s de bloqueio (DFN 0,17–0,19 s), antigo tocando
+  até o novo chegar; 1 de 5 trocas teve 2 underruns (partida do DFN). Ver `03-audio.md`.

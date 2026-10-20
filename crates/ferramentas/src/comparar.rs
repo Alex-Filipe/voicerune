@@ -50,7 +50,7 @@ fn gravar(trecho: &str, segundos: u64) -> Res<Gravacao> {
     }));
     let l = linha.clone();
     let mut contador = 0u64;
-    let pedido = Pedido { backend: Default::default(), trecho: Some(trecho.into()), taxa: SAMPLE_RATE, buffer: None };
+    let pedido = Pedido { trecho: Some(trecho.into()), taxa: SAMPLE_RATE, ..Default::default() };
     let fluxo = audio::abrir_entrada(&pedido, move |dados, p| {
         contador += 1;
         if contador <= PACOTES_INICIAIS {

@@ -24,7 +24,7 @@
 - `cargo build --release`; binários em `C:\dev\cargo-target\mic-limpo\release\`:
   `mic-limpo.exe` (app) e `mic-limpo-dev.exe` (ferramentas). `cargo test --workspace` roda os testes; o teste de tempo real do DFN só roda em
   `cargo test --workspace --release` (em debug o modelo é lento demais e fica ignorado).
-- App: `mic-limpo --listar` · `mic-limpo --entrada Microphone` (Enter liga/desliga a IA, `q` encerra).
+- App: `mic-limpo --listar` · `mic-limpo --entrada Microphone` (Enter liga/desliga a IA; `l`/`f` Leve/Forte, `b` baixa latência, `g N` ganho, `p` pausa, `q` encerra).
   Modo baixa latência: acrescentar `--baixa-latencia` (Windows).
 - Ferramentas (`mic-limpo-dev --ajuda`):
   - `bench` — custo do RNNoise, offline.

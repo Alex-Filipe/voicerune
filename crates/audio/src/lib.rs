@@ -6,9 +6,12 @@
 mod wasapi;
 
 use std::error::Error;
+use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
+use std::sync::mpsc::Sender;
+use std::sync::Arc;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BufferSize, Device, Host, StreamConfig};
+use cpal::{BufferSize, Device, ErrorKind, Host, StreamConfig};
 
 pub type Res<T> = Result<T, Box<dyn Error>>;
 
@@ -43,6 +46,40 @@ pub struct Pedido {
     pub taxa: u32,
     /// Buffer pedido em quadros; `None` = o do sistema.
     pub buffer: Option<u32>,
+    /// Para onde vão os avisos do fluxo; `None` = imprime no stderr.
+    pub avisos: Option<Sender<Aviso>>,
+}
+
+impl Default for Pedido {
+    fn default() -> Self {
+        Self { backend: Backend::Padrao, trecho: None, taxa: 48_000, buffer: None, avisos: None }
+    }
+}
+
+/// Algo que aconteceu com um fluxo depois de pedido (ex.: dispositivo desconectado).
+#[derive(Clone, Debug)]
+pub struct Aviso {
+    pub entrada: bool,
+    /// O fluxo parou de entregar pacotes e precisa ser reaberto.
+    pub fatal: bool,
+    pub texto: String,
+}
+
+pub(crate) fn avisar(destino: &Option<Sender<Aviso>>, a: Aviso) {
+    match destino {
+        Some(tx) => {
+            let _ = tx.send(a);
+        }
+        None => eprintln!("{} ({}): {}", if a.fatal { "erro" } else { "aviso" }, if a.entrada { "entrada" } else { "saída" }, a.texto),
+    }
+}
+
+/// Erros do cpal depois dos quais o fluxo não volta sozinho.
+fn fatal(k: ErrorKind) -> bool {
+    matches!(
+        k,
+        ErrorKind::DeviceNotAvailable | ErrorKind::StreamInvalidated | ErrorKind::HostUnavailable | ErrorKind::PermissionDenied
+    )
 }
 
 /// Fluxo aberto e ainda parado. Parar = soltar (`drop`).
@@ -78,7 +115,7 @@ impl Fluxo {
 
 #[cfg(windows)]
 fn abrir_wasapi(p: &Pedido, cb: wasapi::Callback) -> Res<Fluxo> {
-    let (f, a) = wasapi::abrir(p.trecho.clone(), p.taxa, cb)?;
+    let (f, a) = wasapi::abrir(p.trecho.clone(), p.taxa, cb, p.avisos.clone())?;
     Ok(Fluxo { interno: Interno::Wasapi(f), nome: a.nome, canais: a.canais })
 }
 
@@ -131,15 +168,24 @@ pub fn abrir_entrada(p: &Pedido, mut cb: impl FnMut(&[f32], Pacote) + Send + 'st
     let dev = achar(&host, true, p.trecho.as_deref())?;
     let cfg = config(&dev, true, p)?;
     let (nome, canais) = (nome(&dev), cfg.channels as usize);
-    let rotulo = nome.clone();
+    // Com o dispositivo já rodando (outro fluxo aberto nele), o cpal acusa um Xrun no 1º pacote,
+    // cuja flag de descontinuidade é indefinida: medido em 2026-10-20. Só conta Xrun depois dele.
+    let entregou = Arc::new(AtomicBool::new(false));
+    let e = entregou.clone();
+    let mut erro = erro_cpal(p, true, &nome);
     let stream = dev.build_input_stream(
         cfg,
         move |dados: &[f32], info: &cpal::InputCallbackInfo| {
             let ts = info.timestamp();
             let callback_ns = ts.callback.as_nanos() as u64;
             cb(dados, Pacote { canais, callback_ns, dispositivo_ns: ts.capture.as_nanos() as u64 });
+            e.store(true, Relaxed);
         },
-        move |e| eprintln!("erro na entrada ({rotulo}): {e}"),
+        move |x: cpal::Error| {
+            if x.kind() != ErrorKind::Xrun || entregou.load(Relaxed) {
+                erro(x)
+            }
+        },
         None,
     )?;
     Ok(Fluxo { interno: Interno::Cpal(stream), nome, canais })
@@ -151,7 +197,6 @@ pub fn abrir_saida(p: &Pedido, mut cb: impl FnMut(&mut [f32], Pacote) + Send + '
     let dev = achar(&host, false, p.trecho.as_deref())?;
     let cfg = config(&dev, false, p)?;
     let (nome, canais) = (nome(&dev), cfg.channels as usize);
-    let rotulo = nome.clone();
     let stream = dev.build_output_stream(
         cfg,
         move |dados: &mut [f32], info: &cpal::OutputCallbackInfo| {
@@ -159,10 +204,15 @@ pub fn abrir_saida(p: &Pedido, mut cb: impl FnMut(&mut [f32], Pacote) + Send + '
             let callback_ns = ts.callback.as_nanos() as u64;
             cb(dados, Pacote { canais, callback_ns, dispositivo_ns: ts.playback.as_nanos() as u64 });
         },
-        move |e| eprintln!("erro na saída ({rotulo}): {e}"),
+        erro_cpal(p, false, &nome),
         None,
     )?;
     Ok(Fluxo { interno: Interno::Cpal(stream), nome, canais })
+}
+
+fn erro_cpal(p: &Pedido, entrada: bool, nome: &str) -> impl FnMut(cpal::Error) + Send + 'static {
+    let (destino, nome) = (p.avisos.clone(), nome.to_string());
+    move |e| avisar(&destino, Aviso { entrada, fatal: fatal(e.kind()), texto: format!("{nome}: {e}") })
 }
 
 fn nome(d: &Device) -> String {

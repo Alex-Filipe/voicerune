@@ -54,15 +54,40 @@ pub struct Metricas {
 }
 
 impl Metricas {
+    /// Tempo médio de DSP por quadro de 10 ms, em ms.
+    pub fn dsp_ms(&self) -> f64 {
+        self.dsp_ns.load(Relaxed) as f64 / self.quadros.load(Relaxed).max(1) as f64 / 1e6
+    }
+
+    /// Uso médio de um núcleo pelo processamento, em %.
+    pub fn cpu_pct(&self) -> f64 {
+        self.dsp_ms() / amostras_ms(FRAME as f64) * 100.0
+    }
+
+    /// Atrasos médios em ms: (driver entrada, acúmulo de quadro, modelo, fila, driver saída).
+    fn atrasos(&self, ia: bool, modelo: Tipo) -> [f64; 5] {
+        [
+            self.atraso_entrada_us.valor() / 1000.0,
+            amostras_ms(self.acumulo.valor()),
+            if ia { amostras_ms(modelo.atraso_amostras() as f64) } else { 0.0 },
+            amostras_ms(self.fila.valor()),
+            self.atraso_saida_us.valor() / 1000.0,
+        ]
+    }
+
+    /// Latência estimada do app em ms (soma dos atrasos médios; não é medição ponta a ponta).
+    pub fn latencia_ms(&self, ia: bool, modelo: Tipo) -> f64 {
+        self.atrasos(ia, modelo).iter().sum()
+    }
+
+    /// Falhas audíveis: underruns + descartes por deriva.
+    pub fn falhas(&self) -> u64 {
+        self.underruns.load(Relaxed) + self.descartes.load(Relaxed)
+    }
+
     pub fn resumo(&self, duracao: Duration, ia: bool, modelo: Tipo) -> String {
-        let quadros = self.quadros.load(Relaxed).max(1) as f64;
-        let dsp_ms = self.dsp_ns.load(Relaxed) as f64 / quadros / 1e6;
-        let quadro_ms = amostras_ms(FRAME as f64);
-        let ent = self.atraso_entrada_us.valor() / 1000.0;
-        let sai = self.atraso_saida_us.valor() / 1000.0;
-        let acumulo = amostras_ms(self.acumulo.valor());
-        let fila = amostras_ms(self.fila.valor());
-        let algoritmo = if ia { amostras_ms(modelo.atraso_amostras() as f64) } else { 0.0 };
+        let dsp_ms = self.dsp_ms();
+        let [ent, acumulo, algoritmo, fila, sai] = self.atrasos(ia, modelo);
         format!(
             "Resumo ({:.1} s, IA {} ao final):\n\
              \x20 DSP por quadro de 10 ms: média {dsp_ms:.3} ms ({:.1}% de um núcleo), pior callback {:.3} ms\n\
@@ -71,13 +96,13 @@ impl Metricas {
              \x20 latência estimada do app: {:.1} ms (soma acima; estimativa, não medição ponta a ponta)",
             duracao.as_secs_f64(),
             if ia { "ligada" } else { "desligada" },
-            dsp_ms / quadro_ms * 100.0,
+            self.cpu_pct(),
             self.dsp_max_ns.load(Relaxed) as f64 / 1e6,
             self.underruns.load(Relaxed),
             self.descartes.load(Relaxed),
             self.descartadas.load(Relaxed),
             self.perdidas.load(Relaxed),
-            ent + acumulo + algoritmo + fila + sai
+            self.latencia_ms(ia, modelo)
         )
     }
 }

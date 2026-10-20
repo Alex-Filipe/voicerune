@@ -32,3 +32,8 @@
 | 2026-10-20 | Cor de destaque segue a do sistema | Comportamento nativo do Windows 11 |
 | 2026-10-20 | Slint sob a licença royalty-free (selo `AboutSlint` na página Sobre) | Permite manter o app MIT sem GPL |
 | 2026-10-20 | Visual da Fase 3 aprovado (capturas em `docs/mockups/capturas/`) | Aprovado pelo Alex após a correção das caixas de seleção |
+| 2026-10-20 | Áudio e UI no mesmo processo; fechar a janela destrói o componente e fica a bandeja | Escolha do Alex: mais simples; separar com IPC só se a RAM medida pedir |
+| 2026-10-20 | Trocar Leve ↔ Forte recarrega o modelo (só o modelo em uso na memória) | Escolha do Alex: evita +20 MB do DFN sempre carregado |
+| 2026-10-20 | Troca de motor sem corte: o novo é montado com o antigo tocando e o antigo sai quando o novo chegou ao dispositivo | Medido: espera de 18–47 ms além da carga; antigo continua se o novo falhar |
+| 2026-10-20 | Ganho de saída depois da IA, em rampa de um pacote e saturado em ±1; medidor = pico da entrada antes da IA | Sem estalo ao mexer no controle; medidor mostra se o mic está captando |
+| 2026-10-20 | Ignorar Xrun do cpal antes do 1º pacote da entrada | Flag indefinida no 1º pacote; aviso espúrio confirmado com duas instâncias |

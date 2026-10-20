@@ -139,3 +139,30 @@ Voicemeeter aberto (usando o mic) e Discord fechado.
 | Baixa latência | 1,37 % de um núcleo | 2,1 MB | 0 |
 
 Custo extra do modo novo: +0,2 ponto de CPU. **Falta:** medir com jogo aberto (pior caso).
+
+## Troca em tempo de execução (Fase 4, bloco 1)
+
+`Controlador` (`crates/app/src/controlador.rs`): IA ligada e ganho mudam na hora (atômicos).
+Modelo, dispositivo e backend pedem motor e fluxos novos, montados **com o antigo ainda tocando**;
+o antigo só é solto quando a saída nova já entregou áudio real (`Controle::tocando`) e passou o
+atraso do buffer de saída dela. Se algo falhar, o antigo continua.
+
+**Medido em 2026-10-20** (release; entrada padrão do sistema = Voicemeeter Out B1, saída CABLE Input):
+
+| Troca | Motor | Fluxos | Espera até soltar o antigo | Falhas no motor novo |
+|---|---|---|---|---|
+| Leve → Forte, padrão | 174–193 ms | 24–26 ms | 43–47 ms | 0 em 2 de 3; 2 underruns + 2 descartes em 1 |
+| Leve → Forte, baixa latência | 180–187 ms | 16–17 ms | 18–26 ms | 0 em 2 de 2 |
+| Forte → Leve | 0 ms | 19–26 ms | 25–45 ms | — |
+| Ganho, IA liga/desliga | na hora | — | — | — |
+
+- A chamada bloqueia ~0,26 s no pior caso (carga do DFN): na UI, rodar fora da thread da janela.
+- Corte audível na troca: **hipótese** ~0 pelo desenho (o antigo toca até o novo chegar ao
+  dispositivo); não medido ponta a ponta. Pode haver alguns ms de sobreposição dos dois.
+- As falhas numa das trocas para o Forte são a limitação conhecida da partida do DFN (Fase 2).
+- **Xrun espúrio do cpal:** com o dispositivo de entrada já rodando (outro fluxo aberto nele), o
+  1º pacote do fluxo novo vem com a flag de descontinuidade, que é indefinida no 1º pacote.
+  Confirmado com duas instâncias (só a 2ª acusava, sem underrun). O `audio` ignora Xrun antes do
+  1º pacote entregue.
+- Avisos dos fluxos (erro fatal = dispositivo sumiu; não fatal = ajuste) vão por canal
+  (`Pedido.avisos`); sem canal, stderr.

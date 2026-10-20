@@ -21,7 +21,7 @@ use crate::Res;
 pub fn gravar(arquivo: &Path, trecho: Option<String>, segundos: u64) -> Res<()> {
     let amostras = Arc::new(Mutex::new(Vec::with_capacity((segundos as usize + 1) * SAMPLE_RATE as usize)));
     let a = amostras.clone();
-    let pedido = Pedido { backend: Default::default(), trecho, taxa: SAMPLE_RATE, buffer: None };
+    let pedido = Pedido { trecho, taxa: SAMPLE_RATE, ..Default::default() };
     let fluxo = audio::abrir_entrada(&pedido, move |dados, p| {
         // Ferramenta, não o motor: um lock aqui é aceitável (o main só lê depois de parar).
         if let Ok(mut a) = a.try_lock() {
