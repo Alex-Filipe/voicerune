@@ -65,7 +65,9 @@ macro_rules! preparar {
         let d = $janela.global::<Dados>();
         d.set_pagina($o.pagina);
         d.set_tema($o.tema);
-        $janela.invoke_aplicar_tema($o.tema);
+        if $o.tema != 0 {
+            $janela.invoke_aplicar_tema($o.tema);
+        }
         let fraca = $janela.as_weak();
         (!$o.medidor_parado).then(|| {
             animar_medidor(move |n| {

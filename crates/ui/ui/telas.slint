@@ -479,6 +479,7 @@ component PaginaSobre inherits VerticalLayout {
 
 export component JanelaPrincipal inherits Window {
     title: "mic-limpo";
+    icon: @image-url("icone.svg");
     preferred-width: 500px;
     preferred-height: 540px;
     min-width: 420px;
@@ -486,8 +487,16 @@ export component JanelaPrincipal inherits Window {
     background: Cores.janela;
     default-font-size: 14px;
 
+    // Nunca usar ColorScheme.unknown: os widgets e as nossas cores divergiriam (texto some).
+    // Antes do 1º ajuste o Palette segue o sistema; guardamos esse valor para "Do sistema".
+    property <bool> sistema-escuro;
+    property <bool> tema-forcado;
     public function aplicar-tema(t: int) {
-        Palette.color-scheme = t == 1 ? ColorScheme.light : t == 2 ? ColorScheme.dark : ColorScheme.unknown;
+        if !tema-forcado {
+            sistema-escuro = Palette.color-scheme == ColorScheme.dark;
+            tema-forcado = true;
+        }
+        Palette.color-scheme = t == 1 ? ColorScheme.light : t == 2 ? ColorScheme.dark : sistema-escuro ? ColorScheme.dark : ColorScheme.light;
     }
 
     HorizontalLayout {
@@ -585,8 +594,16 @@ export component Flyout inherits Window {
     background: Cores.janela;
     default-font-size: 14px;
 
+    // Nunca usar ColorScheme.unknown: os widgets e as nossas cores divergiriam (texto some).
+    // Antes do 1º ajuste o Palette segue o sistema; guardamos esse valor para "Do sistema".
+    property <bool> sistema-escuro;
+    property <bool> tema-forcado;
     public function aplicar-tema(t: int) {
-        Palette.color-scheme = t == 1 ? ColorScheme.light : t == 2 ? ColorScheme.dark : ColorScheme.unknown;
+        if !tema-forcado {
+            sistema-escuro = Palette.color-scheme == ColorScheme.dark;
+            tema-forcado = true;
+        }
+        Palette.color-scheme = t == 1 ? ColorScheme.light : t == 2 ? ColorScheme.dark : sistema-escuro ? ColorScheme.dark : ColorScheme.light;
     }
 
     Rectangle {

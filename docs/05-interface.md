@@ -65,5 +65,8 @@ para crescer sem poluir a tela.
 - O medidor só deve animar com a janela/flyout visível (parado = 0 % de CPU).
 - Flyout: posicionar junto da bandeja, cantos arredondados (DWM) e fechar ao perder o foco.
 - Avaliar o `system-tray` do próprio Slint 1.18 em vez do crate `tray-icon`.
-- Pendências visuais: barra de título nativa não segue o tema forçado; ícone da janela é o do
-  Slint; Mica/Acrylic (`window-vibrancy`) não testado.
+- Pendências visuais: barra de título nativa não segue o tema forçado; Mica/Acrylic
+  (`window-vibrancy`) não testado. Ícone próprio da janela: `crates/ui/ui/icone.svg`.
+- Armadilha resolvida: **nunca** pôr `Palette.color-scheme = ColorScheme.unknown`. Os widgets do
+  Fluent e as nossas cores passam a divergir (texto branco em fundo branco: caixas de seleção
+  "somem"). "Do sistema" volta para o esquema que o sistema tinha antes do 1º ajuste.
