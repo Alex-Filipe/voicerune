@@ -11,6 +11,7 @@ name = "mic-limpo-dev"
 path = "src/main.rs"
 
 [dependencies]
+mic-limpo.workspace = true
 mic-limpo-core.workspace = true
 mic-limpo-audio.workspace = true
 hound.workspace = true
@@ -28,5 +29,5 @@ windows = { workspace = true, features = [
 
 [features]
 default = ["dfn"]
-dfn = ["mic-limpo-core/dfn"]
+dfn = ["mic-limpo-core/dfn", "mic-limpo/dfn"]
 realtime = ["mic-limpo-audio/realtime"]

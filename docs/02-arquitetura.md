@@ -10,16 +10,16 @@ crates/
   audio/        → backends de áudio atrás de callbacks simples: cpal (padrão; WASAPI compartilhado
                   no Windows, CoreAudio no macOS) e `wasapi` (baixa latência, só Windows).
                   Único crate do produto que fala com API de áudio. `Pedido.backend` escolhe.
-  app/          → `mic-limpo`, o programa do usuário. `controlador`: ajustes do usuário →
-                  motor + fluxos (troca sem corte). Hoje CLI; interface (Slint) e bandeja na fase 4.
-  ferramentas/  → `mic-limpo-dev`, só para desenvolvimento: bench, latencia, comparar, sondar.
-                  Não vai para o usuário final.
+  app/          → `mic-limpo`, o programa do usuário: lib `controlador` (ajustes do usuário →
+                  motor + fluxos, troca sem corte) + binário com a janela (Slint). Bandeja no bloco 3.
+  ferramentas/  → `mic-limpo-dev`, só para desenvolvimento: rodar/listar (o app sem janela),
+                  bench, latencia, comparar, sondar. Não vai para o usuário final.
   ui/           → `mic-limpo-ui`: telas em Slint (janela principal + flyout), compiladas no build;
                   dados pelo global `Dados`. Binário `mic-limpo-ui-previa` com dados estáticos.
-                  A fase 4 liga ao motor.
+                  O app liga ao motor.
 ```
-Dependências: `app` → `core` + `audio`; `ferramentas` → `core` + `audio` (+ `windows` para a
-sonda). `core` e `audio` não dependem um do outro: o app converte `audio::Pacote` em
+Dependências: `app` → `core` + `audio` + `ui`; `ferramentas` → `app` (lib) + `core` + `audio`
+(+ `windows` para a sonda). `core` e `audio` não dependem um do outro: o app converte `audio::Pacote` em
 `motor::Tempos`.
 
 ## Contrato do motor
@@ -56,6 +56,16 @@ sonda). `core` e `audio` não dependem um do outro: o app converte `audio::Pacot
 ## Pendências conhecidas
 - (resolvido) erros de stream vão por canal (`Pedido.avisos`), não mais `eprintln!`.
 - Plugin HAL (macOS) e driver (Windows) da fase 6 ficarão em crates próprios.
+
+## Threads do app (fase 4, bloco 2)
+- **Janela** (Slint): só lê e mostra. Cada controle manda o seu campo do pedido (`Ajustes`) por
+  canal; estado da janela num `thread_local` (`Ui`). Timer de 33 ms para o medidor (não redesenha
+  com a janela minimizada) e, a cada 30 ticks, atraso/CPU/falhas.
+- **Controle** (`mic-limpo-controle`): dona do `Controlador`; dorme no `recv`. Junta o que chegou
+  de uma vez (arrastar o ganho = um `aplicar`), reage a aviso fatal (reabre uma vez) e devolve o
+  `Estado` com `slint::invoke_from_event_loop`.
+- **Avisos** (`mic-limpo-avisos`): repassa `audio::Aviso` para o canal da de controle.
+- Fechar a janela: `Sair` para a de controle, que solta motor e fluxos (medido: 24–32 ms).
 
 ## Processo (decidido na fase 4)
 - **Processo único** para áudio e UI. Fechar a janela destrói o componente Slint e fica só a

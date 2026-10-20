@@ -23,7 +23,16 @@ export global Dados {
     in property <string> versao: "0.0.1";
     in property <string> modelo: "RNNoise";
     in property <string> resumo-rota: "Fifine K669 → CABLE Input";
+    // Erro do áudio (vazio = tudo certo); aparece na linha de status.
+    in property <string> erro: "";
     callback abrir-janela();
+    // O usuário mexeu num controle (o valor novo já está na propriedade acima).
+    callback modo-escolhido();
+    callback ganho-mudou();
+    callback entrada-escolhida();
+    callback saida-escolhida();
+    callback baixa-latencia-mudou();
+    callback ligado-mudou();
 }
 
 global Cores {
@@ -147,6 +156,7 @@ component Medidor inherits Rectangle {
 component Segmentado inherits Rectangle {
     in property <[string]> opcoes;
     in-out property <int> atual;
+    callback escolheu();
     height: 34px;
     border-radius: 6px;
     background: Cores.sutil;
@@ -175,7 +185,10 @@ component Segmentado inherits Rectangle {
 
             ta := TouchArea {
                 clicked => {
-                    atual = i;
+                    if atual != i {
+                        atual = i;
+                        escolheu();
+                    }
                 }
             }
         }
@@ -246,6 +259,9 @@ component PaginaInicio inherits VerticalLayout {
                 ComboBox {
                     model: Dados.entradas;
                     current-index <=> Dados.entrada;
+                    selected => {
+                        Dados.entrada-escolhida();
+                    }
                 }
             }
         }
@@ -272,6 +288,9 @@ component PaginaInicio inherits VerticalLayout {
         Segmentado {
             opcoes: ["Desligado", "Leve", "Forte"];
             atual <=> Dados.modo;
+            escolheu => {
+                Dados.modo-escolhido();
+            }
         }
     }
 
@@ -289,6 +308,9 @@ component PaginaInicio inherits VerticalLayout {
             maximum: 24;
             step: 1;
             value <=> Dados.ganho-db;
+            changed => {
+                Dados.ganho-mudou();
+            }
         }
     }
 
@@ -308,6 +330,9 @@ component PaginaInicio inherits VerticalLayout {
                 ComboBox {
                     model: Dados.saidas;
                     current-index <=> Dados.saida;
+                    selected => {
+                        Dados.saida-escolhida();
+                    }
                 }
             }
         }
@@ -321,11 +346,14 @@ component PaginaInicio inherits VerticalLayout {
             width: 8px;
             height: 8px;
             border-radius: 4px;
-            background: Dados.ligado ? Cores.ok : Cores.texto2;
+            background: Dados.erro != "" ? Cores.ruim : Dados.ligado ? Cores.ok : Cores.texto2;
         }
 
         Rotulo {
-            text: !Dados.ligado ? "Pausado" : Dados.modo == 0 ? "Funcionando · sem cancelamento · atraso " + Dados.atraso : "Funcionando · atraso " + Dados.atraso;
+            horizontal-stretch: 1;
+            wrap: word-wrap;
+            // O atraso é a estimativa do app; o VB-Cable soma ~55–60 ms (medido na Fase 1).
+            text: Dados.erro != "" ? Dados.erro : !Dados.ligado ? "Pausado" : Dados.modo == 0 ? "Funcionando · sem cancelamento · atraso do app " + Dados.atraso : "Funcionando · atraso do app " + Dados.atraso;
         }
     }
 }
@@ -363,9 +391,12 @@ component PaginaConfig inherits VerticalLayout {
         LinhaAjuste {
             icone: Icones.relogio;
             titulo: "Baixa latência";
-            sub: "Menos atraso (~85 ms em vez de ~120 ms)";
+            sub: "Cerca de 30 ms a menos de atraso";
             Switch {
                 checked <=> Dados.baixa-latencia;
+                toggled => {
+                    Dados.baixa-latencia-mudou();
+                }
             }
         }
     }
@@ -405,7 +436,7 @@ component PaginaConfig inherits VerticalLayout {
         HorizontalLayout {
             spacing: 8px;
             Estatistica {
-                nome: "Atraso";
+                nome: "Atraso do app";
                 valor: Dados.atraso;
             }
 
@@ -623,12 +654,18 @@ export component Flyout inherits Window {
 
             Switch {
                 checked <=> Dados.ligado;
+                toggled => {
+                    Dados.ligado-mudou();
+                }
             }
         }
 
         Segmentado {
             opcoes: ["Desligado", "Leve", "Forte"];
             atual <=> Dados.modo;
+            escolheu => {
+                Dados.modo-escolhido();
+            }
         }
 
         HorizontalLayout {

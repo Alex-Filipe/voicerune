@@ -4,11 +4,14 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
-# Programa do usuário: só liga o motor (core) a um backend (audio). Ferramentas de medição
-# ficam em `crates/ferramentas`, fora deste binário.
+# Programa do usuário: a janela (`crates/ui`) ligada ao motor (core) e aos backends (audio) pelo
+# `Controlador` (lib, também usado por `mic-limpo-dev rodar`). Ferramentas de medição ficam em
+# `crates/ferramentas`, fora deste binário.
 [dependencies]
 mic-limpo-core.workspace = true
 mic-limpo-audio.workspace = true
+mic-limpo-ui.workspace = true
+slint.workspace = true
 
 [features]
 default = ["dfn"]

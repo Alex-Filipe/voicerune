@@ -23,7 +23,7 @@ use windows::Win32::System::Threading::{
     AvRevertMmThreadCharacteristics, AvSetMmThreadCharacteristicsW, CreateEventW, WaitForSingleObject,
 };
 
-use crate::{avisar, Aviso, Pacote, Res};
+use crate::{avisar, escolher, Aviso, Pacote, Res};
 
 const WAVE_FORMAT_IEEE_FLOAT: u16 = 3;
 const WAVE_FORMAT_EXTENSIBLE: u16 = 0xFFFE;
@@ -148,17 +148,11 @@ unsafe fn abrir_dispositivo(
     let dev = match trecho {
         None => en.GetDefaultAudioEndpoint(fluxo, eConsole)?,
         Some(t) => {
-            let t = t.to_lowercase();
             let col = en.EnumAudioEndpoints(fluxo, DEVICE_STATE_ACTIVE)?;
-            let mut achado = None;
-            for i in 0..col.GetCount()? {
-                let d = col.Item(i)?;
-                if nome(&d).unwrap_or_default().to_lowercase().contains(&t) {
-                    achado = Some(d);
-                    break;
-                }
-            }
-            achado.ok_or_else(|| format!("nenhum dispositivo contém \"{t}\" (veja --listar)"))?
+            let devs = (0..col.GetCount()?).map(|i| col.Item(i)).collect::<Result<Vec<_>, _>>()?;
+            let nomes: Vec<String> = devs.iter().map(|d| nome(d).unwrap_or_default()).collect();
+            let i = escolher(&nomes, t).ok_or_else(|| format!("nenhum dispositivo contém \"{t}\" (veja listar)"))?;
+            devs.into_iter().nth(i).expect("índice veio da lista")
         }
     };
     let nome = nome(&dev).unwrap_or_else(|_| "?".into());

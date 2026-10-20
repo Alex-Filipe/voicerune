@@ -37,3 +37,8 @@
 | 2026-10-20 | Troca de motor sem corte: o novo é montado com o antigo tocando e o antigo sai quando o novo chegou ao dispositivo | Medido: espera de 18–47 ms além da carga; antigo continua se o novo falhar |
 | 2026-10-20 | Ganho de saída depois da IA, em rampa de um pacote e saturado em ±1; medidor = pico da entrada antes da IA | Sem estalo ao mexer no controle; medidor mostra se o mic está captando |
 | 2026-10-20 | Ignorar Xrun do cpal antes do 1º pacote da entrada | Flag indefinida no 1º pacote; aviso espúrio confirmado com duas instâncias |
+| 2026-10-20 | CLI do app vira `mic-limpo-dev rodar`/`listar`; `mic-limpo` é só a janela (sem console em release) | Escolha do Alex: app final limpo; o `Controlador` virou lib do app para os dois usarem |
+| 2026-10-20 | UI ↔ motor: thread de controle dona do `Controlador`, pedidos por canal (junta rajadas), estado volta por `invoke_from_event_loop` | `aplicar` bloqueia até ~0,26 s com o DFN; sem polling fora do medidor |
+| 2026-10-20 | Cada controle muda só o seu campo do pedido | O mic segue "o padrão do sistema" até o usuário escolher um |
+| 2026-10-20 | Busca de dispositivo prefere o nome exato | O nome vem da lista da UI; "contém" podia cair num parecido |
+| 2026-10-20 | Medidor de −60 a 0 dBFS com queda suave; "CPU" mostra só a IA; atraso rotulado "do app" | Honestidade: o atraso não inclui o VB-Cable (~55–60 ms) |

@@ -224,10 +224,18 @@ fn achar(host: &Host, entrada: bool, trecho: Option<&str>) -> Res<Device> {
         let d = if entrada { host.default_input_device() } else { host.default_output_device() };
         return d.ok_or_else(|| "sem dispositivo padrão".into());
     };
-    let t = t.to_lowercase();
-    let mut devs = if entrada { host.input_devices()? } else { host.output_devices()? };
-    devs.find(|d| nome(d).to_lowercase().contains(&t))
-        .ok_or_else(|| format!("nenhum dispositivo contém \"{t}\" (veja --listar)").into())
+    let devs: Vec<Device> = if entrada { host.input_devices()?.collect() } else { host.output_devices()?.collect() };
+    let nomes: Vec<String> = devs.iter().map(nome).collect();
+    let i = escolher(&nomes, t).ok_or_else(|| format!("nenhum dispositivo contém \"{t}\" (veja listar)"))?;
+    Ok(devs.into_iter().nth(i).expect("índice veio da lista"))
+}
+
+/// Índice do dispositivo cujo nome é `trecho` (sem diferenciar maiúsculas) ou, se nenhum for,
+/// o primeiro que o contém. O nome exato vem da lista da UI e não pode cair num nome parecido.
+pub fn escolher(nomes: &[String], trecho: &str) -> Option<usize> {
+    let t = trecho.to_lowercase();
+    let nomes: Vec<String> = nomes.iter().map(|n| n.to_lowercase()).collect();
+    nomes.iter().position(|n| *n == t).or_else(|| nomes.iter().position(|n| n.contains(&t)))
 }
 
 /// Mantém os canais do dispositivo e pede a taxa do motor em f32 (o WASAPI converte na saída).
@@ -238,4 +246,17 @@ fn config(d: &Device, entrada: bool, p: &Pedido) -> Res<StreamConfig> {
         sample_rate: p.taxa,
         buffer_size: p.buffer.map_or(BufferSize::Default, BufferSize::Fixed),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::escolher;
+
+    #[test]
+    fn nome_exato_ganha_do_primeiro_que_contem() {
+        let nomes = ["CABLE Input 16ch (VB-Audio)".to_string(), "CABLE Input".to_string()];
+        assert_eq!(escolher(&nomes, "cable input"), Some(1));
+        assert_eq!(escolher(&nomes, "16ch"), Some(0));
+        assert_eq!(escolher(&nomes, "nada"), None);
+    }
 }

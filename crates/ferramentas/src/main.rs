@@ -4,6 +4,7 @@ mod bench;
 mod comparar;
 mod latencia;
 mod processar;
+mod rodar;
 #[cfg(windows)]
 mod sonda;
 
@@ -14,10 +15,9 @@ use mic_limpo_core::modelo::Tipo;
 
 type Res<T> = Result<T, Box<dyn Error>>;
 
-const AJUDA: &str = "\
-mic-limpo-dev (ferramentas de medição)
+const TITULO: &str = "mic-limpo-dev (ferramentas de desenvolvimento e medição)\n";
 
-  mic-limpo-dev bench [--modelo M] [--limite-db N] [--segundos N]
+const AJUDA: &str = "  mic-limpo-dev bench [--modelo M] [--limite-db N] [--segundos N]
       custo e atraso algorítmico dos modelos, sem dispositivos (padrão: todos, 20 s)
   mic-limpo-dev latencia [--entrada T] [--saida T] [--retorno T] [--folga-ms N] [--teto-ms N]
                          [--buffer N] [--baixa-latencia] [--modelo M] [--segundos N]
@@ -34,7 +34,7 @@ mic-limpo-dev (ferramentas de medição)
   mic-limpo-dev sondar
       períodos e latências que o WASAPI permite no mic e no VB-Cable (Windows)
 
-T = parte do nome do dispositivo (veja mic-limpo --listar). M = rnnoise ou dfn.";
+T = parte do nome do dispositivo (veja listar). M = rnnoise ou dfn.";
 
 fn main() {
     if let Err(e) = executar() {
@@ -46,9 +46,14 @@ fn main() {
 fn executar() -> Res<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some((comando, resto)) = args.split_first() else {
-        println!("{AJUDA}");
+        println!("{TITULO}\n{}\n{AJUDA}", rodar::AJUDA);
         return Ok(());
     };
+    match comando.as_str() {
+        "rodar" => return rodar::rodar(resto),
+        "listar" => return rodar::mostrar_lista(),
+        _ => {}
+    }
     let mut lat = latencia::Opcoes::default();
     let (mut referencia, mut alvo) = ("Microphone".to_string(), "Voicemeeter Out B1".to_string());
     let mut segundos = None;
@@ -97,7 +102,7 @@ fn executar() -> Res<()> {
         #[cfg(not(windows))]
         "sondar" => Err("sondar só existe no Windows".into()),
         "-h" | "--ajuda" | "ajuda" => {
-            println!("{AJUDA}");
+            println!("{TITULO}\n{}\n{AJUDA}", rodar::AJUDA);
             Ok(())
         }
         _ => Err(format!("comando desconhecido: {comando} (veja --ajuda)").into()),

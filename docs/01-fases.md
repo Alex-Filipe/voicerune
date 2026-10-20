@@ -1,8 +1,8 @@
 # Fases
 
-**Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), bloco 1 de 5 concluído.
-- Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. UI em Slint aprovada
-  (`crates/ui`, prévia `mic-limpo-ui-previa`, ainda sem áudio).
+**Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 e 2 de 5 concluídos.
+- Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `mic-limpo` abre a janela
+  Slint ligada ao motor; sem janela: `mic-limpo-dev rodar`.
 - Latência com a IA ligada: Leve ~98 ms / Forte ~115 ms com `--baixa-latencia` (padrão ~130 /
   ~149 ms); Voicemeeter atual ~128 ms. Nova meta pendente (Alex decide).
 
@@ -11,15 +11,17 @@
 | Bloco | O quê | Status |
 |---|---|---|
 | 1. Motor controlável | ganho e medidor no `core`; `Controlador` no app troca modo/dispositivo/backend sem reiniciar; avisos por canal | concluído |
-| 2. UI ligada | `mic-limpo` abre a janela Slint com dados reais; `aplicar` fora da thread da janela; medidor só com a janela visível; reagir a aviso fatal | — |
+| 2. UI ligada | `mic-limpo` abre a janela Slint com dados reais; `aplicar` fora da thread da janela; medidor só com a janela visível; reagir a aviso fatal | concluído |
 | 3. Bandeja + flyout | `SystemTrayIcon` do Slint 1.18 (`Shell_NotifyIconW`, sem crate extra); fechar destrói o componente; flyout junto da bandeja | — |
 | 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | — |
 | 5. Uso diário | Alex usa alguns dias | — |
 
-**Próximo passo:** bloco 2 — ligar `crates/ui` ao `Controlador` (decidir se a CLI atual vai para
-`mic-limpo-dev` ou fica atrás de uma opção). Pendências que não bloqueiam: teste com jogo aberto;
-underrun na partida do DFN (também visto numa troca); gate do mic antes do app; corte audível da
-troca não medido ponta a ponta (hipótese ~0).
+**Próximo passo:** bloco 3 — bandeja (`SystemTrayIcon` do Slint) + flyout; fechar a janela
+destrói o componente e fica a bandeja (medir a RAM nesse estado). Antes: Alex abre o `mic-limpo`,
+fala e confere medidor, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
+Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
+dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
+mic antes do app; corte audível da troca não medido ponta a ponta (hipótese ~0).
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
@@ -27,7 +29,7 @@ troca não medido ponta a ponta (hipótese ~0).
 | 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | concluída |
 | 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | concluída: Leve = RNNoise, Forte = DFN3 |
 | 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | concluída |
-| 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | em andamento (bloco 1/5) |
+| 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | em andamento (bloco 2/5) |
 | 5. macOS | Mesmo app no M4 com BlackHole | Funciona nos dois SOs | — |
 | 6. Dispositivo virtual próprio | Plugin HAL (Mac), depois driver Windows | Sem depender de VB-Cable/BlackHole | — |
 | 7. Extras | Roteamento avançado, atalhos, auto-start, instalador | Conforme necessidade | — |
@@ -101,3 +103,9 @@ troca não medido ponta a ponta (hipótese ~0).
   espúrio do 1º pacote; `app` ganhou o `Controlador` (troca sem corte) e comandos na CLI
   (l, f, b, g N, p). Medido: Leve→Forte ~0,26 s de bloqueio (DFN 0,17–0,19 s), antigo tocando
   até o novo chegar; 1 de 5 trocas teve 2 underruns (partida do DFN). Ver `03-audio.md`.
+- 2026-10-20 — Fase 4, bloco 2: `mic-limpo` abre a janela Slint ligada ao `Controlador` (thread
+  de controle + `invoke_from_event_loop`); CLI virou `mic-limpo-dev rodar`/`listar` (escolha do
+  Alex); busca de dispositivo prefere o nome exato (+1 teste). Testado com cliques simulados:
+  troca de mic, Leve/Forte, baixa latência (atraso do app ~93 → ~46 ms), troca que falha volta ao
+  anterior. Medido: 24 MB / 5,4 MB privada no Leve, 48 / 18 MB no Forte, ~0,5–1 % de um núcleo
+  com a entrada em silêncio; janela em ~0,2 s; fecha em ~30 ms. Ver `05-interface.md`.

@@ -130,8 +130,9 @@ impl Controlador {
         self.ativo.as_ref()
     }
 
-    /// Passa a usar `novos`. Se algo falhar, o que estava rodando continua e os ajustes antigos
-    /// ficam valendo.
+    /// Passa a usar `novos`. Se algo falhar com um motor rodando, ele continua e os ajustes
+    /// antigos ficam valendo; sem motor rodando, nada roda e os novos ficam guardados (o próximo
+    /// `aplicar` ou `reabrir` tenta de novo).
     pub fn aplicar(&mut self, novos: Ajustes) -> Res<Troca> {
         if !novos.ligado {
             self.ajustes = novos;
@@ -150,9 +151,19 @@ impl Controlador {
             self.ajustes = novos;
             return Ok(Troca::NaHora);
         }
-        let troca = self.reabrir_com(&novos, modelo)?;
-        self.ajustes = novos;
-        Ok(troca)
+        let r = self.reabrir_com(&novos, modelo);
+        if r.is_ok() || self.ativo.is_none() {
+            self.ajustes = novos;
+        }
+        r
+    }
+
+    /// Fecha e abre de novo com os ajustes atuais (depois de um aviso fatal). Se falhar, fica
+    /// parado até o próximo `aplicar`.
+    pub fn reabrir(&mut self) -> Res<Troca> {
+        self.ativo = None;
+        let a = self.ajustes.clone();
+        self.aplicar(a)
     }
 
     fn reabrir_com(&mut self, a: &Ajustes, modelo: Tipo) -> Res<Troca> {

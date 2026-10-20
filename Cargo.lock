@@ -2764,6 +2764,8 @@ version = "0.0.1"
 dependencies = [
  "mic-limpo-audio",
  "mic-limpo-core",
+ "mic-limpo-ui",
+ "slint",
 ]
 
 [[package]]
@@ -2789,6 +2791,7 @@ name = "mic-limpo-ferramentas"
 version = "0.0.1"
 dependencies = [
  "hound",
+ "mic-limpo",
  "mic-limpo-audio",
  "mic-limpo-core",
  "windows",
