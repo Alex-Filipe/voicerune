@@ -24,6 +24,9 @@
 - `cargo build --release`; binários em `C:\dev\cargo-target\mic-limpo\release\`:
   `mic-limpo.exe` (app) e `mic-limpo-dev.exe` (ferramentas). `cargo test --workspace` roda os testes; o teste de tempo real do DFN só roda em
   `cargo test --workspace --release` (em debug o modelo é lento demais e fica ignorado).
+- Atalho na área de trabalho (`mic-limpo.lnk`, criado em 2026-10-20) aponta direto para o
+  `release\mic-limpo.exe`: sempre a versão compilada mais nova. **Fechar o app (Sair na bandeja)
+  antes de `cargo build --release`**, senão o build falha (exe em uso). Exe ainda sem ícone embutido.
 - App: `mic-limpo` abre a janela (em release, sem console). Sem janela, pelas ferramentas:
   `mic-limpo-dev listar` · `mic-limpo-dev rodar --entrada Microphone` (Enter liga/desliga a IA;
   `l`/`f` Leve/Forte, `b` baixa latência, `g N` ganho, `p` pausa, `q` encerra).
