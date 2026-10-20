@@ -1,5 +1,6 @@
 //! Protótipo da fase 1: microfone → RNNoise → saída (por padrão o VB-Cable).
 
+mod comparar;
 #[cfg(windows)]
 mod sonda;
 
@@ -28,6 +29,7 @@ mic-limpo (protótipo da fase 1)
   mic-limpo --listar        lista dispositivos de áudio
   mic-limpo --bench         mede o custo do RNNoise sem dispositivos
   mic-limpo --sondar        mostra períodos e latências que o WASAPI permite (Windows)
+  mic-limpo --comparar      atraso de --alvo em relação a --ref, pelo mesmo som (só lê)
 
 Opções:
   --entrada TRECHO   parte do nome do microfone (padrão: o do sistema)
@@ -37,6 +39,8 @@ Opções:
   --teto-ms N        acima de folga + N ms, descarta o excesso (padrão: 20)
   --buffer N         buffer do WASAPI em quadros, nos dois lados (padrão: o do sistema)
   --medir-latencia   troca o mic por cliques e mede quando chegam em --retorno (IA desligada)
+  --ref TRECHO       referência do --comparar (padrão: \"Microphone\")
+  --alvo TRECHOS     alvos do --comparar, separados por vírgula (padrão: \"Voicemeeter Out B1\")
   --retorno TRECHO   onde escutar os cliques (padrão: \"CABLE Output\")
   --segundos N       roda N segundos e mostra o resumo (bench: padrão 20)
 
@@ -47,6 +51,7 @@ enum Modo {
     Listar,
     Bench,
     Sondar,
+    Comparar,
 }
 
 struct Opcoes {
@@ -59,6 +64,8 @@ struct Opcoes {
     buffer: Option<u32>,
     medir: bool,
     retorno: String,
+    referencia: String,
+    alvo: String,
     segundos: Option<u64>,
 }
 
@@ -80,6 +87,8 @@ fn executar() -> Res<()> {
         buffer: None,
         medir: false,
         retorno: RETORNO_PADRAO.into(),
+        referencia: "Microphone".into(),
+        alvo: "Voicemeeter Out B1".into(),
         segundos: None,
     };
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -90,6 +99,9 @@ fn executar() -> Res<()> {
             "--listar" => op.modo = Modo::Listar,
             "--bench" => op.modo = Modo::Bench,
             "--sondar" => op.modo = Modo::Sondar,
+            "--comparar" => op.modo = Modo::Comparar,
+            "--ref" => op.referencia = valor()?,
+            "--alvo" => op.alvo = valor()?,
             "--entrada" => op.entrada = Some(valor()?),
             "--saida" => op.saida = valor()?,
             "--sem-ia" => op.ia = false,
@@ -109,6 +121,7 @@ fn executar() -> Res<()> {
     match op.modo {
         Modo::Listar => listar(),
         Modo::Bench => bench(op.segundos.unwrap_or(20)),
+        Modo::Comparar => comparar::comparar(&op.referencia, &op.alvo, op.segundos.unwrap_or(10)),
         #[cfg(windows)]
         Modo::Sondar => Ok(sonda::sondar(&["Microphone", SAIDA_PADRAO, RETORNO_PADRAO])?),
         #[cfg(not(windows))]
