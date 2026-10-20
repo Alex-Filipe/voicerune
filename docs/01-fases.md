@@ -12,7 +12,7 @@ de CPU. **Falta:** Alex testar com jogo aberto (estalos? CPU?) para decidir se v
 |---|---|---|---|
 | 0. Fundação | Estrutura, docs, git, workspace Rust vazio | `cargo build` passa no Windows | concluída |
 | 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | concluída |
-| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | — |
+| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | em andamento (bloco 1: custo do DFN3 medido) |
 | 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | — |
 | 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | — |
 | 5. macOS | Mesmo app no M4 com BlackHole | Funciona nos dois SOs | — |
@@ -44,3 +44,9 @@ Fases 2 e 3 podem andar em paralelo.
 - 2026-10-20 — Validação da refatoração: `latencia` 124,1 / 116,7 ms, 0 underruns (igual a antes).
 - 2026-10-20 — Backend WASAPI de baixa latência (`crates/audio/src/wasapi.rs`, `--baixa-latencia`):
   medido 83,9 / 88,1 ms (padrão 118,6 ms), 0 underruns, CPU 1,37 % × 1,17 %, RAM igual.
+- 2026-10-20 — Fase 2, bloco 1 (branch `claude/fase2-modelos-3e5d58`): sonda isolada do DeepFilterNet3
+  (libDF 0.5.6 + tract 0.19, git): compila no Rust 1.99; ~6,2 % de um núcleo (RNNoise 0,4 %),
+  atraso algorítmico 30 ms (RNNoise 10 ms), RAM privada 20,5 MB, binário 25 MB (21,9 com LTO),
+  nada de rede. Aloca por quadro → precisa de thread própria. Tabela em `04-ia-ruido.md`.
+  **Próximo passo:** Alex decide se aceita o peso; se sim, integrar no `core` (trait de modelo,
+  DFN em thread própria), `--modelo`, bench e `processar` para escuta A/B.
