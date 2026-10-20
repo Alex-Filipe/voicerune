@@ -27,3 +27,8 @@
 | 2026-10-20 | Integridade do modelo DFN pelo commit fixado no `Cargo.lock`, sem copiar o `.tar.gz` para o repo | Evita 8 MB no git/OneDrive; o hash do commit cobre o conteúdo |
 | 2026-10-20 | Underrun único na partida com DFN (folga 10 ms) aceito como limitação conhecida, sem aumentar a folga padrão | 10 ms de silêncio só no início; folga 15 ms resolveria mas custa 5 ms sempre; aquecer o modelo não ajudou (medido) |
 | 2026-10-20 | Modos: Leve = RNNoise (padrão), Forte = DeepFilterNet3 no app, recomendado com `--baixa-latencia`; limite de redução desligado por padrão | Escolha do Alex. Forte: +6 dB de SI-SDR num dos dois ruídos públicos, ~8 % de um núcleo, +20 ms, app ~26 MB; na escuta do Alex sem diferença percebida (mic com gate) |
+| 2026-10-20 | Visual: direção A (cartões estilo Configurações do Windows 11) com barra lateral de ícones (Início, Efeitos apagado, Configurações, Sobre) | Escolha do Alex entre 3 direções; a lateral deixa crescer sem poluir a tela inicial |
+| 2026-10-20 | Slint sem features padrão: `backend-winit` + `renderer-software` (sem OpenGL), estilo Fluent, `.slint` compilado no build | Leveza medida: 20 MB working set, 0 % CPU parado, laço rodando em ~0,1 s |
+| 2026-10-20 | Cor de destaque segue a do sistema | Comportamento nativo do Windows 11 |
+| 2026-10-20 | Slint sob a licença royalty-free (selo `AboutSlint` na página Sobre) | Permite manter o app MIT sem GPL |
+| 2026-10-20 | Visual da Fase 3 aprovado (capturas em `docs/mockups/capturas/`) | Aprovado pelo Alex após a correção das caixas de seleção |

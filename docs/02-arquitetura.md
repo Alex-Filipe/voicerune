@@ -14,7 +14,9 @@ crates/
                   Hoje CLI; interface (Slint) e bandeja na fase 4.
   ferramentas/  → `mic-limpo-dev`, só para desenvolvimento: bench, latencia, comparar, sondar.
                   Não vai para o usuário final.
-  ui/           → (futuro, fase 4) Slint, mesmo código, estilo por SO
+  ui/           → `mic-limpo-ui`: telas em Slint (janela principal + flyout), compiladas no build;
+                  dados pelo global `Dados`. Binário `mic-limpo-ui-previa` com dados estáticos.
+                  A fase 4 liga ao motor.
 ```
 Dependências: `app` → `core` + `audio`; `ferramentas` → `core` + `audio` (+ `windows` para a
 sonda). `core` e `audio` não dependem um do outro: o app converte `audio::Pacote` em

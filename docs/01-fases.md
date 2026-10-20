@@ -1,25 +1,27 @@
 # Fases
 
-**Status atual:** Fase 1 concluída — funciona no Discord; CPU/RAM/latência medidas.
-Latência: app com RNNoise **~130 ms** ≈ Voicemeeter atual **~128 ms**. Meta antiga de < 20 ms é
-inalcançável; **nova meta pendente (Alex decide; sugestão: não piorar em relação ao Voicemeeter)**.
-**Próximo passo:** iniciar a Fase 2 (RNNoise × DeepFilterNet: custo, qualidade e latência,
-incluindo teste de escuta gravado) e/ou a Fase 3 (mockup da UI) — podem andar em paralelo.
-Modo `--baixa-latencia` pronto (WASAPI + IAudioClient3): ~85 ms em vez de ~119 ms, +0,2 ponto
-de CPU. **Falta:** Alex testar com jogo aberto (estalos? CPU?) para decidir se vira o padrão.
+**Status atual:** Fases 0–3 concluídas (branches das fases 2 e 3 mescladas na `main`).
+- Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3 (`--modelo dfn`, recomendado com
+  `--baixa-latencia`). UI em Slint aprovada (`crates/ui`, prévia `mic-limpo-ui-previa`, sem áudio).
+- Latência com a IA ligada: Leve ~98 ms / Forte ~115 ms com `--baixa-latencia` (padrão ~130 /
+  ~149 ms); Voicemeeter atual ~128 ms. Nova meta pendente (Alex decide; sugestão: não piorar em
+  relação ao Voicemeeter).
+
+**Próximo passo:** Fase 4 — app mínimo usável: ligar `crates/ui` ao motor (seletor Leve/Forte,
+baixa latência, ganho de saída), bandeja, presets e config (ver "Para a Fase 4" em
+`05-interface.md`). Pendências que não bloqueiam: teste com jogo aberto (baixa latência e Forte);
+underrun único na partida com DFN; gate do mic antes do app (melhorias do Windows).
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
 | 0. Fundação | Estrutura, docs, git, workspace Rust vazio | `cargo build` passa no Windows | concluída |
 | 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | concluída |
-| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | concluída (branch `claude/fase2-modelos-3e5d58`): Leve = RNNoise, Forte = DFN3 |
-| 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | — |
+| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | concluída: Leve = RNNoise, Forte = DFN3 |
+| 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | concluída |
 | 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | — |
 | 5. macOS | Mesmo app no M4 com BlackHole | Funciona nos dois SOs | — |
 | 6. Dispositivo virtual próprio | Plugin HAL (Mac), depois driver Windows | Sem depender de VB-Cable/BlackHole | — |
 | 7. Extras | Roteamento avançado, atalhos, auto-start, instalador | Conforme necessidade | — |
-
-Fases 2 e 3 podem andar em paralelo.
 
 ## Histórico
 - 2026-10-20 — Fase 0 iniciada: pasta, docs, git e esqueleto do workspace criados.
@@ -74,3 +76,13 @@ Fases 2 e 3 podem andar em paralelo.
   Pendências que não bloqueiam: teste difícil do Forte com o mic sem gate (desligar melhorias do
   Windows); underrun único na partida com DFN. **Próximo passo:** mesclar a branch da fase 2 e
   seguir na fase 3/4 (UI com seletor Leve/Forte).
+- 2026-10-20 — Fase 3: 3 direções em HTML; Alex escolheu a A (Fluent compacto) com barra lateral
+  de ícones. Feita em Slint (`crates/ui`, prévia `mic-limpo-ui-previa`, dados estáticos):
+  janela parada 20 MB (4 MB privada), 0 % CPU; com medidor a 30 Hz, 1,6 % de 1 núcleo; laço de
+  eventos rodando em 30–106 ms; sem dependências de rede. Capturas em `docs/mockups/capturas/`.
+  Falta: aprovação das capturas pelo Alex.
+- 2026-10-20 — Fase 3: corrigidas caixas de seleção invisíveis com o tema do sistema (ver
+  `05-interface.md`); ícone próprio da janela. **Visual aprovado pelo Alex → Fase 3 concluída.**
+  Fase 4 parte de `crates/ui` (telas + global `Dados`) e das notas "Para a Fase 4" em `05-interface.md`.
+- 2026-10-20 — Branches das fases 2 (`claude/fase2-modelos-3e5d58`) e 3
+  (`claude/fase3-mockup-ui-32f66c`) mescladas na `main`.

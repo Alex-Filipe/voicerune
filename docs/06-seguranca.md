@@ -19,6 +19,9 @@
   direto pelo crate `windows` (MIT/Apache), sem essa dependência.
 - **DeepFilterNet** (libDF e modelos): MIT/Apache-2.0. Árvore toda permissiva (MIT, Apache,
   BSD, Unlicense, CC0, Zlib, Unicode-3.0); nada copyleft. RNNoise (`nnnoiseless`): BSD-3-Clause.
+- **Slint** (UI): GPL-3 **ou** licença royalty-free 2.0 (escolhida). A royalty-free permite app
+  desktop fechado ou aberto sob qualquer licença, desde que mostre o selo do Slint (`AboutSlint`,
+  na página Sobre). Revisar o texto da licença antes do 1º release.
 - Voicemeeter: proprietário. Sem engenharia reversa do binário (EULA); só comportamento,
   manual e API pública.
 
