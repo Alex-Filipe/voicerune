@@ -16,6 +16,14 @@ Voicemeeter Banana, mas **simples, leve, bonito e multiplataforma (Windows + mac
 - Sem engenharia reversa do binário do Voicemeeter (EULA): estudar só comportamento,
   manual e API pública (clean-room).
 
+## Fluxo de sessões (economia de tokens)
+
+- **Sessões curtas, uma tarefa por sessão.** Ao concluir a tarefa, sugerir abrir sessão nova.
+- **Início de sessão:** ler este arquivo + `docs/01-fases.md` (status e próximo passo); o resto só sob demanda.
+- **Fim de sessão:** atualizar `docs/01-fases.md` (status, histórico, **próximo passo** claro)
+  e commitar — a próxima sessão retoma só por ele, sem depender do histórico da conversa.
+- Esforço de raciocínio conforme a tarefa; **nunca usar o nível "max"**.
+
 ## Índice
 
 | Doc | Conteúdo |
