@@ -13,6 +13,7 @@ path = "src/main.rs"
 [dependencies]
 mic-limpo-core.workspace = true
 mic-limpo-audio.workspace = true
+hound.workspace = true
 
 # Sonda do WASAPI: consulta o Windows direto (o crate já vem na árvore pelo cpal).
 [target.'cfg(windows)'.dependencies]
@@ -26,4 +27,6 @@ windows = { workspace = true, features = [
 ] }
 
 [features]
+default = ["dfn"]
+dfn = ["mic-limpo-core/dfn"]
 realtime = ["mic-limpo-audio/realtime"]

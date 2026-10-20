@@ -12,7 +12,7 @@ de CPU. **Falta:** Alex testar com jogo aberto (estalos? CPU?) para decidir se v
 |---|---|---|---|
 | 0. Fundação | Estrutura, docs, git, workspace Rust vazio | `cargo build` passa no Windows | concluída |
 | 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | concluída |
-| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | em andamento (bloco 1: custo do DFN3 medido) |
+| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | em andamento: custo e qualidade objetiva medidos; modos propostos; falta escuta A/B e latência ponta a ponta |
 | 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | — |
 | 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | — |
 | 5. macOS | Mesmo app no M4 com BlackHole | Funciona nos dois SOs | — |
@@ -50,3 +50,12 @@ Fases 2 e 3 podem andar em paralelo.
   nada de rede. Aloca por quadro → precisa de thread própria. Tabela em `04-ia-ruido.md`.
   **Próximo passo:** Alex decide se aceita o peso; se sim, integrar no `core` (trait de modelo,
   DFN em thread própria), `--modelo`, bench e `processar` para escuta A/B.
+- 2026-10-20 — Fase 2, bloco 2: DFN3 integrado no `core` (feature `dfn`, thread própria
+  `mic-limpo-ia`), `--modelo rnnoise|dfn` e `--limite-db N` no app e no `latencia`; `bench` compara
+  os modelos; novos `mic-limpo-dev gravar` e `processar` (WAV por modelo + SI-SDR). 10 testes ok.
+  Armadilha: limiares do `default_with_ch` (plugin LADSPA) deixavam o DFN pior que o RNNoise;
+  com os do binário oficial o DFN ganha ~6 dB de SI-SDR num ruído e empata no outro, a 8 % de um
+  núcleo. Modos propostos: Leve = RNNoise, Forte = DFN3 (tabelas em `04-ia-ruido.md`).
+  **Próximo passo:** com o Discord fechado, teste em tempo real (`mic-limpo --modelo dfn`) e
+  `mic-limpo-dev latencia --modelo dfn` (padrão e `--baixa-latencia`); Alex grava a própria voz
+  com ruído (`gravar`) e escuta os WAVs do `processar` para decidir modos e limite de redução.

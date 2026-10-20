@@ -64,3 +64,54 @@ lookahead 2 quadros → 480 + 960 = 1440 amostras, confere com a medição. Piso
 thread própria ligada por ring buffer. Tem limite de redução pronto (`atten_lim_db`: mistura de
 volta parte do sinal original). Modelo de 8 MB (`.tar.gz`) embutido por `include_bytes!`; o commit
 fixado no `Cargo.lock` garante o conteúdo. Licença MIT/Apache-2.0 (código e modelos).
+
+**2026-10-20 — RNNoise × DeepFilterNet3 integrados (fase 2, bloco 2)** — `mic-limpo-dev bench`
+(mesma voz sintética + ruído, 20 s, 1 thread, build release), DFN com os limiares do binário
+oficial (ver abaixo):
+
+| Medida | RNNoise | DeepFilterNet3 |
+|---|---|---|
+| Tempo por quadro de 10 ms | média 0,041 · p99 0,071 · máx 0,23 ms | média 0,81 · p99 1,21 · máx 1,78 ms |
+| Custo médio | **0,4 %** de um núcleo | **8,1 %** de um núcleo (~20×) |
+| Atraso algorítmico | 479 amostras = 10,0 ms | 1440 amostras = 30,0 ms |
+| Onde roda | thread de áudio | thread própria `mic-limpo-ia` (aloca e não é `Send`) |
+
+**Armadilha resolvida: limiares do DFN.** O `RuntimeParams::default_with_ch` da libDF (padrão
+do plugin LADSPA) usa limiares de SNR local −10 / 30 / 20 dB: pula o 2º estágio (deep filtering)
+acima de 20 dB e zera abaixo de −10 dB. Com eles o DFN ficou **pior** que o RNNoise (SI-SDR 4,7 ×
+16,4 dB a 5 dB de SNR; voz limpa só 13 dB). Com os do binário oficial `deep-filter` (−15 / 35 /
+35 dB, a configuração avaliada no artigo): voz limpa 32,8 dB e resultados abaixo. Escolhidos por
+serem o padrão publicado, não ajustados nesta amostra. Custo sobe de ~6 % para ~8 %.
+
+**Qualidade objetiva (amostra pública, não é teste final)** — `mic-limpo-dev processar voz.wav
+--ruido R.wav --snr N`: voz limpa (freesound 33711, 21 s) misturada a dois ruídos (freesound
+2530 e 573577) em SNR conhecido; SI-SDR em dB contra a voz limpa (maior = melhor), saídas
+alinhadas (atraso descontado). Arquivos só locais (33711 é CC BY-NC), fora do repo.
+
+| Ruído · SNR | Entrada | RNNoise | RNNoise lim. 20 dB | DFN3 | DFN3 lim. 20 dB |
+|---|---|---|---|---|---|
+| 2530 · 0 dB | 0,1 | 3,8 | 3,6 | **10,4** | 10,1 |
+| 2530 · 5 dB | 5,0 | 8,3 | 8,2 | **14,6** | 14,4 |
+| 2530 · 10 dB | 10,0 | 12,0 | 12,2 | **18,4** | 18,3 |
+| 573577 · 0 dB | 0,0 | **14,1** | 13,0 | 13,7 | 12,0 |
+| 573577 · 5 dB | 5,0 | 16,4 | 16,1 | **16,6** | 15,2 |
+| 573577 · 10 dB | 10,0 | 17,7 | 17,9 | **18,5** | 17,5 |
+
+Leitura: no ruído 2530 o DFN ganha **~6 dB** em todos os SNRs; no 573577 empata (±1 dB). Nível
+da voz preservado pelos dois (≤ 1,5 dB abaixo da entrada). Piso de ruído (p10 do RMS por quadro):
+no 573577 o RNNoise silencia mais (−94 × −69 dBFS); o limite de 20 dB sobe o piso para ~−62 a
+−75 dBFS e custa até 1,5 dB de SI-SDR (esperado: o limite devolve ruído de propósito; o ganho dele
+é naturalidade, que só a escuta mede).
+
+**Limite de redução** (`--limite-db N`, nos dois modelos): mistura de volta o sinal original
+para atenuar no máximo N dB. No DFN é o `atten_lim_db` da libDF; no RNNoise, o mesmo cálculo no
+tempo (quadro anterior, alinhado com o atraso de 10 ms). Teste: 0 dB devolve o original.
+
+### Proposta de modos (aguarda escuta A/B do Alex e latência ponta a ponta)
+| Modo | Modelo | CPU | Latência própria | Quando |
+|---|---|---|---|---|
+| **Leve** | RNNoise | 0,4 % de um núcleo | ~20 ms (10 + 10) | padrão; ruído constante; jogo pesado |
+| **Forte** | DeepFilterNet3 | ~8 % de um núcleo | ~40 ms (10 + 30) → ~+20 ms ponta a ponta | ruído variável (teclado, vozes, rua) |
+
+Hipóteses a medir: latência ponta a ponta do Forte (~139 ms no padrão, ~105 ms com
+`--baixa-latencia`, por soma); estalos/CPU com jogo aberto; se o limite de 20 dB soa melhor.

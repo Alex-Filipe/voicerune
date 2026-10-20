@@ -1,4 +1,4 @@
-//! mic-limpo: microfone → IA (RNNoise) → saída (por padrão o VB-Cable).
+//! mic-limpo: microfone → IA (RNNoise ou DeepFilterNet) → saída (por padrão o VB-Cable).
 //! Hoje é uma CLI; a interface (Slint) e a bandeja entram na fase 4.
 
 use std::error::Error;
@@ -23,6 +23,8 @@ Opções:
   --entrada TRECHO   parte do nome do microfone (padrão: o do sistema)
   --saida TRECHO     parte do nome da saída (padrão: \"CABLE Input\")
   --sem-ia           começa com a IA desligada
+  --modelo M         rnnoise (padrão, leve) ou dfn (DeepFilterNet3, +20 ms, ~6 % de um núcleo)
+  --limite-db N      reduz o ruído no máximo N dB (padrão: sem limite)
   --folga-ms N       margem do buffer entre entrada e saída (padrão: 10)
   --teto-ms N        acima de folga + N ms, descarta o excesso (padrão: 20)
   --baixa-latencia   WASAPI direto no menor período do driver, com MMCSS (Windows)
@@ -68,6 +70,8 @@ fn executar() -> Res<()> {
             "--entrada" => op.entrada = Some(valor()?),
             "--saida" => op.saida = valor()?,
             "--sem-ia" => op.motor.ia = false,
+            "--modelo" => op.motor.modelo = valor()?.parse()?,
+            "--limite-db" => op.motor.limite_db = Some(valor()?.parse()?),
             "--folga-ms" => op.motor.folga_ms = valor()?.parse()?,
             "--teto-ms" => op.motor.teto_ms = valor()?.parse()?,
             "--baixa-latencia" => op.backend = Backend::BaixaLatencia,
@@ -101,7 +105,7 @@ fn tempos(p: Pacote) -> Tempos {
 }
 
 fn rodar(op: Opcoes) -> Res<()> {
-    let (ctl, mut entrada, mut saida) = motor::criar(op.motor);
+    let (ctl, mut entrada, mut saida) = motor::criar(op.motor)?;
     let backend = op.backend;
     let pedido = |trecho: Option<String>| Pedido { backend, trecho, taxa: SAMPLE_RATE, buffer: op.buffer };
     let fin = audio::abrir_entrada(&pedido(op.entrada.clone()), move |d, p| {
@@ -112,6 +116,11 @@ fn rodar(op: Opcoes) -> Res<()> {
     })?;
     println!("Entrada: {} ({} canais)", fin.nome, fin.canais);
     println!("Saída:   {} ({} canais)", fout.nome, fout.canais);
+    println!(
+        "Modelo: {} | limite: {}",
+        op.motor.modelo,
+        op.motor.limite_db.map_or("nenhum".into(), |db| format!("{db} dB"))
+    );
     println!(
         "Backend: {backend:?} | buffer pedido: {} | folga {} ms | teto {} ms | MMCSS: {}",
         op.buffer.map_or("padrão".into(), |b| format!("{b} quadros")),
