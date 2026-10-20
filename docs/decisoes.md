@@ -25,3 +25,4 @@
 | 2026-10-20 | Slint sem features padrão: `backend-winit` + `renderer-software` (sem OpenGL), estilo Fluent, `.slint` compilado no build | Leveza medida: 20 MB working set, 0 % CPU parado, laço rodando em ~0,1 s |
 | 2026-10-20 | Cor de destaque segue a do sistema | Comportamento nativo do Windows 11 |
 | 2026-10-20 | Slint sob a licença royalty-free (selo `AboutSlint` na página Sobre) | Permite manter o app MIT sem GPL |
+| 2026-10-20 | Visual da Fase 3 aprovado (capturas em `docs/mockups/capturas/`) | Aprovado pelo Alex após a correção das caixas de seleção |
