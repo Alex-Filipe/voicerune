@@ -1,0 +1,3 @@
+[build]
+# Fora do OneDrive (artefatos de build passam de 1 GB)
+target-dir = "C:/dev/cargo-target/mic-limpo"

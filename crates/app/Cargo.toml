@@ -1,0 +1,8 @@
+[package]
+name = "mic-limpo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+mic-limpo-core = { path = "../core" }
