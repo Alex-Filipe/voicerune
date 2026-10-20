@@ -1,0 +1,17 @@
+[package]
+name = "mic-limpo-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# Telas em Slint (compiladas para Rust no build). A Fase 4 liga ao motor; aqui só há
+# a prévia com dados estáticos (`mic-limpo-ui-previa`).
+[dependencies]
+slint.workspace = true
+
+[build-dependencies]
+slint-build.workspace = true
+
+[[bin]]
+name = "mic-limpo-ui-previa"
+path = "src/bin/previa.rs"

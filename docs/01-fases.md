@@ -13,7 +13,7 @@ de CPU. **Falta:** Alex testar com jogo aberto (estalos? CPU?) para decidir se v
 | 0. Fundação | Estrutura, docs, git, workspace Rust vazio | `cargo build` passa no Windows | concluída |
 | 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | concluída |
 | 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | — |
-| 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | — |
+| 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | em andamento: Slint pronto, aguarda aprovação das capturas |
 | 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | — |
 | 5. macOS | Mesmo app no M4 com BlackHole | Funciona nos dois SOs | — |
 | 6. Dispositivo virtual próprio | Plugin HAL (Mac), depois driver Windows | Sem depender de VB-Cable/BlackHole | — |
@@ -44,3 +44,8 @@ Fases 2 e 3 podem andar em paralelo.
 - 2026-10-20 — Validação da refatoração: `latencia` 124,1 / 116,7 ms, 0 underruns (igual a antes).
 - 2026-10-20 — Backend WASAPI de baixa latência (`crates/audio/src/wasapi.rs`, `--baixa-latencia`):
   medido 83,9 / 88,1 ms (padrão 118,6 ms), 0 underruns, CPU 1,37 % × 1,17 %, RAM igual.
+- 2026-10-20 — Fase 3: 3 direções em HTML; Alex escolheu a A (Fluent compacto) com barra lateral
+  de ícones. Feita em Slint (`crates/ui`, prévia `mic-limpo-ui-previa`, dados estáticos):
+  janela parada 20 MB (4 MB privada), 0 % CPU; com medidor a 30 Hz, 1,6 % de 1 núcleo; laço de
+  eventos rodando em 30–106 ms; sem dependências de rede. Capturas em `docs/mockups/capturas/`.
+  Falta: aprovação das capturas pelo Alex.

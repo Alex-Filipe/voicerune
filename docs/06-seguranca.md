@@ -14,6 +14,9 @@
   **MPL-2.0**: copyleft só por arquivo, compatível com distribuir o app como MIT sem alterar os
   arquivos dele. Hoje a feature está desligada por padrão. O modo baixa latência faz MMCSS
   direto pelo crate `windows` (MIT/Apache), sem essa dependência.
+- **Slint** (UI): GPL-3 **ou** licença royalty-free 2.0 (escolhida). A royalty-free permite app
+  desktop fechado ou aberto sob qualquer licença, desde que mostre o selo do Slint (`AboutSlint`,
+  na página Sobre). Revisar o texto da licença antes do 1º release.
 - Voicemeeter: proprietário. Sem engenharia reversa do binário (EULA); só comportamento,
   manual e API pública.
 

@@ -1,0 +1,649 @@
+// Telas do mic-limpo: janela principal (barra lateral + páginas) e flyout da bandeja.
+// Visual aprovado no mockup HTML (docs/mockups/a-lateral.html).
+
+import { ComboBox, Slider, Switch, Palette, AboutSlint } from "std-widgets.slint";
+
+// Estado que o Rust preenche (hoje estático na prévia; na Fase 4 vem do motor).
+export global Dados {
+    in-out property <int> pagina: 0; // 0 Início, 1 Configurações, 2 Sobre
+    in-out property <int> modo: 1; // 0 Desligado, 1 Leve, 2 Forte
+    in-out property <bool> ligado: true;
+    in-out property <float> ganho-db: 6;
+    in property <float> nivel: 0.35; // 0..1, medidor de entrada
+    in property <[string]> entradas: ["Microfone (Fifine K669)"];
+    in-out property <int> entrada: 0;
+    in property <[string]> saidas: ["CABLE Input (VB-Audio)"];
+    in-out property <int> saida: 0;
+    in-out property <bool> baixa-latencia: true;
+    in-out property <bool> iniciar-com-sistema: false;
+    in-out property <int> tema: 0; // 0 sistema, 1 claro, 2 escuro
+    in property <string> atraso: "~85 ms";
+    in property <string> cpu: "1,4 %";
+    in property <int> falhas: 0;
+    in property <string> versao: "0.0.1";
+    in property <string> modelo: "RNNoise";
+    in property <string> resumo-rota: "Fifine K669 → CABLE Input";
+    callback abrir-janela();
+}
+
+global Cores {
+    out property <bool> escuro: Palette.color-scheme == ColorScheme.dark;
+    out property <color> janela: escuro ? #202020 : #f3f3f3;
+    out property <color> painel: escuro ? #272727 : #fbfbfb;
+    out property <color> cartao: escuro ? #2d2d2d : #ffffff;
+    out property <color> borda: escuro ? #3a3a3a : #e5e5e5;
+    out property <color> texto: escuro ? #f3f3f3 : #1b1b1b;
+    out property <color> texto2: escuro ? #a8a8a8 : #616161;
+    out property <color> sutil: escuro ? #363636 : #f0f0f0;
+    out property <color> hover: escuro ? #ffffff10 : #0000000d;
+    // Cor de destaque do sistema (o estilo Fluent já a lê do Windows).
+    out property <color> acento: Palette.accent-background;
+    out property <color> acento-texto: Palette.accent-foreground;
+    out property <color> ok: escuro ? #6ccb5f : #0f7b0f;
+    out property <color> aviso: escuro ? #fce100 : #c19c00;
+    out property <color> ruim: escuro ? #ff99a4 : #c42b1c;
+}
+
+// Ícones de traço (viewbox 24×24), os mesmos do mockup.
+global Icones {
+    out property <string> inicio: "M4 11 L12 4 L20 11 L20 20 L15 20 L15 14 L9 14 L9 20 L4 20 Z";
+    out property <string> efeitos: "M4 7 L14 7 M18 7 L20 7 M4 17 L6 17 M10 17 L20 17 M14 7 A2 2 0 1 0 18 7 A2 2 0 1 0 14 7 M6 17 A2 2 0 1 0 10 17 A2 2 0 1 0 6 17";
+    out property <string> config: "M9 12 A3 3 0 1 0 15 12 A3 3 0 1 0 9 12 M12 3 L12 5.5 M12 18.5 L12 21 M3 12 L5.5 12 M18.5 12 L21 12 M5.6 5.6 L7.4 7.4 M16.6 16.6 L18.4 18.4 M5.6 18.4 L7.4 16.6 M16.6 7.4 L18.4 5.6";
+    out property <string> sobre: "M3 12 A9 9 0 1 0 21 12 A9 9 0 1 0 3 12 M12 11 L12 17 M12 7.5 L12 8";
+    out property <string> mic: "M9 6 A3 3 0 0 1 15 6 L15 11 A3 3 0 0 1 9 11 Z M5 11 A7 7 0 0 0 19 11 M12 18 L12 21";
+    out property <string> saida: "M4 9 L4 15 L8 15 L13 19 L13 5 L8 9 Z M16 9 A4 4 0 0 1 16 15 M18.5 6.5 A8 8 0 0 1 18.5 17.5";
+    out property <string> ia: "M12 3 L14 8.5 L19.5 10 L14 12 L12 17.5 L10 12 L4.5 10 L10 8.5 Z";
+    out property <string> ganho: "M4 18 L20 18 M7 14 L7 18 M12 9 L12 18 M17 5 L17 18";
+    out property <string> relogio: "M4 12 A8 8 0 1 0 20 12 A8 8 0 1 0 4 12 M12 8 L12 12 L15 14";
+    out property <string> energia: "M12 3 L12 11 M7 6 A7 7 0 1 0 17 6";
+    out property <string> lua: "M19 14 A7 7 0 0 1 10 5 A7 7 0 1 0 19 14 Z";
+}
+
+component Icone inherits Path {
+    in property <string> d;
+    in property <color> cor: Cores.texto;
+    width: 18px;
+    height: 18px;
+    viewbox-width: 24;
+    viewbox-height: 24;
+    commands: d;
+    stroke: cor;
+    stroke-width: 1.6px;
+    fill: transparent;
+}
+
+component Texto inherits Text {
+    color: Cores.texto;
+    font-size: 14px;
+    vertical-alignment: center;
+}
+
+component Rotulo inherits Text {
+    color: Cores.texto2;
+    font-size: 12px;
+    vertical-alignment: center;
+}
+
+component Cartao inherits Rectangle {
+    background: Cores.cartao;
+    border-width: 1px;
+    border-color: Cores.borda;
+    border-radius: 6px;
+    VerticalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        spacing: 10px;
+        @children
+    }
+}
+
+// Linha de ajuste: ícone, título (+ subtítulo opcional) e o controle à direita.
+component LinhaAjuste inherits HorizontalLayout {
+    in property <string> icone;
+    in property <string> titulo;
+    in property <string> sub;
+    spacing: 12px;
+    Icone {
+        d: icone;
+    }
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Texto {
+            text: titulo;
+        }
+
+        if sub != "": Rotulo {
+            text: sub;
+        }
+    }
+
+    @children
+}
+
+component Medidor inherits Rectangle {
+    in property <float> nivel;
+    height: 6px;
+    border-radius: 3px;
+    background: Cores.sutil;
+    Rectangle {
+        x: 0;
+        width: parent.width * clamp(nivel, 0, 1);
+        height: parent.height;
+        border-radius: 3px;
+        clip: true;
+        Rectangle {
+            x: 0;
+            width: root.width;
+            height: parent.height;
+            background: @linear-gradient(90deg, Cores.ok 0%, Cores.ok 70%, Cores.aviso 85%, Cores.ruim 100%);
+        }
+    }
+}
+
+component Segmentado inherits Rectangle {
+    in property <[string]> opcoes;
+    in-out property <int> atual;
+    height: 34px;
+    border-radius: 6px;
+    background: Cores.sutil;
+    accessible-role: tab-list;
+    HorizontalLayout {
+        padding: 3px;
+        spacing: 3px;
+        for op[i] in opcoes: Rectangle {
+            // Larguras iguais sem depender da largura do pai (evita laço de layout).
+            horizontal-stretch: 1;
+            min-width: 0px;
+            preferred-width: 0px;
+            border-radius: 4px;
+            background: i == atual ? Cores.acento : (ta.has-hover ? Cores.hover : transparent);
+            animate background { duration: 120ms; }
+            accessible-role: tab;
+            accessible-label: op;
+            Text {
+                text: op;
+                font-size: 14px;
+                font-weight: i == atual ? 600 : 400;
+                color: i == atual ? Cores.acento-texto : Cores.texto;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            ta := TouchArea {
+                clicked => {
+                    atual = i;
+                }
+            }
+        }
+    }
+}
+
+component BotaoNav inherits Rectangle {
+    in property <string> icone;
+    in property <string> dica;
+    in property <bool> ativo;
+    in property <bool> habilitado: true;
+    callback clicado();
+    width: 40px;
+    height: 36px;
+    border-radius: 4px;
+    background: (ativo || (ta.has-hover && habilitado)) ? Cores.hover : transparent;
+    opacity: habilitado ? 1 : 0.35;
+    accessible-role: button;
+    accessible-label: dica;
+    Icone {
+        d: icone;
+    }
+
+    Rectangle {
+        x: 0;
+        y: 10px;
+        width: 3px;
+        height: parent.height - 20px;
+        border-radius: 1.5px;
+        background: Cores.acento;
+        visible: ativo;
+    }
+
+    ta := TouchArea {
+        enabled: habilitado;
+        clicked => {
+            clicado();
+        }
+    }
+}
+
+component TituloPagina inherits Text {
+    color: Cores.texto;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+component PaginaInicio inherits VerticalLayout {
+    spacing: 8px;
+    alignment: start;
+    TituloPagina {
+        text: "Início";
+    }
+
+    Cartao {
+        HorizontalLayout {
+            spacing: 12px;
+            Icone {
+                d: Icones.mic;
+            }
+
+            VerticalLayout {
+                spacing: 4px;
+                Rotulo {
+                    text: "Microfone";
+                }
+
+                ComboBox {
+                    model: Dados.entradas;
+                    current-index <=> Dados.entrada;
+                }
+            }
+        }
+
+        Medidor {
+            nivel: Dados.ligado ? Dados.nivel : 0;
+        }
+    }
+
+    Cartao {
+        HorizontalLayout {
+            spacing: 12px;
+            Icone {
+                d: Icones.ia;
+            }
+
+            Texto {
+                text: "Cancelamento de ruído";
+                font-weight: 600;
+                horizontal-stretch: 1;
+            }
+        }
+
+        Segmentado {
+            opcoes: ["Desligado", "Leve", "Forte"];
+            atual <=> Dados.modo;
+        }
+    }
+
+    Cartao {
+        LinhaAjuste {
+            icone: Icones.ganho;
+            titulo: "Volume de saída";
+            Rotulo {
+                text: (Dados.ganho-db > 0 ? "+" : "") + round(Dados.ganho-db) + " dB";
+            }
+        }
+
+        Slider {
+            minimum: -12;
+            maximum: 24;
+            step: 1;
+            value <=> Dados.ganho-db;
+        }
+    }
+
+    Cartao {
+        HorizontalLayout {
+            spacing: 12px;
+            Icone {
+                d: Icones.saida;
+            }
+
+            VerticalLayout {
+                spacing: 4px;
+                Rotulo {
+                    text: "Enviar para";
+                }
+
+                ComboBox {
+                    model: Dados.saidas;
+                    current-index <=> Dados.saida;
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 4px;
+        spacing: 8px;
+        alignment: start;
+        Rectangle {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            background: Dados.ligado ? Cores.ok : Cores.texto2;
+        }
+
+        Rotulo {
+            text: !Dados.ligado ? "Pausado" : Dados.modo == 0 ? "Funcionando · sem cancelamento · atraso " + Dados.atraso : "Funcionando · atraso " + Dados.atraso;
+        }
+    }
+}
+
+component Estatistica inherits Rectangle {
+    in property <string> nome;
+    in property <string> valor;
+    background: Cores.sutil;
+    border-radius: 6px;
+    horizontal-stretch: 1;
+    VerticalLayout {
+        padding: 8px;
+        padding-left: 10px;
+        Rotulo {
+            text: nome;
+        }
+
+        Texto {
+            text: valor;
+            font-size: 16px;
+            font-weight: 600;
+        }
+    }
+}
+
+component PaginaConfig inherits VerticalLayout {
+    callback tema-mudou(int);
+    spacing: 8px;
+    alignment: start;
+    TituloPagina {
+        text: "Configurações";
+    }
+
+    Cartao {
+        LinhaAjuste {
+            icone: Icones.relogio;
+            titulo: "Baixa latência";
+            sub: "Menos atraso (~85 ms em vez de ~120 ms)";
+            Switch {
+                checked <=> Dados.baixa-latencia;
+            }
+        }
+    }
+
+    Cartao {
+        LinhaAjuste {
+            icone: Icones.energia;
+            titulo: "Iniciar com o sistema";
+            sub: "Abre minimizado na bandeja";
+            Switch {
+                checked <=> Dados.iniciar-com-sistema;
+            }
+        }
+    }
+
+    Cartao {
+        LinhaAjuste {
+            icone: Icones.lua;
+            titulo: "Tema";
+            ComboBox {
+                width: 150px;
+                model: ["Do sistema", "Claro", "Escuro"];
+                current-index <=> Dados.tema;
+                selected => {
+                    tema-mudou(Dados.tema);
+                }
+            }
+        }
+    }
+
+    Cartao {
+        Texto {
+            text: "Desempenho";
+            font-weight: 600;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            Estatistica {
+                nome: "Atraso";
+                valor: Dados.atraso;
+            }
+
+            Estatistica {
+                nome: "CPU";
+                valor: Dados.cpu;
+            }
+
+            Estatistica {
+                nome: "Falhas";
+                valor: Dados.falhas;
+            }
+        }
+    }
+}
+
+component LinhaSobre inherits Cartao {
+    in property <string> nome;
+    in property <string> valor;
+    HorizontalLayout {
+        Texto {
+            text: nome;
+            horizontal-stretch: 1;
+        }
+
+        Rotulo {
+            text: valor;
+        }
+    }
+}
+
+component PaginaSobre inherits VerticalLayout {
+    spacing: 8px;
+    alignment: start;
+    TituloPagina {
+        text: "Sobre";
+    }
+
+    Cartao {
+        Texto {
+            text: "mic-limpo " + Dados.versao;
+            font-weight: 600;
+        }
+
+        Rotulo {
+            text: "Cancelamento de ruído do microfone com IA, rodando no seu computador.";
+            wrap: word-wrap;
+        }
+    }
+
+    LinhaSobre {
+        nome: "Sem internet e sem telemetria";
+        valor: "nada sai do PC";
+    }
+
+    LinhaSobre {
+        nome: "Licença";
+        valor: "MIT · código aberto";
+    }
+
+    LinhaSobre {
+        nome: "Modelo de IA";
+        valor: Dados.modelo;
+    }
+
+    // Exigido pela licença royalty-free do Slint.
+    AboutSlint {
+        height: 90px;
+    }
+}
+
+export component JanelaPrincipal inherits Window {
+    title: "mic-limpo";
+    preferred-width: 500px;
+    preferred-height: 540px;
+    min-width: 420px;
+    min-height: 480px;
+    background: Cores.janela;
+    default-font-size: 14px;
+
+    public function aplicar-tema(t: int) {
+        Palette.color-scheme = t == 1 ? ColorScheme.light : t == 2 ? ColorScheme.dark : ColorScheme.unknown;
+    }
+
+    HorizontalLayout {
+        VerticalLayout {
+            width: 48px;
+            padding-top: 4px;
+            padding-bottom: 8px;
+            spacing: 2px;
+            alignment: stretch;
+            HorizontalLayout {
+                alignment: center;
+                BotaoNav {
+                    icone: Icones.inicio;
+                    dica: "Início";
+                    ativo: Dados.pagina == 0;
+                    clicado => {
+                        Dados.pagina = 0;
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                BotaoNav {
+                    icone: Icones.efeitos;
+                    dica: "Efeitos (em breve)";
+                    habilitado: false;
+                }
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                BotaoNav {
+                    icone: Icones.config;
+                    dica: "Configurações";
+                    ativo: Dados.pagina == 1;
+                    clicado => {
+                        Dados.pagina = 1;
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                BotaoNav {
+                    icone: Icones.sobre;
+                    dica: "Sobre";
+                    ativo: Dados.pagina == 2;
+                    clicado => {
+                        Dados.pagina = 2;
+                    }
+                }
+            }
+        }
+
+        // Painel com cantinho arredondado no topo à esquerda, como no Windows 11.
+        Rectangle {
+            horizontal-stretch: 1;
+            Rectangle {
+                x: 0;
+                y: 0;
+                width: parent.width + 2px;
+                height: parent.height + 2px;
+                background: Cores.painel;
+                border-width: 1px;
+                border-color: Cores.borda;
+                border-top-left-radius: 8px;
+            }
+
+            VerticalLayout {
+                padding: 16px;
+                padding-top: 14px;
+                // Só a página visível é instanciada (abre mais rápido, menos memória).
+                if Dados.pagina == 0: PaginaInicio { }
+                if Dados.pagina == 1: PaginaConfig {
+                    tema-mudou(t) => {
+                        root.aplicar-tema(t);
+                    }
+                }
+                if Dados.pagina == 2: PaginaSobre { }
+            }
+        }
+    }
+}
+
+export component Flyout inherits Window {
+    title: "mic-limpo";
+    no-frame: true;
+    always-on-top: true;
+    width: 360px;
+    background: Cores.janela;
+    default-font-size: 14px;
+
+    public function aplicar-tema(t: int) {
+        Palette.color-scheme = t == 1 ? ColorScheme.light : t == 2 ? ColorScheme.dark : ColorScheme.unknown;
+    }
+
+    Rectangle {
+        border-width: 1px;
+        border-color: Cores.borda;
+    }
+
+    VerticalLayout {
+        padding: 14px;
+        spacing: 12px;
+        HorizontalLayout {
+            Texto {
+                text: "mic-limpo";
+                font-weight: 600;
+                horizontal-stretch: 1;
+            }
+
+            Switch {
+                checked <=> Dados.ligado;
+            }
+        }
+
+        Segmentado {
+            opcoes: ["Desligado", "Leve", "Forte"];
+            atual <=> Dados.modo;
+        }
+
+        HorizontalLayout {
+            spacing: 10px;
+            Icone {
+                d: Icones.mic;
+            }
+
+            VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 1;
+                Medidor {
+                    nivel: Dados.ligado ? Dados.nivel : 0;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            Rotulo {
+                text: Dados.resumo-rota;
+                horizontal-stretch: 1;
+            }
+
+            Rotulo {
+                text: "Abrir ›";
+                color: ta-abrir.has-hover ? Cores.acento : Cores.texto2;
+                ta-abrir := TouchArea {
+                    clicked => {
+                        Dados.abrir-janela();
+                    }
+                }
+            }
+        }
+    }
+}

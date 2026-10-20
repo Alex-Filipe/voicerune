@@ -21,3 +21,7 @@
 | 2026-10-20 | Método de comparação de latência: correlação cruzada mic direto × saída de cada caminho, gravados juntos (`--comparar`) | Não precisa injetar sinal no mic; mede app e Voicemeeter com o mesmo som; validado contra os cliques |
 | 2026-10-20 | Arquitetura: `core` (IA + motor + métricas), `audio` (backends), `app` (usuário), `ferramentas` (`mic-limpo-dev`) | Motor independente de backend (WASAPI/macOS/UI reaproveitam), testável sem dispositivo; ferramentas fora do app final. Substitui o `platform/` planejado |
 | 2026-10-20 | Backend WASAPI de baixa latência (IAudioClient3 + MMCSS) no crate `audio`, opcional (`--baixa-latencia`) | Medido: −30 a −35 ms, +0,2 ponto de CPU, 0 underruns; padrão continua cpal até testar com jogo |
+| 2026-10-20 | Visual: direção A (cartões estilo Configurações do Windows 11) com barra lateral de ícones (Início, Efeitos apagado, Configurações, Sobre) | Escolha do Alex entre 3 direções; a lateral deixa crescer sem poluir a tela inicial |
+| 2026-10-20 | Slint sem features padrão: `backend-winit` + `renderer-software` (sem OpenGL), estilo Fluent, `.slint` compilado no build | Leveza medida: 20 MB working set, 0 % CPU parado, laço rodando em ~0,1 s |
+| 2026-10-20 | Cor de destaque segue a do sistema | Comportamento nativo do Windows 11 |
+| 2026-10-20 | Slint sob a licença royalty-free (selo `AboutSlint` na página Sobre) | Permite manter o app MIT sem GPL |
