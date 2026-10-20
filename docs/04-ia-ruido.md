@@ -113,5 +113,29 @@ tempo (quadro anterior, alinhado com o atraso de 10 ms). Teste: 0 dB devolve o o
 | **Leve** | RNNoise | 0,4 % de um núcleo | ~20 ms (10 + 10) | padrão; ruído constante; jogo pesado |
 | **Forte** | DeepFilterNet3 | ~8 % de um núcleo | ~40 ms (10 + 30) → ~+20 ms ponta a ponta | ruído variável (teclado, vozes, rua) |
 
-Hipóteses a medir: latência ponta a ponta do Forte (~139 ms no padrão, ~105 ms com
-`--baixa-latencia`, por soma); estalos/CPU com jogo aberto; se o limite de 20 dB soa melhor.
+Hipóteses a medir: estalos/CPU com jogo aberto; se o limite de 20 dB soa melhor (escuta).
+
+**2026-10-20 — latência ponta a ponta e tempo real (fase 2, bloco 3; Discord fechado)** —
+`mic-limpo-dev latencia --modelo M` (cliques → CABLE Input → CABLE Output, 8 s; IA em bypass,
+atraso algorítmico somado). Com DFN o caminho passa pela thread própria.
+
+| Caminho | Backend | Medido em bypass (rodadas) | + algoritmo | **Com a IA ligada** |
+|---|---|---|---|---|
+| Leve (RNNoise) | padrão | 130,8 · 117,1 · 120,3 → mediana 120,3 ms | +10 ms | **~130 ms** |
+| Forte (DFN3) | padrão | 115,6 · 120,0 · 119,1 → mediana 119,1 ms | +30 ms | **~149 ms** |
+| Leve (RNNoise) | `--baixa-latencia` | 87,5 ms | +10 ms | **~98 ms** |
+| Forte (DFN3) | `--baixa-latencia` | 84,7 ms | +30 ms | **~115 ms** |
+| Voicemeeter atual (ref., fase 1) | — | — | — | ~128 ms |
+
+Leitura: a thread própria do DFN **não acrescenta latência mensurável** (diferença dentro da
+variação entre rodadas, ±7 ms); o Forte custa os +20 ms do algoritmo. Forte no backend padrão
+(~149 ms) fica acima do Voicemeeter; com `--baixa-latencia` (~115 ms), abaixo.
+
+App em tempo real com DFN (mic real, 6–20 s, várias rodadas): DSP médio 2,5–9,5 % de um núcleo
+(menor que no bench quando o mic está quieto: abaixo de −15 dB de SNR local o DFN pula os
+decodificadores), pior quadro ~2 ms, 0 perdas. **Limitação conhecida:** com folga de 10 ms, o DFN
+dá **1 underrun na partida** em cerca de metade das partidas (nunca depois; 20 s → ainda 1);
+some com `--folga-ms 15`. São 10 ms de silêncio no início. Aquecer o modelo antes (0,5 s de voz
+sintética) não mudou o quadro (3 de 5) e foi revertido. O `latencia` mostra o mesmo às vezes
+também com RNNoise. O erro "buffer underrun or overrun" do cpal na entrada aparece nos dois
+modelos (não é do DFN).

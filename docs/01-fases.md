@@ -12,7 +12,7 @@ de CPU. **Falta:** Alex testar com jogo aberto (estalos? CPU?) para decidir se v
 |---|---|---|---|
 | 0. Fundação | Estrutura, docs, git, workspace Rust vazio | `cargo build` passa no Windows | concluída |
 | 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | concluída |
-| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | em andamento: custo e qualidade objetiva medidos; modos propostos; falta escuta A/B e latência ponta a ponta |
+| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | em andamento: custo, qualidade objetiva e latência medidos; modos propostos; falta escuta A/B do Alex |
 | 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | — |
 | 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | — |
 | 5. macOS | Mesmo app no M4 com BlackHole | Funciona nos dois SOs | — |
@@ -59,3 +59,9 @@ Fases 2 e 3 podem andar em paralelo.
   **Próximo passo:** com o Discord fechado, teste em tempo real (`mic-limpo --modelo dfn`) e
   `mic-limpo-dev latencia --modelo dfn` (padrão e `--baixa-latencia`); Alex grava a própria voz
   com ruído (`gravar`) e escuta os WAVs do `processar` para decidir modos e limite de redução.
+- 2026-10-20 — Fase 2, bloco 3 (Discord fechado): latência ponta a ponta com a IA ligada —
+  Leve ~130 ms / Forte ~149 ms no padrão; ~98 / ~115 ms com `--baixa-latencia` (Voicemeeter
+  ~128). Thread própria do DFN sem custo de latência mensurável. Tempo real com DFN: 0 perdas,
+  1 underrun só na partida em ~metade das vezes (some com folga 15 ms). Resumo do app agora mostra
+  o modelo. **Próximo passo:** Alex grava a voz com ruído (`mic-limpo-dev gravar voz.wav`), escuta
+  os WAVs do `processar` e decide modos e limite; depois decidir se o Forte exige `--baixa-latencia`.

@@ -146,6 +146,7 @@ impl Trabalhador {
             while !p.load(Acquire) {
                 let Ok(c) = cons.read_chunk(FRAME) else {
                     // Sem quadro completo: dorme até a entrada empurrar mais (ou pedir parada).
+                    ctl.metricas.acumulo.add(cons.slots() as u64);
                     thread::park();
                     continue;
                 };
@@ -198,7 +199,6 @@ impl Entrada {
                     }
                 }
                 tr.thread.unpark();
-                m.acumulo.add((CAPACIDADE - tr.para_ia.slots()) as u64);
             }
         }
     }

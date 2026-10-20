@@ -150,6 +150,6 @@ fn rodar(op: Opcoes) -> Res<()> {
     }
     drop(fin);
     drop(fout);
-    println!("\n{}", ctl.metricas.resumo(inicio.elapsed(), ctl.ia()));
+    println!("\n{}", ctl.metricas.resumo(inicio.elapsed(), ctl.ia(), op.motor.modelo));
     Ok(())
 }

@@ -138,7 +138,7 @@ pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
     drop(fret);
     drop(fin);
     drop(fout);
-    println!("\n{}", ctl.metricas.resumo(inicio.elapsed(), false));
+    println!("\n{}", ctl.metricas.resumo(inicio.elapsed(), false, op.motor.modelo));
 
     let n = ck.latencia_us.n();
     println!("\nMedição por cliques ({} injetados, {n} detectados):", ck.injetados.load(Relaxed));
