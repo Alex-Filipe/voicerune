@@ -113,7 +113,7 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
 |---|---|---|---|
 | Janela visível, medidor parado | 24,8 MB | 5,4–5,5 MB | 0,47–0,94 % de 1 núcleo |
 | **Só bandeja** | **24,0 MB** | **4,5 MB** | **0,31–0,47 % de 1 núcleo** |
-| Só bandeja, depois de 10 abre/fecha | 27,4–27,5 MB | 5,1–5,2 MB | 0,78–1,40 % de 1 núcleo |
+| Só bandeja, depois de 10 abre/fecha | 27,4–27,5 MB | 5,1–5,2 MB | 0,78–1,40 % de 1 núcleo (ruído, ver abaixo) |
 | Flyout aberto (1 rodada) | 27,7 MB | 5,3 MB | 0,78 % de 1 núcleo |
 
 - Thread da UI por `QueryThreadCycleTime`: 40 Mciclos em 10 s com a janela (timer a 30 Hz) e
@@ -123,11 +123,22 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   privada; o resto (~24 MB de working set) é áudio + runtime, então o "mínimo" já é quase isso.
 - Reabrir (Abrir do menu → janela visível, debug): 37–46 ms (3×); "Abrir ›" do flyout: 75 ms.
   Sair: processo acaba em 48 ms (debug).
-- **A medir:** depois de 10 abre/fecha, +3,4 MB de working set, +0,6 MB privada e +0,3–0,9 ponto
-  de CPU, com a thread da UI parada. Pode ser cache (fontes, alocador) ou algo que sobra por
-  janela (janela oculta, thread). Pelo código do Slint 1.18, o backend guarda só `Weak` do
-  adaptador, então soltar o componente deveria destruir a janela do winit. Teste proposto: 30
-  abre/fecha contando janelas ocultas e threads do processo, com a CPU por thread.
+- **Abre/fecha repetido não vaza** (30 ciclos, release, contando todas as janelas do processo,
+  inclusive ocultas e message-only):
+
+| Depois de | Working set | Privada | Threads | Handles | Janela principal (mesmo oculta) |
+|---|---|---|---|---|---|
+| 0 ciclos (só bandeja) | 24,0 MB | 4,5 MB | 16 | 313 | 0 |
+| 10 ciclos | 27,5 MB | 5,1 MB | 16 | 342 | 0 |
+| 20 ciclos | 27,9 MB | 5,6 MB | 16 | 342 | 0 |
+| 30 ciclos | 27,7 MB | 5,4 MB | 12 | 336 | 0 |
+
+  O aumento (~+3,5 MB de working set, ~+1 MB privada) vem uma vez só nos primeiros ciclos e
+  estabiliza: cache (DLLs do IME/TSF, alocador, fontes), não vazamento. Cada janela é destruída
+  de fato; só aparece uma vez uma `SystemUserAdapterWindowClass` do sistema. CPU por thread
+  (`QueryThreadCycleTime`, 10 s, só bandeja): só `cpal_wasapi_in` (~176 Mciclos) e
+  `cpal_wasapi_out` (~38) trabalham, iguais antes e depois dos 30 ciclos; a da UI, 0. A diferença de
+  CPU do processo na tabela acima (0,3–1,4 %) é ruído do `TotalProcessorTime` em 10 s.
 - **Não testado:** clique real no ícone (os testes mandam a mensagem direto) e a nitidez do ícone
   de 64 px reduzido pelo shell.
 

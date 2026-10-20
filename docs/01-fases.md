@@ -17,10 +17,8 @@
 | 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | — |
 | 5. Uso diário | Alex usa alguns dias | — |
 
-**Próximo passo:** com o PC parado e o Discord fechado (~1,5 min), medir se sobra algo a cada
-abre/fecha da janela (30 ciclos contando janelas ocultas, threads e CPU por thread; ver
-`05-interface.md`, "A medir"). Depois, bloco 4: config em `%APPDATA%\mic-limpo`, presets e
-iniciar com o sistema (com "iniciar só na bandeja"). Antes: Alex clica no ícone de verdade, fala e
+**Próximo passo:** bloco 4 — config em `%APPDATA%\mic-limpo`, presets e iniciar com o sistema
+(com "iniciar só na bandeja"). Antes: Alex clica no ícone de verdade, fala e
 confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
@@ -121,3 +119,6 @@ medidor acorda com a janela minimizada.
   só bandeja 24,0 MB / 4,5 MB privada e 0,31–0,47 % de um núcleo, com a thread da UI em 0 ciclos
   (janela: 24,8 / 5,4 MB, 40 Mciclos em 10 s); reabrir em 37–75 ms (debug). A medir: +3,4 MB de
   working set e +0,3–0,9 ponto de CPU depois de 10 abre/fecha. Ver `05-interface.md`.
+- 2026-10-20 — Fase 4, bloco 3 (fim): 30 abre/fecha da janela sem vazamento — +3,5 MB de working
+  set e ~+1 MB privada uma vez só (estabiliza), nenhuma janela oculta sobra, threads e handles
+  estáveis; CPU por thread igual antes e depois (só os fluxos do cpal trabalham). Ver `05-interface.md`.
