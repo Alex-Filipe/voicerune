@@ -11,4 +11,6 @@ mic-limpo-core.workspace = true
 mic-limpo-audio.workspace = true
 
 [features]
+default = ["dfn"]
+dfn = ["mic-limpo-core/dfn"]
 realtime = ["mic-limpo-audio/realtime"]

@@ -12,7 +12,7 @@ de CPU. **Falta:** Alex testar com jogo aberto (estalos? CPU?) para decidir se v
 |---|---|---|---|
 | 0. Fundação | Estrutura, docs, git, workspace Rust vazio | `cargo build` passa no Windows | concluída |
 | 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | concluída |
-| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | — |
+| 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | concluída (branch `claude/fase2-modelos-3e5d58`): Leve = RNNoise, Forte = DFN3 |
 | 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | — |
 | 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | — |
 | 5. macOS | Mesmo app no M4 com BlackHole | Funciona nos dois SOs | — |
@@ -44,3 +44,33 @@ Fases 2 e 3 podem andar em paralelo.
 - 2026-10-20 — Validação da refatoração: `latencia` 124,1 / 116,7 ms, 0 underruns (igual a antes).
 - 2026-10-20 — Backend WASAPI de baixa latência (`crates/audio/src/wasapi.rs`, `--baixa-latencia`):
   medido 83,9 / 88,1 ms (padrão 118,6 ms), 0 underruns, CPU 1,37 % × 1,17 %, RAM igual.
+- 2026-10-20 — Fase 2, bloco 1 (branch `claude/fase2-modelos-3e5d58`): sonda isolada do DeepFilterNet3
+  (libDF 0.5.6 + tract 0.19, git): compila no Rust 1.99; ~6,2 % de um núcleo (RNNoise 0,4 %),
+  atraso algorítmico 30 ms (RNNoise 10 ms), RAM privada 20,5 MB, binário 25 MB (21,9 com LTO),
+  nada de rede. Aloca por quadro → precisa de thread própria. Tabela em `04-ia-ruido.md`.
+  **Próximo passo:** Alex decide se aceita o peso; se sim, integrar no `core` (trait de modelo,
+  DFN em thread própria), `--modelo`, bench e `processar` para escuta A/B.
+- 2026-10-20 — Fase 2, bloco 2: DFN3 integrado no `core` (feature `dfn`, thread própria
+  `mic-limpo-ia`), `--modelo rnnoise|dfn` e `--limite-db N` no app e no `latencia`; `bench` compara
+  os modelos; novos `mic-limpo-dev gravar` e `processar` (WAV por modelo + SI-SDR). 10 testes ok.
+  Armadilha: limiares do `default_with_ch` (plugin LADSPA) deixavam o DFN pior que o RNNoise;
+  com os do binário oficial o DFN ganha ~6 dB de SI-SDR num ruído e empata no outro, a 8 % de um
+  núcleo. Modos propostos: Leve = RNNoise, Forte = DFN3 (tabelas em `04-ia-ruido.md`).
+  **Próximo passo:** com o Discord fechado, teste em tempo real (`mic-limpo --modelo dfn`) e
+  `mic-limpo-dev latencia --modelo dfn` (padrão e `--baixa-latencia`); Alex grava a própria voz
+  com ruído (`gravar`) e escuta os WAVs do `processar` para decidir modos e limite de redução.
+- 2026-10-20 — Fase 2, bloco 3 (Discord fechado): latência ponta a ponta com a IA ligada —
+  Leve ~130 ms / Forte ~149 ms no padrão; ~98 / ~115 ms com `--baixa-latencia` (Voicemeeter
+  ~128). Thread própria do DFN sem custo de latência mensurável. Tempo real com DFN: 0 perdas,
+  1 underrun só na partida em ~metade das vezes (some com folga 15 ms). Resumo do app agora mostra
+  o modelo. **Próximo passo:** Alex grava a voz com ruído (`mic-limpo-dev gravar voz.wav`), escuta
+  os WAVs do `processar` e decide modos e limite; depois decidir se o Forte exige `--baixa-latencia`.
+- 2026-10-20 — Fase 2, bloco 4: escuta A/B do Alex (voz + teclado + TikTok, 4 variantes):
+  nenhuma diferença percebida; teclado audível em todas. Descoberto gate no mic antes do app
+  (17 % de quadros com zeros digitais). **Próximo passo:** Alex decide os modos (ver
+  `04-ia-ruido.md`) e, se quiser, refaz a gravação com as melhorias do mic desligadas.
+- 2026-10-20 — **Fase 2 concluída.** Alex decidiu: Leve = RNNoise (padrão) e Forte = DFN3 no app
+  (`--modelo dfn`, recomendado com `--baixa-latencia`); limite de redução desligado por padrão.
+  Pendências que não bloqueiam: teste difícil do Forte com o mic sem gate (desligar melhorias do
+  Windows); underrun único na partida com DFN. **Próximo passo:** mesclar a branch da fase 2 e
+  seguir na fase 3/4 (UI com seletor Leve/Forte).

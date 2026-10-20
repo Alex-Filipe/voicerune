@@ -8,3 +8,9 @@ license.workspace = true
 [dependencies]
 nnnoiseless.workspace = true
 rtrb.workspace = true
+deep_filter = { workspace = true, optional = true }
+ndarray = { workspace = true, optional = true }
+
+[features]
+# DeepFilterNet3: +~20 MB no binário e ~6 % de um núcleo (medido na fase 2).
+dfn = ["dep:deep_filter", "dep:ndarray"]

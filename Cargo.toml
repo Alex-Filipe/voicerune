@@ -15,3 +15,8 @@ cpal = "0.18.2"
 nnnoiseless = { version = "0.5.2", default-features = false }
 rtrb = "0.4.0"
 windows = "0.62"
+# DeepFilterNet3 (libDF + tract). Fora do crates.io (lá só a 0.2.5 antiga): commit da tag v0.5.6,
+# fixado também no Cargo.lock. O modelo padrão (8 MB) vem embutido no binário.
+deep_filter = { git = "https://github.com/Rikorose/DeepFilterNet", rev = "978576aa8400552a4ce9730838c635aa30db5e61", default-features = false, features = ["tract", "default-model"] }
+ndarray = "0.15"
+hound = "3.5"

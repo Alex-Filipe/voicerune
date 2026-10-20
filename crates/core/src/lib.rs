@@ -3,4 +3,5 @@
 
 pub mod denoise;
 pub mod metricas;
+pub mod modelo;
 pub mod motor;

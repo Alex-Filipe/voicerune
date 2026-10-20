@@ -4,8 +4,9 @@
 
 ```
 crates/
-  core/         → IA (denoise), motor (quadros, ring buffer, deriva) e métricas. Rust puro:
-                  sem SO, sem dispositivo, sem rede. Testável sem microfone.
+  core/         → IA (`modelo`: RNNoise e, com a feature `dfn`, DeepFilterNet3; `denoise`:
+                  acumula quadros de 10 ms), motor (quadros, ring buffer, deriva) e métricas.
+                  Rust puro: sem SO, sem dispositivo, sem rede. Testável sem microfone.
   audio/        → backends de áudio atrás de callbacks simples: cpal (padrão; WASAPI compartilhado
                   no Windows, CoreAudio no macOS) e `wasapi` (baixa latência, só Windows).
                   Único crate do produto que fala com API de áudio. `Pedido.backend` escolhe.
@@ -24,13 +25,20 @@ sonda). `core` e `audio` não dependem um do outro: o app converte `audio::Pacot
 - O backend chama, na thread de áudio, `Entrada::processar(dados, canais, tempos)` e
   `Saida::preencher(dados, canais, tempos)`. As duas não alocam nem travam.
 - `Controle` (atômico) liga/desliga a IA e expõe as `Metricas` para quem quiser mostrar.
+- `Config.modelo` (`rnnoise` | `dfn`) e `Config.limite_db` escolhem a IA. `criar` devolve
+  `Result` (carregar o DFN leva ~0,2 s e pode falhar).
+- Modelo que aloca ou não é `Send` (DFN: tract usa `Rc`) roda na thread própria
+  `mic-limpo-ia`, criada por `criar`, que carrega o modelo nela: `processar` só empurra as
+  amostras num `rtrb` e chama `unpark` (sem lock nem alocação); a thread processa e empurra
+  direto no ring buffer da saída. RNNoise continua na thread de áudio. O contrato não muda.
 - Ferramentas que precisam mexer no sinal (ex.: injetar cliques) fazem isso **antes** de chamar
   o motor, sem tocar nele.
 
 ## Como estender sem complicar
 - **Backend novo** (WASAPI baixa latência, CoreAudio direto): um módulo em `audio/` que entrega
   `Pacote`s. Motor e app não mudam, fora a escolha do backend.
-- **Modelo novo** (DeepFilterNet): em `core/`, atrás da mesma interface do `Denoiser`.
+- **Modelo novo**: implementar `modelo::Modelo` (quadro de 480 → 480) em `core/`, um valor em
+  `modelo::Tipo` (atraso, se precisa de thread própria) e, se pesado, atrás de uma feature.
 - **Ferramenta nova de medição**: em `ferramentas/`, nunca no `app`.
 
 ## Princípios (decididos)

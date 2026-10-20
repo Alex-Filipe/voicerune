@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
 use std::time::Duration;
 
 use crate::denoise::{FRAME, SAMPLE_RATE};
+use crate::modelo::Tipo;
 
 pub fn amostras_ms(n: f64) -> f64 {
     n * 1000.0 / SAMPLE_RATE as f64
@@ -53,7 +54,7 @@ pub struct Metricas {
 }
 
 impl Metricas {
-    pub fn resumo(&self, duracao: Duration, ia: bool) -> String {
+    pub fn resumo(&self, duracao: Duration, ia: bool, modelo: Tipo) -> String {
         let quadros = self.quadros.load(Relaxed).max(1) as f64;
         let dsp_ms = self.dsp_ns.load(Relaxed) as f64 / quadros / 1e6;
         let quadro_ms = amostras_ms(FRAME as f64);
@@ -61,12 +62,12 @@ impl Metricas {
         let sai = self.atraso_saida_us.valor() / 1000.0;
         let acumulo = amostras_ms(self.acumulo.valor());
         let fila = amostras_ms(self.fila.valor());
-        let algoritmo = if ia { quadro_ms } else { 0.0 };
+        let algoritmo = if ia { amostras_ms(modelo.atraso_amostras() as f64) } else { 0.0 };
         format!(
             "Resumo ({:.1} s, IA {} ao final):\n\
              \x20 DSP por quadro de 10 ms: média {dsp_ms:.3} ms ({:.1}% de um núcleo), pior callback {:.3} ms\n\
              \x20 underruns: {} | descartes: {} ({} amostras) | perdidas: {}\n\
-             \x20 atrasos médios (ms): driver entrada {ent:.1} | acúmulo de quadro {acumulo:.1} | RNNoise {algoritmo:.1} | fila {fila:.1} | driver saída {sai:.1}\n\
+             \x20 atrasos médios (ms): driver entrada {ent:.1} | acúmulo de quadro {acumulo:.1} | {modelo} {algoritmo:.1} | fila {fila:.1} | driver saída {sai:.1}\n\
              \x20 latência estimada do app: {:.1} ms (soma acima; estimativa, não medição ponta a ponta)",
             duracao.as_secs_f64(),
             if ia { "ligada" } else { "desligada" },

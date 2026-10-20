@@ -1,7 +1,8 @@
 //! Latência ponta a ponta por cliques: troca o mic por silêncio com um clique a cada 500 ms
 //! antes do motor e detecta quando ele chega no dispositivo de retorno (ex.: CABLE Output),
-//! comparando timestamps de captura no mesmo relógio. IA desligada: o clique não sobrevive ao
-//! RNNoise, então o atraso algorítmico dele é somado à parte.
+//! comparando timestamps de captura no mesmo relógio. IA desligada: o clique não sobrevive à
+//! IA, então o atraso algorítmico do modelo é somado à parte. Com `--modelo dfn` o caminho passa
+//! pela thread própria do modelo (em bypass), que é o que muda na latência além do algoritmo.
 
 use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
 use std::sync::Arc;
@@ -10,7 +11,7 @@ use std::time::{Duration, Instant};
 use mic_limpo_audio::{self as audio, Backend, Pacote, Pedido};
 use mic_limpo_core::denoise::SAMPLE_RATE;
 use mic_limpo_core::metricas::{amostras_ms, Media};
-use mic_limpo_core::motor::{self, Config, Tempos, ATRASO_IA_AMOSTRAS};
+use mic_limpo_core::motor::{self, Config, Tempos};
 
 use crate::Res;
 
@@ -62,7 +63,7 @@ fn tempos(p: Pacote) -> Tempos {
 }
 
 pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
-    let (ctl, mut entrada, mut saida) = motor::criar(Config { ia: false, ..op.motor });
+    let (ctl, mut entrada, mut saida) = motor::criar(Config { ia: false, ..op.motor })?;
     let ck = Arc::new(Cliques { min_us: AtomicU64::new(u64::MAX), ..Default::default() });
     let backend = op.backend;
     let pedido = |trecho: Option<String>| Pedido { backend, trecho, taxa: SAMPLE_RATE, buffer: op.buffer };
@@ -119,6 +120,7 @@ pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
     })?;
 
     println!("Entrada: {} | Saída: {} | Retorno: {}", fin.nome, fout.nome, fret.nome);
+    println!("Modelo: {} (em bypass; atraso algorítmico somado no fim)", op.motor.modelo);
     println!(
         "Backend: {backend:?} | buffer pedido: {} | folga {} ms | teto {} ms | MMCSS: {}",
         op.buffer.map_or("padrão".into(), |b| format!("{b} quadros")),
@@ -136,7 +138,7 @@ pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
     drop(fret);
     drop(fin);
     drop(fout);
-    println!("\n{}", ctl.metricas.resumo(inicio.elapsed(), false));
+    println!("\n{}", ctl.metricas.resumo(inicio.elapsed(), false, op.motor.modelo));
 
     let n = ck.latencia_us.n();
     println!("\nMedição por cliques ({} injetados, {n} detectados):", ck.injetados.load(Relaxed));
@@ -147,7 +149,7 @@ pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
     let ms = |us: u64| us as f64 / 1000.0;
     let media = ck.latencia_us.valor() / 1000.0;
     let cabo = ck.cabo_us.valor() / 1000.0;
-    let ia_ms = amostras_ms(ATRASO_IA_AMOSTRAS as f64);
+    let ia_ms = amostras_ms(op.motor.modelo.atraso_amostras() as f64);
     println!(
         "  captura no mic → captura no retorno: média {media:.1} ms (mín {:.1}, máx {:.1})",
         ms(ck.min_us.load(Relaxed)),
@@ -157,6 +159,10 @@ pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
         "  divisão: app até a saída prevista {:.1} ms | saída prevista → retorno (VB-Cable) {cabo:.1} ms",
         media - cabo
     );
-    println!("  com o RNNoise ligado: + {ia_ms:.1} ms (atraso algorítmico) = {:.1} ms", media + ia_ms);
+    println!(
+        "  com o {} ligado: + {ia_ms:.1} ms (atraso algorítmico) = {:.1} ms",
+        op.motor.modelo,
+        media + ia_ms
+    );
     Ok(())
 }

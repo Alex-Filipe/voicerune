@@ -1,31 +1,31 @@
-//! Supressão de ruído com RNNoise (`nnnoiseless`): 48 kHz, mono, quadros de 10 ms.
+//! Junta blocos de tamanho qualquer em quadros de 10 ms (48 kHz, mono) e aplica um
+//! [`Modelo`](crate::modelo::Modelo) de supressão de ruído.
 
-use nnnoiseless::DenoiseState;
+use crate::modelo::{Modelo, Rnnoise};
 
-/// Amostras por quadro (10 ms a 48 kHz).
-pub const FRAME: usize = DenoiseState::FRAME_SIZE;
+/// Amostras por quadro (10 ms a 48 kHz), iguais para todos os modelos.
+pub const FRAME: usize = nnnoiseless::DenoiseState::FRAME_SIZE;
 pub const SAMPLE_RATE: u32 = 48_000;
 
-/// O RNNoise espera amostras na faixa do i16, não em [-1, 1].
-const SCALE: f32 = 32768.0;
-
-/// Junta blocos de tamanho qualquer em quadros de `FRAME` e aplica o RNNoise.
-/// Não aloca depois de criado, então pode rodar na thread de áudio.
-pub struct Denoiser {
-    state: Box<DenoiseState<'static>>,
+/// Junta blocos de tamanho qualquer em quadros de `FRAME` e aplica o modelo.
+/// Não aloca depois de criado; roda na thread de áudio se o modelo também não alocar (RNNoise).
+pub struct Denoiser<M: Modelo = Rnnoise> {
+    modelo: M,
     entrada: [f32; FRAME],
     saida: [f32; FRAME],
     cheio: usize,
 }
 
 impl Denoiser {
+    /// RNNoise sem limite de redução.
     pub fn new() -> Self {
-        Self {
-            state: DenoiseState::new(),
-            entrada: [0.0; FRAME],
-            saida: [0.0; FRAME],
-            cheio: 0,
-        }
+        Self::com(Rnnoise::new(None))
+    }
+}
+
+impl<M: Modelo> Denoiser<M> {
+    pub fn com(modelo: M) -> Self {
+        Self { modelo, entrada: [0.0; FRAME], saida: [0.0; FRAME], cheio: 0 }
     }
 
     /// Amostras esperando completar o próximo quadro.
@@ -37,19 +37,16 @@ impl Denoiser {
     /// quadro processado (ou só copiado, se `ativo` for falso) e a probabilidade de voz.
     pub fn push(&mut self, amostras: &[f32], ativo: bool, mut emitir: impl FnMut(&[f32], f32)) {
         for &s in amostras {
-            self.entrada[self.cheio] = s * SCALE;
+            self.entrada[self.cheio] = s;
             self.cheio += 1;
             if self.cheio == FRAME {
                 self.cheio = 0;
                 let vad = if ativo {
-                    self.state.process_frame(&mut self.saida, &self.entrada)
+                    self.modelo.processar(&self.entrada, &mut self.saida)
                 } else {
                     self.saida.copy_from_slice(&self.entrada);
                     1.0
                 };
-                for x in &mut self.saida {
-                    *x = (*x / SCALE).clamp(-1.0, 1.0);
-                }
                 emitir(&self.saida, vad);
             }
         }
