@@ -5,9 +5,8 @@ Latência: app com RNNoise **~130 ms** ≈ Voicemeeter atual **~128 ms**. Meta a
 inalcançável; **nova meta pendente (Alex decide; sugestão: não piorar em relação ao Voicemeeter)**.
 **Próximo passo:** iniciar a Fase 2 (RNNoise × DeepFilterNet: custo, qualidade e latência,
 incluindo teste de escuta gravado) e/ou a Fase 3 (mockup da UI) — podem andar em paralelo.
-Em andamento: backend WASAPI próprio com IAudioClient3 (opcional, hipótese: −25 a −35 ms), em
-`crates/audio`, como modo `--baixa-latencia`. Antes, rodar `mic-limpo-dev latencia` para fechar a
-validação da refatoração (pendente: Discord estava aberto).
+Modo `--baixa-latencia` pronto (WASAPI + IAudioClient3): ~85 ms em vez de ~119 ms, +0,2 ponto
+de CPU. **Falta:** Alex testar com jogo aberto (estalos? CPU?) para decidir se vira o padrão.
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
@@ -42,3 +41,6 @@ Fases 2 e 3 podem andar em paralelo.
 - 2026-10-20 — Refatoração da arquitetura: motor e métricas foram para `core` (com 3 testes
   novos), backend `cpal` para o crate `audio`, ferramentas para `mic-limpo-dev`. App de 8 s igual
   a antes (0 underruns, DSP 0,4 %, atrasos iguais); bench igual. Ver `02-arquitetura.md`.
+- 2026-10-20 — Validação da refatoração: `latencia` 124,1 / 116,7 ms, 0 underruns (igual a antes).
+- 2026-10-20 — Backend WASAPI de baixa latência (`crates/audio/src/wasapi.rs`, `--baixa-latencia`):
+  medido 83,9 / 88,1 ms (padrão 118,6 ms), 0 underruns, CPU 1,37 % × 1,17 %, RAM igual.

@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use mic_limpo_audio::{self as audio, Pacote, Pedido};
+use mic_limpo_audio::{self as audio, Backend, Pacote, Pedido};
 use mic_limpo_core::denoise::SAMPLE_RATE;
 use mic_limpo_core::metricas::{amostras_ms, Media};
 use mic_limpo_core::motor::{self, Config, Tempos, ATRASO_IA_AMOSTRAS};
@@ -22,6 +22,7 @@ pub struct Opcoes {
     pub saida: String,
     pub retorno: String,
     pub motor: Config,
+    pub backend: Backend,
     pub buffer: Option<u32>,
 }
 
@@ -32,6 +33,7 @@ impl Default for Opcoes {
             saida: "CABLE Input".into(),
             retorno: "CABLE Output".into(),
             motor: Config::default(),
+            backend: Backend::Padrao,
             buffer: None,
         }
     }
@@ -62,7 +64,8 @@ fn tempos(p: Pacote) -> Tempos {
 pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
     let (ctl, mut entrada, mut saida) = motor::criar(Config { ia: false, ..op.motor });
     let ck = Arc::new(Cliques { min_us: AtomicU64::new(u64::MAX), ..Default::default() });
-    let pedido = |trecho: Option<String>| Pedido { trecho, taxa: SAMPLE_RATE, buffer: op.buffer };
+    let backend = op.backend;
+    let pedido = |trecho: Option<String>| Pedido { backend, trecho, taxa: SAMPLE_RATE, buffer: op.buffer };
 
     // Entrada: ignora o mic e entrega silêncio com um clique a cada PERIODO_CLIQUE.
     let (c, mut cliques, mut contador) = (ck.clone(), vec![0.0f32; SAMPLE_RATE as usize], 0u64);
@@ -90,9 +93,11 @@ pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
         }
     })?;
 
-    // Retorno: primeiro pico depois de 250 ms de calma é o clique.
+    // Retorno: primeiro pico depois de 250 ms de calma é o clique. Sempre no backend padrão,
+    // como faria o Discord; muda só o caminho do app.
     let (c, mut ultima) = (ck.clone(), 0u64);
-    let fret = audio::abrir_entrada(&pedido(Some(op.retorno.clone())), move |d, p| {
+    let retorno = Pedido { backend: Backend::Padrao, ..pedido(Some(op.retorno.clone())) };
+    let fret = audio::abrir_entrada(&retorno, move |d, p| {
         for (i, f) in d.chunks_exact(p.canais).enumerate() {
             let t = p.dispositivo_ns + ns_da_amostra(i);
             if f[0].abs() < 0.05 || t.saturating_sub(ultima) < 250_000_000 {
@@ -115,11 +120,11 @@ pub fn medir(op: &Opcoes, segundos: u64) -> Res<()> {
 
     println!("Entrada: {} | Saída: {} | Retorno: {}", fin.nome, fout.nome, fret.nome);
     println!(
-        "Buffer pedido: {} | folga {} ms | teto {} ms | MMCSS: {}",
+        "Backend: {backend:?} | buffer pedido: {} | folga {} ms | teto {} ms | MMCSS: {}",
         op.buffer.map_or("padrão".into(), |b| format!("{b} quadros")),
         op.motor.folga_ms,
         op.motor.teto_ms,
-        if audio::MMCSS { "sim" } else { "não" }
+        if audio::MMCSS || backend == Backend::BaixaLatencia { "sim" } else { "não" }
     );
     fin.iniciar()?;
     fout.iniciar()?;

@@ -4,9 +4,24 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
-# Único crate que fala com APIs de áudio (cpal hoje; WASAPI/CoreAudio diretos depois).
+# Único crate do produto que fala com APIs de áudio (cpal e, no Windows, WASAPI direto).
 [dependencies]
 cpal.workspace = true
+
+# Backend de baixa latência (IAudioClient3 + MMCSS); o crate já vem na árvore pelo cpal.
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Devices_Properties",
+    "Win32_Foundation",
+    "Win32_Media_Audio",
+    "Win32_Security",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Performance",
+    "Win32_System_Threading",
+    "Win32_System_Variant",
+    "Win32_UI_Shell_PropertiesSystem",
+] }
 
 [features]
 # Prioridade de tempo real nas threads de áudio (MMCSS no Windows), via cpal.

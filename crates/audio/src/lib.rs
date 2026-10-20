@@ -1,6 +1,9 @@
 //! Entrada e saída de áudio atrás de callbacks simples, para o resto do projeto não depender de
-//! cpal nem de API do SO. Backend atual: `cpal` (WASAPI compartilhado no Windows, CoreAudio no
-//! macOS). Backends novos (WASAPI de baixa latência, por exemplo) entram aqui sem mexer no motor.
+//! cpal nem de API do SO. Backends: `cpal` (padrão: WASAPI compartilhado no Windows, CoreAudio no
+//! macOS) e WASAPI de baixa latência (só Windows). Backend novo = módulo novo aqui.
+
+#[cfg(windows)]
+mod wasapi;
 
 use std::error::Error;
 
@@ -22,9 +25,19 @@ pub struct Pacote {
     pub dispositivo_ns: u64,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Backend {
+    /// cpal: WASAPI compartilhado com período de 10 ms (Windows) ou CoreAudio (macOS).
+    #[default]
+    Padrao,
+    /// WASAPI direto com IAudioClient3 no menor período do driver e MMCSS (só Windows).
+    BaixaLatencia,
+}
+
 /// Qual dispositivo abrir e como.
 #[derive(Clone, Debug)]
 pub struct Pedido {
+    pub backend: Backend,
     /// Parte do nome do dispositivo; `None` = padrão do sistema.
     pub trecho: Option<String>,
     pub taxa: u32,
@@ -34,19 +47,51 @@ pub struct Pedido {
 
 /// Fluxo aberto e ainda parado. Parar = soltar (`drop`).
 pub struct Fluxo {
-    stream: cpal::Stream,
+    interno: Interno,
     pub nome: String,
     pub canais: usize,
 }
 
+enum Interno {
+    Cpal(cpal::Stream),
+    #[cfg(windows)]
+    Wasapi(wasapi::Fluxo),
+}
+
 impl Fluxo {
     pub fn iniciar(&self) -> Res<()> {
-        Ok(self.stream.play()?)
+        match &self.interno {
+            Interno::Cpal(s) => Ok(s.play()?),
+            #[cfg(windows)]
+            Interno::Wasapi(f) => f.iniciar(),
+        }
     }
     /// Período do dispositivo em quadros (tamanho típico de cada callback).
     pub fn periodo(&self) -> Res<u32> {
-        Ok(self.stream.buffer_size()?)
+        match &self.interno {
+            Interno::Cpal(s) => Ok(s.buffer_size()?),
+            #[cfg(windows)]
+            Interno::Wasapi(f) => Ok(f.periodo),
+        }
     }
+}
+
+#[cfg(windows)]
+fn abrir_wasapi(p: &Pedido, cb: wasapi::Callback) -> Res<Fluxo> {
+    let (f, a) = wasapi::abrir(p.trecho.clone(), p.taxa, cb)?;
+    Ok(Fluxo { interno: Interno::Wasapi(f), nome: a.nome, canais: a.canais })
+}
+
+/// Desvia para o backend de baixa latência quando pedido (ou falha fora do Windows).
+macro_rules! baixa_latencia {
+    ($p:expr, $variante:ident, $cb:expr) => {
+        if $p.backend == Backend::BaixaLatencia {
+            #[cfg(windows)]
+            return abrir_wasapi($p, wasapi::Callback::$variante(Box::new($cb)));
+            #[cfg(not(windows))]
+            return Err("modo de baixa latência só existe no Windows".into());
+        }
+    };
 }
 
 pub struct Info {
@@ -81,6 +126,7 @@ pub fn listar() -> Res<Lista> {
 }
 
 pub fn abrir_entrada(p: &Pedido, mut cb: impl FnMut(&[f32], Pacote) + Send + 'static) -> Res<Fluxo> {
+    baixa_latencia!(p, Entrada, cb);
     let host = cpal::default_host();
     let dev = achar(&host, true, p.trecho.as_deref())?;
     let cfg = config(&dev, true, p)?;
@@ -96,10 +142,11 @@ pub fn abrir_entrada(p: &Pedido, mut cb: impl FnMut(&[f32], Pacote) + Send + 'st
         move |e| eprintln!("erro na entrada ({rotulo}): {e}"),
         None,
     )?;
-    Ok(Fluxo { stream, nome, canais })
+    Ok(Fluxo { interno: Interno::Cpal(stream), nome, canais })
 }
 
 pub fn abrir_saida(p: &Pedido, mut cb: impl FnMut(&mut [f32], Pacote) + Send + 'static) -> Res<Fluxo> {
+    baixa_latencia!(p, Saida, cb);
     let host = cpal::default_host();
     let dev = achar(&host, false, p.trecho.as_deref())?;
     let cfg = config(&dev, false, p)?;
@@ -115,7 +162,7 @@ pub fn abrir_saida(p: &Pedido, mut cb: impl FnMut(&mut [f32], Pacote) + Send + '
         move |e| eprintln!("erro na saída ({rotulo}): {e}"),
         None,
     )?;
-    Ok(Fluxo { stream, nome, canais })
+    Ok(Fluxo { interno: Interno::Cpal(stream), nome, canais })
 }
 
 fn nome(d: &Device) -> String {

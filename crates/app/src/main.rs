@@ -5,7 +5,7 @@ use std::error::Error;
 use std::io::BufRead;
 use std::time::{Duration, Instant};
 
-use mic_limpo_audio::{self as audio, Pacote, Pedido};
+use mic_limpo_audio::{self as audio, Backend, Pacote, Pedido};
 use mic_limpo_core::denoise::SAMPLE_RATE;
 use mic_limpo_core::motor::{self, Config, Tempos};
 
@@ -25,6 +25,7 @@ Opções:
   --sem-ia           começa com a IA desligada
   --folga-ms N       margem do buffer entre entrada e saída (padrão: 10)
   --teto-ms N        acima de folga + N ms, descarta o excesso (padrão: 20)
+  --baixa-latencia   WASAPI direto no menor período do driver, com MMCSS (Windows)
   --buffer N         buffer do dispositivo em quadros (padrão: o do sistema)
   --segundos N       roda N segundos e mostra o resumo
 
@@ -36,6 +37,7 @@ struct Opcoes {
     entrada: Option<String>,
     saida: String,
     motor: Config,
+    backend: Backend,
     buffer: Option<u32>,
     segundos: Option<u64>,
 }
@@ -53,6 +55,7 @@ fn executar() -> Res<()> {
         entrada: None,
         saida: SAIDA_PADRAO.into(),
         motor: Config::default(),
+        backend: Backend::Padrao,
         buffer: None,
         segundos: None,
     };
@@ -67,6 +70,7 @@ fn executar() -> Res<()> {
             "--sem-ia" => op.motor.ia = false,
             "--folga-ms" => op.motor.folga_ms = valor()?.parse()?,
             "--teto-ms" => op.motor.teto_ms = valor()?.parse()?,
+            "--baixa-latencia" => op.backend = Backend::BaixaLatencia,
             "--buffer" => op.buffer = Some(valor()?.parse()?),
             "--segundos" => op.segundos = Some(valor()?.parse()?),
             "-h" | "--ajuda" => {
@@ -98,7 +102,8 @@ fn tempos(p: Pacote) -> Tempos {
 
 fn rodar(op: Opcoes) -> Res<()> {
     let (ctl, mut entrada, mut saida) = motor::criar(op.motor);
-    let pedido = |trecho: Option<String>| Pedido { trecho, taxa: SAMPLE_RATE, buffer: op.buffer };
+    let backend = op.backend;
+    let pedido = |trecho: Option<String>| Pedido { backend, trecho, taxa: SAMPLE_RATE, buffer: op.buffer };
     let fin = audio::abrir_entrada(&pedido(op.entrada.clone()), move |d, p| {
         entrada.processar(d, p.canais, tempos(p))
     })?;
@@ -108,11 +113,11 @@ fn rodar(op: Opcoes) -> Res<()> {
     println!("Entrada: {} ({} canais)", fin.nome, fin.canais);
     println!("Saída:   {} ({} canais)", fout.nome, fout.canais);
     println!(
-        "Buffer pedido: {} | folga {} ms | teto {} ms | MMCSS: {}",
+        "Backend: {backend:?} | buffer pedido: {} | folga {} ms | teto {} ms | MMCSS: {}",
         op.buffer.map_or("padrão".into(), |b| format!("{b} quadros")),
         op.motor.folga_ms,
         op.motor.teto_ms,
-        if audio::MMCSS { "sim" } else { "não" }
+        if audio::MMCSS || backend == Backend::BaixaLatencia { "sim" } else { "não" }
     );
 
     fin.iniciar()?;

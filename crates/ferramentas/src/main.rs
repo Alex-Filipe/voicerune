@@ -16,7 +16,7 @@ mic-limpo-dev (ferramentas de medição)
   mic-limpo-dev bench [--segundos N]
       custo e atraso algorítmico do RNNoise, sem dispositivos (padrão: 20 s)
   mic-limpo-dev latencia [--entrada T] [--saida T] [--retorno T] [--folga-ms N] [--teto-ms N]
-                         [--buffer N] [--segundos N]
+                         [--buffer N] [--baixa-latencia] [--segundos N]
       troca o mic por cliques e mede quando chegam no retorno; escreve na saída, então feche
       o Discord antes (padrão: CABLE Input → CABLE Output, 8 s)
   mic-limpo-dev comparar [--ref T] [--alvo T1,T2] [--segundos N]
@@ -54,6 +54,7 @@ fn executar() -> Res<()> {
             "--folga-ms" => lat.motor.folga_ms = valor()?.parse()?,
             "--teto-ms" => lat.motor.teto_ms = valor()?.parse()?,
             "--buffer" => lat.buffer = Some(valor()?.parse()?),
+            "--baixa-latencia" => lat.backend = mic_limpo_audio::Backend::BaixaLatencia,
             "--ref" => referencia = valor()?,
             "--alvo" => alvo = valor()?,
             _ => return Err(format!("opção desconhecida: {a} (veja --ajuda)").into()),

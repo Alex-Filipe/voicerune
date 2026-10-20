@@ -24,6 +24,7 @@
 - `cargo build --release`; binários em `C:\dev\cargo-target\mic-limpo\release\`:
   `mic-limpo.exe` (app) e `mic-limpo-dev.exe` (ferramentas). `cargo test` roda os testes do motor.
 - App: `mic-limpo --listar` · `mic-limpo --entrada Microphone` (Enter liga/desliga a IA, `q` encerra).
+  Modo baixa latência: acrescentar `--baixa-latencia` (Windows).
 - Ferramentas (`mic-limpo-dev --ajuda`):
   - `bench` — custo do RNNoise, offline.
   - `latencia` — cliques → CABLE Output; **escreve no CABLE Input: conferir que o Discord não

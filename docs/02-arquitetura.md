@@ -6,8 +6,9 @@
 crates/
   core/         → IA (denoise), motor (quadros, ring buffer, deriva) e métricas. Rust puro:
                   sem SO, sem dispositivo, sem rede. Testável sem microfone.
-  audio/        → backends de áudio atrás de callbacks simples. Hoje: cpal (WASAPI compartilhado
-                  no Windows, CoreAudio no macOS). Único crate do produto que fala com API de áudio.
+  audio/        → backends de áudio atrás de callbacks simples: cpal (padrão; WASAPI compartilhado
+                  no Windows, CoreAudio no macOS) e `wasapi` (baixa latência, só Windows).
+                  Único crate do produto que fala com API de áudio. `Pedido.backend` escolhe.
   app/          → `mic-limpo`, o programa do usuário: escolhe backend e liga ao motor.
                   Hoje CLI; interface (Slint) e bandeja na fase 4.
   ferramentas/  → `mic-limpo-dev`, só para desenvolvimento: bench, latencia, comparar, sondar.

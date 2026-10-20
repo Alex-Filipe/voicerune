@@ -28,6 +28,11 @@
   após underrun. Solução definitiva: reamostragem adaptativa (a decidir).
 - MMCSS: feature opcional `realtime` (`cargo build --release --features realtime`), desligada
   por padrão (sem ganho medido com o sistema ocioso; testar com jogo aberto).
+- **Modo baixa latência** (`--baixa-latencia`, crate `audio`, módulo `wasapi`): WASAPI direto,
+  compartilhado, IAudioClient3 no menor período do driver (mic 139 quadros = 2,9 ms; CABLE Input
+  128 = 2,7 ms), thread com MMCSS "Pro Audio" (via `avrt.dll`, sem dependência nova). Se outro app
+  travar o período do dispositivo, cai para o período atual e avisa. Exige mixer em 48 kHz float.
+  Ainda **opcional**: o padrão segue sendo o cpal até o teste com jogo aberto.
 - Limites do `cpal` 0.18 no WASAPI: só modo compartilhado; `BufferSize::Fixed` abaixo de 10 ms é
   ignorado (o período continua 480 quadros); não usa IAudioClient3 nem modo exclusivo.
 - Ferramentas (binário `mic-limpo-dev`; antes eram opções do `mic-limpo`):
@@ -107,3 +112,28 @@ configuração atual do Alex (mic → B1). App: configuração padrão, rodando 
 - **Conclusão:** latência do app ≈ a do Voicemeeter atual (~128–130 ms). App com 0 underruns em 48 s.
 - A fila do ring buffer varia de uma sessão para outra (7,6 a 14,5 ms) conforme a fase em que os
   streams começam: a latência total pode variar ~±5 ms entre sessões.
+
+**2026-10-20 — modo baixa latência (`mic-limpo-dev latencia --baixa-latencia`, 8 s, IA desligada)**
+
+Voicemeeter aberto (usando o mic) e Discord fechado.
+
+| Configuração | Underruns | Latência medida | Atrasos estimados |
+|---|---|---|---|
+| Padrão (cpal), controle | 0 | 118,6 ms | saída 41 ms |
+| **Baixa latência, folga 10** | **0** | **83,9 / 88,1 ms** | entrada 3,2 · acúmulo 5,0 · fila 12–15 · saída 3,2 ms |
+| Baixa latência, folga 5 | 3 | 80,8 ms | |
+| Baixa latência, folga 2 | 4 | 81,2 ms | |
+
+- Ganho medido: **~30–35 ms** (hipótese era 25–35 ms). Com RNNoise: ~95–100 ms estimados.
+- Divisão: app ~24–26 ms · VB-Cable ~60 ms (o VB-Cable vira o maior pedaço).
+- O "driver saída 41 ms" do cpal era em boa parte o buffer de 22 ms sempre cheio; no modo novo, 3,2 ms.
+- Folga 10 continua: menor ganha ~4 ms e traz underruns.
+
+**CPU/RAM do app (IA ligada, mic → CABLE Input, 8 s medidos pelo `Get-Process`)**
+
+| Modo | CPU | RAM privada | Underruns |
+|---|---|---|---|
+| Padrão | 1,17 % de um núcleo | 2,2 MB | 1 |
+| Baixa latência | 1,37 % de um núcleo | 2,1 MB | 0 |
+
+Custo extra do modo novo: +0,2 ponto de CPU. **Falta:** medir com jogo aberto (pior caso).

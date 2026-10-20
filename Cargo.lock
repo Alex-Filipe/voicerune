@@ -353,6 +353,7 @@ name = "mic-limpo-audio"
 version = "0.0.1"
 dependencies = [
  "cpal",
+ "windows",
 ]
 
 [[package]]
