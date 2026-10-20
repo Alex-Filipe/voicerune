@@ -17,6 +17,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use mic_limpo::controlador::{Ajustes, Controlador, Modo};
+use mic_limpo::salvo::Salvo;
 use mic_limpo_audio::{self as audio, Aviso};
 use mic_limpo_core::denoise::FRAME;
 use mic_limpo_core::metricas::amostras_ms;
@@ -40,6 +41,8 @@ const ESPERA_REABRIR: Duration = Duration::from_millis(300);
 const CLIQUE_FECHOU: Duration = Duration::from_millis(400);
 /// Distância do flyout até a barra de tarefas e a borda da tela (px lógicos).
 const MARGEM_FLYOUT: f32 = 12.0;
+/// A configuração é gravada este tempo depois da última mudança (arrastar o volume = uma gravação).
+const GRAVAR_APOS: Duration = Duration::from_millis(500);
 
 const MODOS: [Modo; 3] = [Modo::Desligado, Modo::Leve, Modo::Forte];
 
@@ -100,6 +103,8 @@ struct Ui {
     tema: i32,
     /// Posição e tamanho da última janela, para reabrir no mesmo lugar.
     lugar: Option<(slint::PhysicalPosition, slint::PhysicalSize)>,
+    /// Gravação adiada da configuração (ver `GRAVAR_APOS`).
+    gravacao: Timer,
     nivel: f32,
     tick: u32,
     /// (dsp_ns, quadros) na última conta da CPU, para mostrar a do último segundo.
@@ -136,7 +141,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         padrao_entrada: lista.entradas.iter().position(|d| d.padrao),
         padrao_saida: lista.saidas.iter().position(|d| d.padrao),
     };
-    let inicial = Ajustes::default();
+    // Última configuração (ou os padrões na 1ª vez).
+    let salvo = Salvo::carregar();
+    let inicial = disponivel(salvo.ajustes, &disp);
 
     let (tx, rx) = mpsc::channel::<Msg>();
     let (tx_aviso, rx_aviso) = mpsc::channel::<Aviso>();
@@ -170,8 +177,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             cpu: "—".into(),
             falhas: 0,
         },
-        tema: 0,
-        lugar: None,
+        tema: salvo.tema,
+        lugar: salvo
+            .janela
+            .filter(|&j| na_tela(j))
+            .map(|(x, y, l, h)| (slint::PhysicalPosition::new(x, y), slint::PhysicalSize::new(l, h))),
+        gravacao: Timer::default(),
         nivel: 0.0,
         tick: 0,
         dsp_anterior: (0, 0),
@@ -189,7 +200,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     slint::run_event_loop()?;
 
-    // Sair: destrói as telas e o ícone e para o áudio antes de sair.
+    // Sair: grava o estado final, destrói as telas e o ícone e para o áudio antes de sair.
+    let janela = com_ui(|ui| {
+        let j = ui.janela.take();
+        if let Some(j) = &j {
+            guardar_janela(ui, j);
+        }
+        gravar(ui);
+        j
+    });
+    drop(janela);
     drop(UI.take());
     drop(bandeja);
     let _ = tx.send(Msg::Sair);
@@ -282,6 +302,9 @@ where
     d.on_saida_escolhida(ao_mudar(|a, d, disp| a.saida = disp.saidas.get(d.get_saida() as usize).cloned()));
     d.on_baixa_latencia_mudou(ao_mudar(|a, d, _| a.baixa_latencia = d.get_baixa_latencia()));
     d.on_ligado_mudou(ao_mudar(|a, d, _| a.ligado = d.get_ligado()));
+    d.on_tema_escolhido(|| {
+        com_ui(agendar_gravacao);
+    });
     d.on_abrir_janela(|| {
         depois(|| {
             fechar_flyout(false);
@@ -296,6 +319,7 @@ fn pedir(origem: Tela, d: &Dados, f: fn(&mut Ajustes, &Dados, &Dispositivos)) {
     com_ui(|ui| {
         f(&mut ui.pedido, d, &ui.disp);
         let _ = ui.tx.send(Msg::Ajustes(ui.pedido.clone()));
+        agendar_gravacao(ui);
         match origem {
             Tela::Janela => {
                 if let Some(fl) = &ui.flyout {
@@ -353,18 +377,71 @@ fn fechar_janela() {
     let j = com_ui(|ui| {
         let j = ui.janela.take();
         if let Some(j) = &j {
-            ui.tema = j.global::<Dados>().get_tema();
-            // Minimizada (posição −32000) ou maximizada: fica o lugar anterior.
-            let w = j.window();
-            if !w.is_minimized() && !w.is_maximized() && w.position().x > -30000 {
-                ui.lugar = Some((w.position(), w.size()));
-            }
+            guardar_janela(ui, j);
+            gravar(ui);
         }
         ui.ajustar_medidor();
         j
     });
     // Fora do `UI`: destruir o componente solta a janela do winit.
     drop(j);
+}
+
+/// Guarda o tema e o lugar da janela que vai fechar.
+fn guardar_janela(ui: &mut Ui, j: &JanelaPrincipal) {
+    ui.tema = j.global::<Dados>().get_tema();
+    // Minimizada (posição −32000) ou maximizada: fica o lugar anterior.
+    let w = j.window();
+    if !w.is_minimized() && !w.is_maximized() && w.position().x > -30000 {
+        ui.lugar = Some((w.position(), w.size()));
+    }
+}
+
+fn agendar_gravacao(ui: &mut Ui) {
+    ui.gravacao.start(TimerMode::SingleShot, GRAVAR_APOS, || {
+        com_ui(|ui| gravar(ui));
+    });
+}
+
+fn gravar(ui: &Ui) {
+    ui.gravacao.stop();
+    let salvo = Salvo {
+        ajustes: ui.pedido.clone(),
+        tema: ui.tema_atual(),
+        janela: ui.lugar.map(|(p, t)| (p.x, p.y, t.width, t.height)),
+    };
+    if let Err(e) = salvo.gravar() {
+        eprintln!("gravar a configuração: {e}");
+    }
+}
+
+/// Dispositivo salvo que não está conectado agora volta ao padrão (o mic do Windows; a saída
+/// padrão do app). Limitação: a próxima gravação já guarda o padrão no lugar dele.
+fn disponivel(mut a: Ajustes, disp: &Dispositivos) -> Ajustes {
+    if a.entrada.as_deref().is_some_and(|n| audio::escolher(&disp.entradas, n).is_none()) {
+        eprintln!("mic salvo não encontrado: {:?}; usando o padrão", a.entrada);
+        a.entrada = None;
+    }
+    if a.saida.as_deref().is_some_and(|n| audio::escolher(&disp.saidas, n).is_none()) {
+        eprintln!("saída salva não encontrada: {:?}; usando a padrão", a.saida);
+        a.saida = Ajustes::default().saida;
+    }
+    a
+}
+
+/// A barra de título da janela salva cai em algum monitor? (Um monitor pode ter saído.)
+#[cfg(windows)]
+fn na_tela((x, y, l, _): (i32, i32, u32, u32)) -> bool {
+    use windows::Win32::Foundation::RECT;
+    use windows::Win32::Graphics::Gdi::{MonitorFromRect, MONITOR_DEFAULTTONULL};
+    let titulo = RECT { left: x, top: y, right: x.saturating_add(l as i32), bottom: y.saturating_add(32) };
+    // SAFETY: só lê o retângulo local.
+    !unsafe { MonitorFromRect(&titulo, MONITOR_DEFAULTTONULL) }.is_invalid()
+}
+
+#[cfg(not(windows))]
+fn na_tela(_: (i32, i32, u32, u32)) -> bool {
+    true
 }
 
 /// Clique no ícone: abre o flyout, ou fecha o que está aberto.
@@ -533,6 +610,7 @@ fn receber(ui: &mut Ui, e: Estado) {
     if let Some(a) = e.reverter {
         ui.pedido = a;
         ui.em_cada(|d| mostrar_ajustes(d, &ui.pedido, &ui.disp));
+        agendar_gravacao(ui);
     }
     let mesmo = match (&ui.motor, &e.motor) {
         (Some((a, _)), Some((b, _))) => Arc::ptr_eq(a, b),

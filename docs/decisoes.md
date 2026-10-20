@@ -47,3 +47,6 @@
 | 2026-10-20 | Flyout posicionado pelo cursor + área útil do monitor (Win32), não pelo retângulo do ícone | O `clicked` do Slint não traz a posição do ícone; o cursor está no ícone no clique |
 | 2026-10-20 | Janela e flyout criados sob demanda; o estado mostrado mora no Rust e preenche cada tela nova | Fechar destrói o componente (~1 MB privada a menos); reabrir custa ~40–75 ms |
 | 2026-10-20 | O app abre com a janela; a bandeja fica sempre | "Iniciar minimizado" entra com "Iniciar com o sistema" (bloco 4) |
+| 2026-10-20 | Última configuração em `%APPDATA%\mic-limpo\config.ini`, texto `chave = valor` feito à mão | Sem dependência nova (serde/toml); legível e editável; chave inválida fica no padrão |
+| 2026-10-20 | Gravar 0,5 s depois da última mudança (e ao fechar a janela e no Sair), num temporário trocado de lugar | Arrastar o volume = uma gravação; arquivo nunca fica pela metade |
+| 2026-10-20 | Dispositivo salvo ausente na partida volta ao padrão; janela salva fora de qualquer monitor é ignorada | O áudio sempre abre; a janela nunca nasce fora da tela |

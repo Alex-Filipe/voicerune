@@ -27,6 +27,7 @@
 - Atalho na área de trabalho (`mic-limpo.lnk`, criado em 2026-10-20) aponta direto para o
   `release\mic-limpo.exe`: sempre a versão compilada mais nova. **Fechar o app (Sair na bandeja)
   antes de `cargo build --release`**, senão o build falha (exe em uso). Exe ainda sem ícone embutido.
+- Configuração do app: `%APPDATA%\mic-limpo\config.ini` (texto; apagar volta aos padrões).
 - App: `mic-limpo` abre a janela (em release, sem console). Sem janela, pelas ferramentas:
   `mic-limpo-dev listar` · `mic-limpo-dev rodar --entrada Microphone` (Enter liga/desliga a IA;
   `l`/`f` Leve/Forte, `b` baixa latência, `g N` ganho, `p` pausa, `q` encerra).

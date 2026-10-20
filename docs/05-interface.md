@@ -142,6 +142,22 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
 - **Não testado:** clique real no ícone (os testes mandam a mensagem direto) e a nitidez do ícone
   de 64 px reduzido pelo shell.
 
+### Configuração salva (Fase 4, bloco 4)
+- `%APPDATA%\mic-limpo\config.ini` (módulo `salvo` na lib do app): ligado, modo, volume, mic,
+  saída, baixa latência, tema e posição/tamanho da janela. Lido na partida; gravado 0,5 s depois da
+  última mudança, ao fechar a janela e no Sair (temporário + troca de nome). Apagar o arquivo
+  volta aos padrões.
+- Tolerante: chave ausente ou valor inválido fica no padrão, chave desconhecida é ignorada, BOM do
+  Bloco de Notas é aceito, volume limitado a −12…+24 dB.
+- Mic ou saída salvos que não estão conectados: volta ao padrão (mic do Windows; saída `CABLE
+  Input`) e o áudio abre. **Limitação:** a próxima gravação guarda o padrão no lugar do nome salvo
+  (plugar o mic de novo pede escolher outra vez).
+- Janela salva cuja barra de título não cai em nenhum monitor (monitor desligado) é ignorada.
+- Testado (debug, 2026-10-20): Desligado pelo flyout → arquivo 0,5 s depois; janela movida → posição
+  salva no Sair; reabrir volta na posição e no modo (o motor também). Arquivo editado com mic
+  inexistente + tema claro + 6 dB → abre com o mic padrão, tema claro e +6 dB. +2 testes de
+  unidade (ida e volta, arquivo estranho).
+
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
 - Pendências visuais: barra de título nativa não segue o tema forçado; Mica/Acrylic

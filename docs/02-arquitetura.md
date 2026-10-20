@@ -11,7 +11,8 @@ crates/
                   no Windows, CoreAudio no macOS) e `wasapi` (baixa latência, só Windows).
                   Único crate do produto que fala com API de áudio. `Pedido.backend` escolhe.
   app/          → `mic-limpo`, o programa do usuário: lib `controlador` (ajustes do usuário →
-                  motor + fluxos, troca sem corte) + binário com a janela e a bandeja (Slint).
+                  motor + fluxos, troca sem corte) e `salvo` (última configuração em
+                  `config.ini`) + binário com a janela e a bandeja (Slint).
   ferramentas/  → `mic-limpo-dev`, só para desenvolvimento: rodar/listar (o app sem janela),
                   bench, latencia, comparar, sondar. Não vai para o usuário final.
   ui/           → `mic-limpo-ui`: telas em Slint (janela principal + flyout), compiladas no build;

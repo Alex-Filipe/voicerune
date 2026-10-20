@@ -1,9 +1,11 @@
 # Fases
 
-**Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos.
+**Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos;
+bloco 4 começado (última configuração salva).
 - Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `mic-limpo` abre a janela
   Slint ligada ao motor e põe um ícone na bandeja (clique = flyout; menu Abrir/Sair); fechar a
-  janela deixa o app só na bandeja. Sem janela nem bandeja: `mic-limpo-dev rodar`.
+  janela deixa o app só na bandeja. A última configuração volta ao abrir
+  (`%APPDATA%\mic-limpo\config.ini`). Sem janela nem bandeja: `mic-limpo-dev rodar`.
 - Latência com a IA ligada: Leve ~98 ms / Forte ~115 ms com `--baixa-latencia` (padrão ~130 /
   ~149 ms); Voicemeeter atual ~128 ms. Nova meta pendente (Alex decide).
 
@@ -14,11 +16,11 @@
 | 1. Motor controlável | ganho e medidor no `core`; `Controlador` no app troca modo/dispositivo/backend sem reiniciar; avisos por canal | concluído |
 | 2. UI ligada | `mic-limpo` abre a janela Slint com dados reais; `aplicar` fora da thread da janela; medidor só com a janela visível; reagir a aviso fatal | concluído |
 | 3. Bandeja + flyout | `SystemTrayIcon` do Slint 1.18 (`Shell_NotifyIconW`, sem crate extra); fechar destrói o componente; flyout junto da bandeja | concluído |
-| 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | — |
+| 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | em andamento: config salva feita |
 | 5. Uso diário | Alex usa alguns dias | — |
 
-**Próximo passo:** bloco 4 — config em `%APPDATA%\mic-limpo`, presets e iniciar com o sistema
-(com "iniciar só na bandeja"). Antes: Alex clica no ícone de verdade, fala e
+**Próximo passo:** resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
+bandeja") e instância única (o atalho abre um 2º app hoje). Antes: Alex clica no ícone de verdade, fala e
 confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
@@ -122,3 +124,9 @@ medidor acorda com a janela minimizada.
 - 2026-10-20 — Fase 4, bloco 3 (fim): 30 abre/fecha da janela sem vazamento — +3,5 MB de working
   set e ~+1 MB privada uma vez só (estabiliza), nenhuma janela oculta sobra, threads e handles
   estáveis; CPU por thread igual antes e depois (só os fluxos do cpal trabalham). Ver `05-interface.md`.
+- 2026-10-20 — Atalho `mic-limpo` na área de trabalho apontando para o exe de release (fechar o
+  app antes de compilar; ver `08-ambiente.md`).
+- 2026-10-20 — Fase 4, bloco 4 (parte 1, pedido do Alex): a última configuração volta ao abrir.
+  `%APPDATA%\mic-limpo\config.ini` em texto `chave = valor` (módulo `salvo`, sem dependência nova),
+  gravado 0,5 s após cada mudança, ao fechar a janela e no Sair; dispositivo ausente volta ao
+  padrão; janela fora da tela é ignorada. Testado de ponta a ponta em debug; +2 testes (14 passam).

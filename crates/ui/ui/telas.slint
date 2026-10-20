@@ -33,6 +33,7 @@ export global Dados {
     callback saida-escolhida();
     callback baixa-latencia-mudou();
     callback ligado-mudou();
+    callback tema-escolhido();
 }
 
 global Cores {
@@ -609,6 +610,7 @@ export component JanelaPrincipal inherits Window {
                 if Dados.pagina == 1: PaginaConfig {
                     tema-mudou(t) => {
                         root.aplicar-tema(t);
+                        Dados.tema-escolhido();
                     }
                 }
                 if Dados.pagina == 2: PaginaSobre { }
