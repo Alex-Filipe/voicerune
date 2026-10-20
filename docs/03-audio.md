@@ -103,6 +103,6 @@ configuração atual do Alex (mic → B1). App: configuração padrão, rodando 
 | App + RNNoise (mic → CABLE Output) | **129,8 ms** (corr. 0,95, pico 3,8×) · 118,2 ms (pico ambíguo 1,5×, descartado) | — |
 | App sem IA (mic → CABLE Output) | — | 124,2 ms (corr. 1,00), bate com os ~125 ms dos cliques |
 
-- **Conclusão:** latência do app ≈ a do Voicemeeter atual (~128–130 ms). Sem 0 underruns em 48 s.
+- **Conclusão:** latência do app ≈ a do Voicemeeter atual (~128–130 ms). App com 0 underruns em 48 s.
 - A fila do ring buffer varia de uma sessão para outra (7,6 a 14,5 ms) conforme a fase em que os
   streams começam: a latência total pode variar ~±5 ms entre sessões.
