@@ -1,12 +1,12 @@
 # Fases
 
 **Status atual:** Fase 1 em andamento — blocos 1 (pipeline) e 2 (latência medida) concluídos.
-Latência adicional medida: **~125 ms com a IA desligada, ~135 ms com RNNoise**. Meta antiga de
-< 20 ms é inalcançável (ver `03-audio.md`).
-**Próximo passo:** Alex decide entre (a) **bloco 3**: testar no Discord (microfone =
-`CABLE Output`, rodar `mic-limpo --entrada Microphone`) e avaliar qualidade/latência na prática;
-(b) **backend WASAPI próprio com IAudioClient3** (hipótese: −25 a −35 ms); (c) medir a latência
-do Voicemeeter atual como referência para a nova meta. Recomendação: (a) primeiro.
+Latência adicional medida: app com RNNoise **~130 ms** ≈ Voicemeeter atual **~128 ms** (mesmo som,
+gravados juntos). Meta antiga de < 20 ms é inalcançável (ver `03-audio.md`).
+**Próximo passo:** Alex define a nova meta de latência (sugestão: não piorar em relação ao
+Voicemeeter) e faz o **bloco 3**: testar no Discord (microfone = `CABLE Output`, fechar o
+Voicemeeter ou tirar o mic dele, rodar `mic-limpo --entrada Microphone`) e avaliar a qualidade.
+Opcional depois: backend WASAPI próprio com IAudioClient3 (hipótese: −25 a −35 ms).
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
@@ -34,3 +34,5 @@ Fases 2 e 3 podem andar em paralelo.
   (WASAPI direto), `--buffer`, `--teto-ms` e feature `realtime`. Medido ~125 ms (IA off) /
   ~135 ms (RNNoise); VB-Cable ~55 ms; `cpal` não reduz o período abaixo de 10 ms. Sonda mostra
   IAudioClient3 com período ~3 ms no mic e no CABLE Input. Folga/teto menores e MMCSS sem ganho real.
+- 2026-10-20 — Latência do Voicemeeter atual medida com `--comparar` (correlação, mesmo som):
+  Voicemeeter ~128 ms × app com RNNoise ~130 ms. Latência do app equivale à de hoje.

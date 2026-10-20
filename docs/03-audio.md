@@ -16,7 +16,8 @@
 ## Latência
 - Meta original (hipótese): **< 20 ms** adicionais. **Inalcançável com RNNoise + VB-Cable**
   (ver medições abaixo): só o RNNoise impõe ~20 ms e o VB-Cable ~55 ms. Nova meta: **a decidir
-  pelo Alex** (sugestão: não piorar em relação ao Voicemeeter atual; medir o Voicemeeter antes).
+  pelo Alex**. Referência medida: o Voicemeeter atual adiciona **~128 ms** e o app com RNNoise
+  **~130 ms** (ver comparação abaixo). Sugestão: meta = não piorar em relação ao Voicemeeter.
 
 ## Protótipo atual (fase 1)
 - `cpal` 0.18 (WASAPI compartilhado), 48 kHz f32 nos dois lados; mic misturado para mono
@@ -32,6 +33,11 @@
 - Ferramentas: `--medir-latencia` (troca o mic por cliques a cada 500 ms, IA desligada, e detecta
   no `CABLE Output` comparando timestamps de captura no mesmo relógio QPC) e `--sondar`
   (consulta o WASAPI direto: períodos, buffers, IAudioClient3, exclusivo).
+- `--comparar --alvo "A,B"`: grava o mic direto e os alvos ao mesmo tempo (só leitura) e acha o
+  atraso de cada alvo por correlação cruzada do mesmo som. Tempo ancorado por reta ajustada aos
+  timestamps de todos os pacotes (os do Voicemeeter oscilam ~0,3 ms por pacote).
+- Armadilha: com o ambiente quieto o driver do mic às vezes entrega **silêncio digital**
+  (−150 dBFS, e o B1 do Voicemeeter fica em zero junto). Medir **falando**.
 
 ## Medições
 
@@ -85,3 +91,18 @@ algorítmico de 480 amostras (10 ms, medido no `--bench`) = **~20 ms**, mesmo co
 Latência de stream reportada: 0 ms em todos. **Hipótese a medir:** um backend próprio com
 IAudioClient3 no mic e no CABLE Input reduziria ~25–35 ms (período 10 → ~3 ms e buffer de saída
 22 → ~6 ms). O lado do `CABLE Output` é aberto pelo Discord e não depende do app.
+
+**2026-10-20 — app × Voicemeeter atual (`--comparar`, mesmo som, gravados ao mesmo tempo)**
+
+Atraso até o que o Discord recebe, em relação ao mic direto. Voicemeeter Banana aberto com a
+configuração atual do Alex (mic → B1). App: configuração padrão, rodando em paralelo.
+
+| Caminho | Com voz, IA ligada (2 × 20 s) | Só ruído ambiente (rodadas com pico claro) |
+|---|---|---|
+| Voicemeeter (mic → Out B1) | 127,4 / 128,5 ms (corr. 0,87 / 0,90) | 128,2–138,0 ms (4 rodadas) |
+| App + RNNoise (mic → CABLE Output) | **129,8 ms** (corr. 0,95, pico 3,8×) · 118,2 ms (pico ambíguo 1,5×, descartado) | — |
+| App sem IA (mic → CABLE Output) | — | 124,2 ms (corr. 1,00), bate com os ~125 ms dos cliques |
+
+- **Conclusão:** latência do app ≈ a do Voicemeeter atual (~128–130 ms). Sem 0 underruns em 48 s.
+- A fila do ring buffer varia de uma sessão para outra (7,6 a 14,5 ms) conforme a fase em que os
+  streams começam: a latência total pode variar ~±5 ms entre sessões.
