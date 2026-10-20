@@ -5,7 +5,9 @@ Latência: app com RNNoise **~130 ms** ≈ Voicemeeter atual **~128 ms**. Meta a
 inalcançável; **nova meta pendente (Alex decide; sugestão: não piorar em relação ao Voicemeeter)**.
 **Próximo passo:** iniciar a Fase 2 (RNNoise × DeepFilterNet: custo, qualidade e latência,
 incluindo teste de escuta gravado) e/ou a Fase 3 (mockup da UI) — podem andar em paralelo.
-Opcional: backend WASAPI próprio com IAudioClient3 (hipótese: −25 a −35 ms).
+Em andamento: backend WASAPI próprio com IAudioClient3 (opcional, hipótese: −25 a −35 ms), em
+`crates/audio`, como modo `--baixa-latencia`. Antes, rodar `mic-limpo-dev latencia` para fechar a
+validação da refatoração (pendente: Discord estava aberto).
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
@@ -37,3 +39,6 @@ Fases 2 e 3 podem andar em paralelo.
   Voicemeeter ~128 ms × app com RNNoise ~130 ms. Latência do app equivale à de hoje.
 - 2026-10-20 — Fase 1, bloco 3: teste no Discord pelo Alex (entrada = CABLE Output, Voicemeeter
   aberto em paralelo): teclado e TikTok no celular não audíveis com a IA. **Fase 1 concluída.**
+- 2026-10-20 — Refatoração da arquitetura: motor e métricas foram para `core` (com 3 testes
+  novos), backend `cpal` para o crate `audio`, ferramentas para `mic-limpo-dev`. App de 8 s igual
+  a antes (0 underruns, DSP 0,4 %, atrasos iguais); bench igual. Ver `02-arquitetura.md`.

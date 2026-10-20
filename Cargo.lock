@@ -344,10 +344,15 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 name = "mic-limpo"
 version = "0.0.1"
 dependencies = [
- "cpal",
+ "mic-limpo-audio",
  "mic-limpo-core",
- "rtrb",
- "windows",
+]
+
+[[package]]
+name = "mic-limpo-audio"
+version = "0.0.1"
+dependencies = [
+ "cpal",
 ]
 
 [[package]]
@@ -355,6 +360,16 @@ name = "mic-limpo-core"
 version = "0.0.1"
 dependencies = [
  "nnnoiseless",
+ "rtrb",
+]
+
+[[package]]
+name = "mic-limpo-ferramentas"
+version = "0.0.1"
+dependencies = [
+ "mic-limpo-audio",
+ "mic-limpo-core",
+ "windows",
 ]
 
 [[package]]

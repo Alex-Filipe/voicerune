@@ -20,11 +20,16 @@
 ## macOS
 - Compilar lá (Claude Code no Mac) ou via CI no GitHub Actions (quando o repo existir).
 
-## Rodar o protótipo (fase 1)
-- `cargo build --release`; binário em `C:\dev\cargo-target\mic-limpo\release\mic-limpo.exe`.
-- `mic-limpo --listar` · `mic-limpo --bench` · `mic-limpo --entrada Microphone` (Enter liga/desliga a IA, `q` encerra).
-- Latência: `mic-limpo --entrada Microphone --medir-latencia --segundos 8` (escreve cliques no
-  CABLE Input: fechar Discord/Voicemeeter antes) · `mic-limpo --sondar` (capacidades do WASAPI).
+## Rodar
+- `cargo build --release`; binários em `C:\dev\cargo-target\mic-limpo\release\`:
+  `mic-limpo.exe` (app) e `mic-limpo-dev.exe` (ferramentas). `cargo test` roda os testes do motor.
+- App: `mic-limpo --listar` · `mic-limpo --entrada Microphone` (Enter liga/desliga a IA, `q` encerra).
+- Ferramentas (`mic-limpo-dev --ajuda`):
+  - `bench` — custo do RNNoise, offline.
+  - `latencia` — cliques → CABLE Output; **escreve no CABLE Input: conferir que o Discord não
+    está usando o CABLE Output numa call**.
+  - `comparar --alvo "Voicemeeter Out B1,CABLE Output"` — só lê, mas precisa de voz.
+  - `sondar` — capacidades do WASAPI.
 - MMCSS: `cargo build --release --features realtime`.
 - **Atenção:** a entrada padrão do Windows hoje é `Voicemeeter Out B1`, então passar `--entrada Microphone`.
 - No Discord: microfone = `CABLE Output (VB-Audio Virtual Cable)`.

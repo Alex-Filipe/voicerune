@@ -1,8 +1,17 @@
 [workspace]
 resolver = "2"
-members = ["crates/core", "crates/app"]
+members = ["crates/core", "crates/audio", "crates/app", "crates/ferramentas"]
 
 [workspace.package]
 version = "0.0.1"
 edition = "2021"
 license = "MIT"
+
+# Versões num lugar só; cada crate escolhe o que usa (e as features do `windows`).
+[workspace.dependencies]
+mic-limpo-core = { path = "crates/core" }
+mic-limpo-audio = { path = "crates/audio" }
+cpal = "0.18.2"
+nnnoiseless = { version = "0.5.2", default-features = false }
+rtrb = "0.4.0"
+windows = "0.62"

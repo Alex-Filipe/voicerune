@@ -5,10 +5,10 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use cpal::traits::{DeviceTrait, StreamTrait};
+use mic_limpo_audio::{self as audio, Pedido};
 use mic_limpo_core::denoise::SAMPLE_RATE;
 
-use super::{achar, config_48k, nome, Res};
+use crate::Res;
 
 /// Decimação da busca grossa (48 kHz → 12 kHz).
 const DECIM: usize = 4;
@@ -38,15 +38,11 @@ fn ajustar(pts: &[(f64, f64)]) -> (f64, f64, f64) {
 }
 
 struct Gravacao {
-    nome: String,
-    stream: cpal::Stream,
+    fluxo: audio::Fluxo,
     linha: Arc<Mutex<Linha>>,
 }
 
-fn gravar(host: &cpal::Host, trecho: &str, segundos: u64) -> Res<Gravacao> {
-    let dev = achar(host, true, Some(trecho))?;
-    let cfg = config_48k(&dev, true, None)?;
-    let ch = cfg.channels as usize;
+fn gravar(trecho: &str, segundos: u64) -> Res<Gravacao> {
     let linha = Arc::new(Mutex::new(Linha {
         amostras: vec![0.0; (segundos as usize + 1) * SAMPLE_RATE as usize],
         pacotes: Vec::with_capacity(segundos as usize * 200),
@@ -54,29 +50,23 @@ fn gravar(host: &cpal::Host, trecho: &str, segundos: u64) -> Res<Gravacao> {
     }));
     let l = linha.clone();
     let mut contador = 0u64;
-    let rotulo = nome(&dev);
-    let stream = dev.build_input_stream(
-        cfg,
-        move |data: &[f32], info: &cpal::InputCallbackInfo| {
-            contador += 1;
-            if contador <= PACOTES_INICIAIS {
-                return;
-            }
-            // Medição, não o pipeline: um lock aqui é aceitável (o main só lê depois de parar).
-            let Ok(mut l) = l.try_lock() else { return };
-            let pos = l.usadas;
-            let ns = info.timestamp().capture.as_nanos() as f64;
-            l.pacotes.push((pos as f64, ns));
-            let fim = (pos + data.len() / ch).min(l.amostras.len());
-            for (a, f) in l.amostras[pos..fim].iter_mut().zip(data.chunks_exact(ch)) {
-                *a = f.iter().sum::<f32>() / ch as f32;
-            }
-            l.usadas = fim;
-        },
-        move |e| eprintln!("erro na captura ({rotulo}): {e}"),
-        None,
-    )?;
-    Ok(Gravacao { nome: nome(&dev), stream, linha })
+    let pedido = Pedido { trecho: Some(trecho.into()), taxa: SAMPLE_RATE, buffer: None };
+    let fluxo = audio::abrir_entrada(&pedido, move |dados, p| {
+        contador += 1;
+        if contador <= PACOTES_INICIAIS {
+            return;
+        }
+        // Medição, não o motor: um lock aqui é aceitável (o main só lê depois de parar).
+        let Ok(mut l) = l.try_lock() else { return };
+        let pos = l.usadas;
+        l.pacotes.push((pos as f64, p.dispositivo_ns as f64));
+        let fim = (pos + dados.len() / p.canais).min(l.amostras.len());
+        for (a, f) in l.amostras[pos..fim].iter_mut().zip(dados.chunks_exact(p.canais)) {
+            *a = f.iter().sum::<f32>() / p.canais as f32;
+        }
+        l.usadas = fim;
+    })?;
+    Ok(Gravacao { fluxo, linha })
 }
 
 fn dbfs(x: &[f32]) -> f64 {
@@ -163,25 +153,26 @@ fn atraso(r: &Preparado, g: &Preparado) -> (f64, f64, f64) {
 
 /// `alvos` aceita vários dispositivos separados por vírgula, gravados ao mesmo tempo.
 pub fn comparar(referencia: &str, alvos: &str, segundos: u64) -> Res<()> {
-    let host = cpal::default_host();
-    let r = gravar(&host, referencia, segundos)?;
-    let gs = alvos.split(',').map(|a| gravar(&host, a.trim(), segundos)).collect::<Res<Vec<_>>>()?;
-    r.stream.play()?;
+    let r = gravar(referencia, segundos)?;
+    let gs = alvos.split(',').map(|a| gravar(a.trim(), segundos)).collect::<Res<Vec<_>>>()?;
+    r.fluxo.iniciar()?;
     for g in &gs {
-        g.stream.play()?;
+        g.fluxo.iniciar()?;
     }
     println!("Gravando {segundos} s (fale, estale os dedos ou bata palmas perto do mic)...");
     std::thread::sleep(Duration::from_secs(segundos));
-    drop(r.stream);
+    let r_nome = r.fluxo.nome.clone();
+    drop(r.fluxo);
     let gs: Vec<_> = gs
         .into_iter()
         .map(|g| {
-            drop(g.stream);
-            (g.nome, g.linha)
+            let nome = g.fluxo.nome.clone();
+            drop(g.fluxo);
+            (nome, g.linha)
         })
         .collect();
 
-    let r = preparar(r.nome, &r.linha)?;
+    let r = preparar(r_nome, &r.linha)?;
     println!(
         "Referência: {} | {:.1} dBFS | oscilação {:.2} ms | deriva {:+.0} ppm",
         r.nome, r.dbfs, r.oscilacao_ms, r.deriva_ppm

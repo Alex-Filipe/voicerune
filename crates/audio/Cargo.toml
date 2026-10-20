@@ -1,0 +1,13 @@
+[package]
+name = "mic-limpo-audio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# Único crate que fala com APIs de áudio (cpal hoje; WASAPI/CoreAudio diretos depois).
+[dependencies]
+cpal.workspace = true
+
+[features]
+# Prioridade de tempo real nas threads de áudio (MMCSS no Windows), via cpal.
+realtime = ["cpal/realtime"]

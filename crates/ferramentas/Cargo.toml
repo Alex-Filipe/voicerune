@@ -1,0 +1,29 @@
+[package]
+name = "mic-limpo-ferramentas"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+# Ferramentas de desenvolvimento (medição); não vão para o usuário final.
+[[bin]]
+name = "mic-limpo-dev"
+path = "src/main.rs"
+
+[dependencies]
+mic-limpo-core.workspace = true
+mic-limpo-audio.workspace = true
+
+# Sonda do WASAPI: consulta o Windows direto (o crate já vem na árvore pelo cpal).
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Devices_Properties",
+    "Win32_Media_Audio",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Variant",
+    "Win32_UI_Shell_PropertiesSystem",
+] }
+
+[features]
+realtime = ["mic-limpo-audio/realtime"]

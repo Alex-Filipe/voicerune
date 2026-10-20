@@ -4,5 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+# Só Rust puro: nada de SO, dispositivo ou rede.
 [dependencies]
-nnnoiseless = { version = "0.5.2", default-features = false }
+nnnoiseless.workspace = true
+rtrb.workspace = true

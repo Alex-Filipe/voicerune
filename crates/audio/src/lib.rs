@@ -1,0 +1,144 @@
+//! Entrada e saída de áudio atrás de callbacks simples, para o resto do projeto não depender de
+//! cpal nem de API do SO. Backend atual: `cpal` (WASAPI compartilhado no Windows, CoreAudio no
+//! macOS). Backends novos (WASAPI de baixa latência, por exemplo) entram aqui sem mexer no motor.
+
+use std::error::Error;
+
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{BufferSize, Device, Host, StreamConfig};
+
+pub type Res<T> = Result<T, Box<dyn Error>>;
+
+/// Se as threads de áudio pedem prioridade de tempo real (feature `realtime`).
+pub const MMCSS: bool = cfg!(feature = "realtime");
+
+/// Um pacote entregue ao callback: áudio f32 intercalado em `canais` canais.
+#[derive(Clone, Copy, Debug)]
+pub struct Pacote {
+    pub canais: usize,
+    /// Instante do callback, em ns (relógio QPC no Windows).
+    pub callback_ns: u64,
+    /// Captura (entrada) ou reprodução prevista (saída) da primeira amostra, em ns.
+    pub dispositivo_ns: u64,
+}
+
+/// Qual dispositivo abrir e como.
+#[derive(Clone, Debug)]
+pub struct Pedido {
+    /// Parte do nome do dispositivo; `None` = padrão do sistema.
+    pub trecho: Option<String>,
+    pub taxa: u32,
+    /// Buffer pedido em quadros; `None` = o do sistema.
+    pub buffer: Option<u32>,
+}
+
+/// Fluxo aberto e ainda parado. Parar = soltar (`drop`).
+pub struct Fluxo {
+    stream: cpal::Stream,
+    pub nome: String,
+    pub canais: usize,
+}
+
+impl Fluxo {
+    pub fn iniciar(&self) -> Res<()> {
+        Ok(self.stream.play()?)
+    }
+    /// Período do dispositivo em quadros (tamanho típico de cada callback).
+    pub fn periodo(&self) -> Res<u32> {
+        Ok(self.stream.buffer_size()?)
+    }
+}
+
+pub struct Info {
+    pub nome: String,
+    pub padrao: bool,
+    pub formato: String,
+}
+
+pub struct Lista {
+    pub host: String,
+    pub entradas: Vec<Info>,
+    pub saidas: Vec<Info>,
+}
+
+pub fn listar() -> Res<Lista> {
+    let host = cpal::default_host();
+    let padrao_in = host.default_input_device().map(|d| nome(&d));
+    let padrao_out = host.default_output_device().map(|d| nome(&d));
+    let info = |d: Device, entrada: bool, padrao: &Option<String>| {
+        let cfg = if entrada { d.default_input_config() } else { d.default_output_config() };
+        let formato = cfg
+            .map(|c| format!("{} Hz, {} canais, {:?}", c.sample_rate(), c.channels(), c.sample_format()))
+            .unwrap_or_else(|e| format!("({e})"));
+        let nome = nome(&d);
+        Info { padrao: padrao.as_ref() == Some(&nome), nome, formato }
+    };
+    Ok(Lista {
+        host: host.id().name().to_string(),
+        entradas: host.input_devices()?.map(|d| info(d, true, &padrao_in)).collect(),
+        saidas: host.output_devices()?.map(|d| info(d, false, &padrao_out)).collect(),
+    })
+}
+
+pub fn abrir_entrada(p: &Pedido, mut cb: impl FnMut(&[f32], Pacote) + Send + 'static) -> Res<Fluxo> {
+    let host = cpal::default_host();
+    let dev = achar(&host, true, p.trecho.as_deref())?;
+    let cfg = config(&dev, true, p)?;
+    let (nome, canais) = (nome(&dev), cfg.channels as usize);
+    let rotulo = nome.clone();
+    let stream = dev.build_input_stream(
+        cfg,
+        move |dados: &[f32], info: &cpal::InputCallbackInfo| {
+            let ts = info.timestamp();
+            let callback_ns = ts.callback.as_nanos() as u64;
+            cb(dados, Pacote { canais, callback_ns, dispositivo_ns: ts.capture.as_nanos() as u64 });
+        },
+        move |e| eprintln!("erro na entrada ({rotulo}): {e}"),
+        None,
+    )?;
+    Ok(Fluxo { stream, nome, canais })
+}
+
+pub fn abrir_saida(p: &Pedido, mut cb: impl FnMut(&mut [f32], Pacote) + Send + 'static) -> Res<Fluxo> {
+    let host = cpal::default_host();
+    let dev = achar(&host, false, p.trecho.as_deref())?;
+    let cfg = config(&dev, false, p)?;
+    let (nome, canais) = (nome(&dev), cfg.channels as usize);
+    let rotulo = nome.clone();
+    let stream = dev.build_output_stream(
+        cfg,
+        move |dados: &mut [f32], info: &cpal::OutputCallbackInfo| {
+            let ts = info.timestamp();
+            let callback_ns = ts.callback.as_nanos() as u64;
+            cb(dados, Pacote { canais, callback_ns, dispositivo_ns: ts.playback.as_nanos() as u64 });
+        },
+        move |e| eprintln!("erro na saída ({rotulo}): {e}"),
+        None,
+    )?;
+    Ok(Fluxo { stream, nome, canais })
+}
+
+fn nome(d: &Device) -> String {
+    d.description().map(|x| x.name().to_string()).unwrap_or_else(|_| "?".into())
+}
+
+fn achar(host: &Host, entrada: bool, trecho: Option<&str>) -> Res<Device> {
+    let Some(t) = trecho else {
+        let d = if entrada { host.default_input_device() } else { host.default_output_device() };
+        return d.ok_or_else(|| "sem dispositivo padrão".into());
+    };
+    let t = t.to_lowercase();
+    let mut devs = if entrada { host.input_devices()? } else { host.output_devices()? };
+    devs.find(|d| nome(d).to_lowercase().contains(&t))
+        .ok_or_else(|| format!("nenhum dispositivo contém \"{t}\" (veja --listar)").into())
+}
+
+/// Mantém os canais do dispositivo e pede a taxa do motor em f32 (o WASAPI converte na saída).
+fn config(d: &Device, entrada: bool, p: &Pedido) -> Res<StreamConfig> {
+    let padrao = if entrada { d.default_input_config()? } else { d.default_output_config()? };
+    Ok(StreamConfig {
+        channels: padrao.channels(),
+        sample_rate: p.taxa,
+        buffer_size: p.buffer.map_or(BufferSize::Default, BufferSize::Fixed),
+    })
+}

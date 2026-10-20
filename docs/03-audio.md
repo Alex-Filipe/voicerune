@@ -30,10 +30,11 @@
   por padrão (sem ganho medido com o sistema ocioso; testar com jogo aberto).
 - Limites do `cpal` 0.18 no WASAPI: só modo compartilhado; `BufferSize::Fixed` abaixo de 10 ms é
   ignorado (o período continua 480 quadros); não usa IAudioClient3 nem modo exclusivo.
-- Ferramentas: `--medir-latencia` (troca o mic por cliques a cada 500 ms, IA desligada, e detecta
-  no `CABLE Output` comparando timestamps de captura no mesmo relógio QPC) e `--sondar`
-  (consulta o WASAPI direto: períodos, buffers, IAudioClient3, exclusivo).
-- `--comparar --alvo "A,B"`: grava o mic direto e os alvos ao mesmo tempo (só leitura) e acha o
+- Ferramentas (binário `mic-limpo-dev`; antes eram opções do `mic-limpo`):
+  `latencia` (troca o mic por cliques a cada 500 ms, IA desligada, e detecta no `CABLE Output`
+  comparando timestamps de captura no mesmo relógio QPC) e `sondar` (consulta o WASAPI direto:
+  períodos, buffers, IAudioClient3, exclusivo).
+- `comparar --alvo "A,B"`: grava o mic direto e os alvos ao mesmo tempo (só leitura) e acha o
   atraso de cada alvo por correlação cruzada do mesmo som. Tempo ancorado por reta ajustada aos
   timestamps de todos os pacotes (os do Voicemeeter oscilam ~0,3 ms por pacote).
 - Armadilha: com o ambiente quieto o driver do mic às vezes entrega **silêncio digital**
