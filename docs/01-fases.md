@@ -1,10 +1,12 @@
 # Fases
 
-**Status atual:** Fase 1 em andamento — bloco 1 (pipeline funcionando) concluído.
-**Próximo passo:** bloco 2 — reduzir e medir a latência (hoje ~76 ms estimados, meta < 20 ms):
-buffer de saída menor (`BufferSize::Fixed` / período mínimo do WASAPI), folga menor, MMCSS
-(feature `realtime` do cpal) e medição ponta a ponta por loopback (CABLE Output). Depois, bloco 3:
-Alex testa no Discord (microfone = `CABLE Output`). Ver `03-audio.md`.
+**Status atual:** Fase 1 em andamento — blocos 1 (pipeline) e 2 (latência medida) concluídos.
+Latência adicional medida: **~125 ms com a IA desligada, ~135 ms com RNNoise**. Meta antiga de
+< 20 ms é inalcançável (ver `03-audio.md`).
+**Próximo passo:** Alex decide entre (a) **bloco 3**: testar no Discord (microfone =
+`CABLE Output`, rodar `mic-limpo --entrada Microphone`) e avaliar qualidade/latência na prática;
+(b) **backend WASAPI próprio com IAudioClient3** (hipótese: −25 a −35 ms); (c) medir a latência
+do Voicemeeter atual como referência para a nova meta. Recomendação: (a) primeiro.
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
@@ -28,3 +30,7 @@ Fases 2 e 3 podem andar em paralelo.
   `rtrb` → CABLE Input) com `--listar`, `--bench`, `--sem-ia`, `--folga-ms`, `--segundos`.
   Teste de 8 s sem underruns; RNNoise ~0,4 % de um núcleo; RAM privada 2,1 MB; latência estimada
   75,8 ms (maior parte no buffer de saída do WASAPI). Medições em `03-audio.md` e `04-ia-ruido.md`.
+- 2026-10-20 — Fase 1, bloco 2: `--medir-latencia` (cliques → CABLE Output), `--sondar`
+  (WASAPI direto), `--buffer`, `--teto-ms` e feature `realtime`. Medido ~125 ms (IA off) /
+  ~135 ms (RNNoise); VB-Cable ~55 ms; `cpal` não reduz o período abaixo de 10 ms. Sonda mostra
+  IAudioClient3 com período ~3 ms no mic e no CABLE Input. Folga/teto menores e MMCSS sem ganho real.

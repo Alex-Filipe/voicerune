@@ -10,6 +10,9 @@
 - Projeto: **MIT**.
 - **BlackHole é GPL-3:** pode ser usado como referência ou instalado à parte, mas **não embutir**
   no app (forçaria GPL). O plugin próprio de macOS (fase 6) deve ser escrito do zero.
+- `audio_thread_priority` (puxado pela feature opcional `realtime` do app, para MMCSS) é
+  **MPL-2.0**: copyleft só por arquivo, compatível com distribuir o app como MIT sem alterar os
+  arquivos dele. Hoje a feature está desligada por padrão.
 - Voicemeeter: proprietário. Sem engenharia reversa do binário (EULA); só comportamento,
   manual e API pública.
 

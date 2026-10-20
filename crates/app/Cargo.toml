@@ -8,3 +8,18 @@ license.workspace = true
 cpal = "0.18.2"
 mic-limpo-core = { path = "../core" }
 rtrb = "0.4.0"
+
+# Só para a sonda do WASAPI (--sondar); já vem na árvore pelo cpal.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Devices_Properties",
+    "Win32_Media_Audio",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Variant",
+    "Win32_UI_Shell_PropertiesSystem",
+] }
+
+[features]
+# Prioridade de tempo real nas threads de áudio (MMCSS no Windows), via cpal.
+realtime = ["cpal/realtime"]

@@ -23,6 +23,9 @@
 ## Rodar o protótipo (fase 1)
 - `cargo build --release`; binário em `C:\dev\cargo-target\mic-limpo\release\mic-limpo.exe`.
 - `mic-limpo --listar` · `mic-limpo --bench` · `mic-limpo --entrada Microphone` (Enter liga/desliga a IA, `q` encerra).
+- Latência: `mic-limpo --entrada Microphone --medir-latencia --segundos 8` (escreve cliques no
+  CABLE Input: fechar Discord/Voicemeeter antes) · `mic-limpo --sondar` (capacidades do WASAPI).
+- MMCSS: `cargo build --release --features realtime`.
 - **Atenção:** a entrada padrão do Windows hoje é `Voicemeeter Out B1`, então passar `--entrada Microphone`.
 - No Discord: microfone = `CABLE Output (VB-Audio Virtual Cable)`.
 - Saída redirecionada no PowerShell mostra acentos quebrados (UTF-8 lido como ANSI); só visual.

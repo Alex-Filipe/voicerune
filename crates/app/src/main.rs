@@ -1,5 +1,8 @@
 //! Protótipo da fase 1: microfone → RNNoise → saída (por padrão o VB-Cable).
 
+#[cfg(windows)]
+mod sonda;
+
 use std::error::Error;
 use std::f32::consts::TAU;
 use std::io::BufRead;
@@ -14,6 +17,9 @@ use mic_limpo_core::denoise::{Denoiser, FRAME, SAMPLE_RATE};
 type Res<T> = Result<T, Box<dyn Error>>;
 
 const SAIDA_PADRAO: &str = "CABLE Input";
+const RETORNO_PADRAO: &str = "CABLE Output";
+/// Intervalo entre cliques na medição de latência (500 ms).
+const PERIODO_CLIQUE: u64 = SAMPLE_RATE as u64 / 2;
 
 const AJUDA: &str = "\
 mic-limpo (protótipo da fase 1)
@@ -21,12 +27,17 @@ mic-limpo (protótipo da fase 1)
   mic-limpo [opções]        microfone → RNNoise → saída
   mic-limpo --listar        lista dispositivos de áudio
   mic-limpo --bench         mede o custo do RNNoise sem dispositivos
+  mic-limpo --sondar        mostra períodos e latências que o WASAPI permite (Windows)
 
 Opções:
   --entrada TRECHO   parte do nome do microfone (padrão: o do sistema)
   --saida TRECHO     parte do nome da saída (padrão: \"CABLE Input\")
   --sem-ia           começa com a IA desligada
   --folga-ms N       margem do buffer entre entrada e saída (padrão: 10)
+  --teto-ms N        acima de folga + N ms, descarta o excesso (padrão: 20)
+  --buffer N         buffer do WASAPI em quadros, nos dois lados (padrão: o do sistema)
+  --medir-latencia   troca o mic por cliques e mede quando chegam em --retorno (IA desligada)
+  --retorno TRECHO   onde escutar os cliques (padrão: \"CABLE Output\")
   --segundos N       roda N segundos e mostra o resumo (bench: padrão 20)
 
 Rodando: Enter liga/desliga a IA; q + Enter encerra e mostra o resumo.";
@@ -35,6 +46,7 @@ enum Modo {
     Rodar,
     Listar,
     Bench,
+    Sondar,
 }
 
 struct Opcoes {
@@ -43,6 +55,10 @@ struct Opcoes {
     saida: String,
     ia: bool,
     folga_ms: u32,
+    teto_ms: u32,
+    buffer: Option<u32>,
+    medir: bool,
+    retorno: String,
     segundos: Option<u64>,
 }
 
@@ -60,6 +76,10 @@ fn executar() -> Res<()> {
         saida: SAIDA_PADRAO.into(),
         ia: true,
         folga_ms: 10,
+        teto_ms: 20,
+        buffer: None,
+        medir: false,
+        retorno: RETORNO_PADRAO.into(),
         segundos: None,
     };
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -69,10 +89,15 @@ fn executar() -> Res<()> {
         match a.as_str() {
             "--listar" => op.modo = Modo::Listar,
             "--bench" => op.modo = Modo::Bench,
+            "--sondar" => op.modo = Modo::Sondar,
             "--entrada" => op.entrada = Some(valor()?),
             "--saida" => op.saida = valor()?,
             "--sem-ia" => op.ia = false,
             "--folga-ms" => op.folga_ms = valor()?.parse()?,
+            "--teto-ms" => op.teto_ms = valor()?.parse()?,
+            "--buffer" => op.buffer = Some(valor()?.parse()?),
+            "--medir-latencia" => op.medir = true,
+            "--retorno" => op.retorno = valor()?,
             "--segundos" => op.segundos = Some(valor()?.parse()?),
             "-h" | "--ajuda" => {
                 println!("{AJUDA}");
@@ -84,6 +109,10 @@ fn executar() -> Res<()> {
     match op.modo {
         Modo::Listar => listar(),
         Modo::Bench => bench(op.segundos.unwrap_or(20)),
+        #[cfg(windows)]
+        Modo::Sondar => Ok(sonda::sondar(&["Microphone", SAIDA_PADRAO, RETORNO_PADRAO])?),
+        #[cfg(not(windows))]
+        Modo::Sondar => Err("--sondar só existe no Windows".into()),
         Modo::Rodar => rodar(op),
     }
 }
@@ -137,12 +166,12 @@ fn achar(host: &Host, entrada: bool, trecho: Option<&str>) -> Res<Device> {
 }
 
 /// Mantém os canais do dispositivo e pede 48 kHz em f32 (o WASAPI converte se preciso).
-fn config_48k(d: &Device, entrada: bool) -> Res<StreamConfig> {
+fn config_48k(d: &Device, entrada: bool, buffer: Option<u32>) -> Res<StreamConfig> {
     let padrao = if entrada { d.default_input_config()? } else { d.default_output_config()? };
     Ok(StreamConfig {
         channels: padrao.channels(),
         sample_rate: SAMPLE_RATE,
-        buffer_size: BufferSize::Default,
+        buffer_size: buffer.map_or(BufferSize::Default, BufferSize::Fixed),
     })
 }
 
@@ -174,8 +203,18 @@ struct Stats {
     acumulo: Media,
     fila: Media,
     underruns: AtomicU64,
+    descartes: AtomicU64,
     descartadas: AtomicU64,
     perdidas: AtomicU64,
+    // Medição por cliques: instante (ns, relógio do WASAPI) do último clique injetado.
+    ultimo_clique_ns: AtomicU64,
+    // Instante previsto (pelo cpal) em que o clique sai para o dispositivo de saída.
+    clique_saida_ns: AtomicU64,
+    cliques: AtomicU64,
+    cabo_us: Media,
+    latencia_us: Media,
+    latencia_min_us: AtomicU64,
+    latencia_max_us: AtomicU64,
 }
 
 fn amostras_ms(n: f64) -> f64 {
@@ -186,14 +225,23 @@ fn rodar(op: Opcoes) -> Res<()> {
     let host = cpal::default_host();
     let dev_in = achar(&host, true, op.entrada.as_deref())?;
     let dev_out = achar(&host, false, Some(&op.saida))?;
-    let cfg_in = config_48k(&dev_in, true)?;
-    let cfg_out = config_48k(&dev_out, false)?;
+    let cfg_in = config_48k(&dev_in, true, op.buffer)?;
+    let cfg_out = config_48k(&dev_out, false, op.buffer)?;
     println!("Entrada: {} ({} canais)", nome(&dev_in), cfg_in.channels);
     println!("Saída:   {} ({} canais)", nome(&dev_out), cfg_out.channels);
+    println!(
+        "Buffer pedido: {} | folga {} ms | teto {} ms | MMCSS: {}",
+        op.buffer.map_or("padrão".into(), |b| format!("{b} quadros")),
+        op.folga_ms,
+        op.teto_ms,
+        if cfg!(feature = "realtime") { "sim" } else { "não" }
+    );
 
-    let stats = Arc::new(Stats::default());
-    let ia = Arc::new(AtomicBool::new(op.ia));
+    let stats = Arc::new(Stats { latencia_min_us: AtomicU64::new(u64::MAX), ..Default::default() });
+    let medir = op.medir;
+    let ia = Arc::new(AtomicBool::new(op.ia && !medir));
     let folga = (SAMPLE_RATE * op.folga_ms / 1000) as usize;
+    let teto = (SAMPLE_RATE * op.teto_ms / 1000) as usize;
     // 200 ms de capacidade: bem acima da folga, só para absorver soluços.
     let (mut prod, mut cons) = rtrb::RingBuffer::<f32>::new(SAMPLE_RATE as usize / 5);
 
@@ -201,6 +249,7 @@ fn rodar(op: Opcoes) -> Res<()> {
     let ch_in = cfg_in.channels as usize;
     let mut den = Denoiser::new();
     let mut mono = vec![0.0f32; SAMPLE_RATE as usize];
+    let mut contador = 0u64;
     let (s, ia_in) = (stats.clone(), ia.clone());
     let stream_in = dev_in.build_input_stream(
         cfg_in,
@@ -208,8 +257,22 @@ fn rodar(op: Opcoes) -> Res<()> {
             let ts = info.timestamp();
             s.atraso_entrada_us.add(ts.callback.duration_since(ts.capture).as_micros() as u64);
             let n = (data.len() / ch_in).min(mono.len());
-            for (m, f) in mono[..n].iter_mut().zip(data.chunks_exact(ch_in)) {
-                *m = f.iter().sum::<f32>() / ch_in as f32;
+            if medir {
+                // Silêncio com um clique a cada PERIODO_CLIQUE; guarda quando ele foi "capturado".
+                for (i, m) in mono[..n].iter_mut().enumerate() {
+                    *m = 0.0;
+                    if contador % PERIODO_CLIQUE == 0 {
+                        *m = 0.9;
+                        let t = ts.capture.as_nanos() as u64 + i as u64 * 1_000_000_000 / SAMPLE_RATE as u64;
+                        s.ultimo_clique_ns.store(t, Relaxed);
+                        s.cliques.fetch_add(1, Relaxed);
+                    }
+                    contador += 1;
+                }
+            } else {
+                for (m, f) in mono[..n].iter_mut().zip(data.chunks_exact(ch_in)) {
+                    *m = f.iter().sum::<f32>() / ch_in as f32;
+                }
             }
             let t0 = Instant::now();
             let mut quadros = 0;
@@ -250,16 +313,23 @@ fn rodar(op: Opcoes) -> Res<()> {
                 return;
             }
             esperando = false;
-            if fila > n + folga + 2 * FRAME {
+            if fila > n + folga + teto {
                 let excesso = fila - n - folga;
                 if let Ok(c) = cons.read_chunk(excesso) {
                     c.commit_all();
                 }
+                s.descartes.fetch_add(1, Relaxed);
                 s.descartadas.fetch_add(excesso as u64, Relaxed);
             }
-            for f in data.chunks_mut(ch_out) {
+            for (i, f) in data.chunks_mut(ch_out).enumerate() {
                 match cons.pop() {
-                    Ok(x) => f.fill(x),
+                    Ok(x) => {
+                        f.fill(x);
+                        if medir && x > 0.5 {
+                            let t = ts.playback.as_nanos() as u64 + i as u64 * 1_000_000_000 / SAMPLE_RATE as u64;
+                            s.clique_saida_ns.store(t, Relaxed);
+                        }
+                    }
                     Err(_) => {
                         f.fill(0.0);
                         if !esperando {
@@ -274,12 +344,61 @@ fn rodar(op: Opcoes) -> Res<()> {
         None,
     )?;
 
+    // Retorno (só na medição): detecta o clique depois de passar pelo dispositivo virtual.
+    let stream_ret = if medir {
+        let dev_ret = achar(&host, true, Some(&op.retorno))?;
+        let cfg_ret = config_48k(&dev_ret, true, op.buffer)?;
+        let ch_ret = cfg_ret.channels as usize;
+        println!("Retorno: {} ({} canais)", nome(&dev_ret), ch_ret);
+        let s = stats.clone();
+        let mut ultima_deteccao = 0u64;
+        Some(dev_ret.build_input_stream(
+            cfg_ret,
+            move |data: &[f32], info: &cpal::InputCallbackInfo| {
+                let base = info.timestamp().capture.as_nanos() as u64;
+                for (i, f) in data.chunks_exact(ch_ret).enumerate() {
+                    if f[0].abs() < 0.05 {
+                        continue;
+                    }
+                    let t = base + i as u64 * 1_000_000_000 / SAMPLE_RATE as u64;
+                    if t.saturating_sub(ultima_deteccao) < 250_000_000 {
+                        continue;
+                    }
+                    ultima_deteccao = t;
+                    let clique = s.ultimo_clique_ns.load(Relaxed);
+                    if clique > 0 && t > clique && t - clique < 400_000_000 {
+                        let us = (t - clique) / 1000;
+                        s.latencia_us.add(us);
+                        s.latencia_min_us.fetch_min(us, Relaxed);
+                        s.latencia_max_us.fetch_max(us, Relaxed);
+                        let saida = s.clique_saida_ns.load(Relaxed);
+                        if saida > clique && t > saida {
+                            s.cabo_us.add((t - saida) / 1000);
+                        }
+                    }
+                }
+            },
+            |e| eprintln!("erro no retorno: {e}"),
+            None,
+        )?)
+    } else {
+        None
+    };
+
     stream_in.play()?;
     stream_out.play()?;
+    if let Some(r) = &stream_ret {
+        r.play()?;
+    }
+    println!(
+        "Período do WASAPI: entrada {} quadros, saída {} quadros",
+        stream_in.buffer_size()?,
+        stream_out.buffer_size()?
+    );
     let inicio = Instant::now();
 
     if let Some(seg) = op.segundos {
-        println!("Rodando por {seg} s (IA {})...", if op.ia { "ligada" } else { "desligada" });
+        println!("Rodando por {seg} s (IA {})...", if ia.load(Relaxed) { "ligada" } else { "desligada" });
         std::thread::sleep(Duration::from_secs(seg));
     } else {
         println!("IA ligada: {}. Enter alterna, q + Enter encerra.", op.ia);
@@ -292,9 +411,13 @@ fn rodar(op: Opcoes) -> Res<()> {
             println!("IA {}", if novo { "ligada" } else { "desligada" });
         }
     }
+    drop(stream_ret);
     drop(stream_in);
     drop(stream_out);
     resumo(&stats, inicio.elapsed(), ia.load(Relaxed));
+    if medir {
+        resumo_medicao(&stats);
+    }
     Ok(())
 }
 
@@ -315,13 +438,37 @@ fn resumo(s: &Stats, duracao: Duration, ia: bool) {
         s.dsp_max_ns.load(Relaxed) as f64 / 1e6
     );
     println!(
-        "  underruns: {} | descartadas: {} | perdidas: {}",
+        "  underruns: {} | descartes: {} ({} amostras) | perdidas: {}",
         s.underruns.load(Relaxed),
+        s.descartes.load(Relaxed),
         s.descartadas.load(Relaxed),
         s.perdidas.load(Relaxed)
     );
     println!("  atrasos médios (ms): driver entrada {ent:.1} | acúmulo de quadro {acumulo:.1} | RNNoise {algoritmo:.1} | fila {fila:.1} | driver saída {sai:.1}");
     println!("  latência estimada do app: {:.1} ms (soma acima; estimativa, não medição acústica)", ent + acumulo + algoritmo + fila + sai);
+}
+
+fn resumo_medicao(s: &Stats) {
+    let n = s.latencia_us.n.load(Relaxed);
+    println!("\nMedição por cliques ({} injetados, {n} detectados):", s.cliques.load(Relaxed));
+    if n == 0 {
+        println!("  nenhum clique detectado no retorno");
+        return;
+    }
+    let ms = |us: u64| us as f64 / 1000.0;
+    let media = s.latencia_us.valor() / 1000.0;
+    let quadro_ms = amostras_ms(FRAME as f64);
+    println!(
+        "  captura no mic → captura no retorno: média {media:.1} ms (mín {:.1}, máx {:.1})",
+        ms(s.latencia_min_us.load(Relaxed)),
+        ms(s.latencia_max_us.load(Relaxed))
+    );
+    let cabo = s.cabo_us.valor() / 1000.0;
+    println!(
+        "  divisão: app até a saída prevista {:.1} ms | saída prevista → retorno (VB-Cable) {cabo:.1} ms",
+        media - cabo
+    );
+    println!("  com o RNNoise ligado: + {quadro_ms:.1} ms (atraso algorítmico) = {:.1} ms", media + quadro_ms);
 }
 
 /// Mede o custo do RNNoise com uma "voz" sintética (harmônicos com pitch variando) + ruído.

@@ -15,3 +15,6 @@
 | 2026-10-20 | IA roda na thread de captura; entrada e saída ligadas por `rtrb` | Uma cópia a menos; RNNoise cabe folgado no callback (0,04 ms de 10 ms) |
 | 2026-10-20 | Deriva de relógio tratada provisoriamente com descarte/silêncio | Simples para o protótipo; reamostragem adaptativa fica para depois |
 | 2026-10-20 | CLI do protótipo sem `clap` (parse manual) | Leveza; poucas opções |
+| 2026-10-20 | Folga 10 ms / teto 20 ms continuam como padrão | Valores menores ganham ≤ 8 ms e causam underruns/estalos |
+| 2026-10-20 | MMCSS (`realtime`) fica como feature opcional, desligada | Sem ganho medido com o sistema ocioso; reavaliar com jogo aberto |
+| 2026-10-20 | Meta de < 20 ms descartada como inalcançável; nova meta pendente (Alex decide) | RNNoise sozinho impõe ~20 ms e o VB-Cable ~55 ms; medido ~135 ms ponta a ponta |
