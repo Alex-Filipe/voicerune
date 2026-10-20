@@ -65,3 +65,7 @@ Fases 2 e 3 podem andar em paralelo.
   1 underrun só na partida em ~metade das vezes (some com folga 15 ms). Resumo do app agora mostra
   o modelo. **Próximo passo:** Alex grava a voz com ruído (`mic-limpo-dev gravar voz.wav`), escuta
   os WAVs do `processar` e decide modos e limite; depois decidir se o Forte exige `--baixa-latencia`.
+- 2026-10-20 — Fase 2, bloco 4: escuta A/B do Alex (voz + teclado + TikTok, 4 variantes):
+  nenhuma diferença percebida; teclado audível em todas. Descoberto gate no mic antes do app
+  (17 % de quadros com zeros digitais). **Próximo passo:** Alex decide os modos (ver
+  `04-ia-ruido.md`) e, se quiser, refaz a gravação com as melhorias do mic desligadas.

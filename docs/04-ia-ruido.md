@@ -139,3 +139,18 @@ some com `--folga-ms 15`. São 10 ms de silêncio no início. Aquecer o modelo a
 sintética) não mudou o quadro (3 de 5) e foi revertido. O `latencia` mostra o mesmo às vezes
 também com RNNoise. O erro "buffer underrun or overrun" do cpal na entrada aparece nos dois
 modelos (não é do DFN).
+
+**2026-10-20 — escuta A/B do Alex (fase 2, bloco 4)** — `mic-limpo-dev gravar` (20 s, mic real,
+voz + teclado + TikTok no celular) → `processar` → 4 WAVs alinhados (rnnoise, rnnoise-lim20,
+dfn, dfn-lim20) em `C:\devase2-escuta\` (fora do repo). Resultado: **nenhuma diferença
+percebida** entre as variantes; **teclado audível em todas**, TikTok não percebido; "parece bom".
+Avaliação informal (uma pessoa, uma gravação, sem cegamento).
+
+Ressalva medida: o sinal do mic **chega com gate antes do app** — 17 % dos quadros de 10 ms são
+zeros digitais exatos (silêncios entre falas), o que indica supressão/gate no Windows ou no driver
+(suspeitos: "Melhorias de áudio"/Voice Clarity, Realtek). Os modelos só têm ruído para tratar
+durante a fala, e a métrica de piso fica inútil (−200 dB). Nível baixo: voz −41 dBFS, pico −22 dBFS.
+
+Conclusão (dados até aqui): no uso real do Alex o Forte **não mostrou ganho audível**; o ganho
+objetivo (~6 dB de SI-SDR) apareceu só num dos dois ruídos públicos. Pendente: caso difícil
+(teclado forte, voz de fundo) com o mic sem gate.
