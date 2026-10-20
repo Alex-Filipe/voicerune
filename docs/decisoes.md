@@ -26,3 +26,4 @@
 | 2026-10-20 | Limiares do DFN = os do binário oficial (−15/35/35 dB), não os do `default_with_ch` | Com os do plugin LADSPA o DFN ficou pior que o RNNoise (SI-SDR 4,7 × 16,4 dB); com os oficiais, 16,6 dB e voz limpa 32,8 dB |
 | 2026-10-20 | Integridade do modelo DFN pelo commit fixado no `Cargo.lock`, sem copiar o `.tar.gz` para o repo | Evita 8 MB no git/OneDrive; o hash do commit cobre o conteúdo |
 | 2026-10-20 | Underrun único na partida com DFN (folga 10 ms) aceito como limitação conhecida, sem aumentar a folga padrão | 10 ms de silêncio só no início; folga 15 ms resolveria mas custa 5 ms sempre; aquecer o modelo não ajudou (medido) |
+| 2026-10-20 | Modos: Leve = RNNoise (padrão), Forte = DeepFilterNet3 no app, recomendado com `--baixa-latencia`; limite de redução desligado por padrão | Escolha do Alex. Forte: +6 dB de SI-SDR num dos dois ruídos públicos, ~8 % de um núcleo, +20 ms, app ~26 MB; na escuta do Alex sem diferença percebida (mic com gate) |

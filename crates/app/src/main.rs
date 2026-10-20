@@ -23,7 +23,8 @@ Opções:
   --entrada TRECHO   parte do nome do microfone (padrão: o do sistema)
   --saida TRECHO     parte do nome da saída (padrão: \"CABLE Input\")
   --sem-ia           começa com a IA desligada
-  --modelo M         rnnoise (padrão, leve) ou dfn (DeepFilterNet3, +20 ms, ~6 % de um núcleo)
+  --modelo M         rnnoise (modo Leve, padrão) ou dfn (modo Forte: DeepFilterNet3, +20 ms,
+                     ~8 % de um núcleo; use com --baixa-latencia)
   --limite-db N      reduz o ruído no máximo N dB (padrão: sem limite)
   --folga-ms N       margem do buffer entre entrada e saída (padrão: 10)
   --teto-ms N        acima de folga + N ms, descarta o excesso (padrão: 20)

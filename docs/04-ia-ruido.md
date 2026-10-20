@@ -9,8 +9,10 @@
 
 Descartados: NVIDIA Broadcast (só RTX; a máquina tem GTX 1650) e GPU em geral (fica livre para jogos).
 
-## Proposta de modos (hipótese, confirmar na fase 2)
-- **Leve** = RNNoise · **Forte** = DeepFilterNet.
+## Modos (decidido pelo Alex em 2026-10-20, fase 2)
+- **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3 (`--modelo dfn`), recomendado com
+  `--baixa-latencia` (~115 ms ponta a ponta; no backend padrão ~149 ms). Limite de redução
+  desligado por padrão (`--limite-db N` disponível; decidir na UI, fase 4). Medições abaixo.
 - Pular a rede neural no silêncio (VAD) para economizar CPU.
 
 ## Metas (hipótese)
@@ -107,7 +109,7 @@ no 573577 o RNNoise silencia mais (−94 × −69 dBFS); o limite de 20 dB sobe 
 para atenuar no máximo N dB. No DFN é o `atten_lim_db` da libDF; no RNNoise, o mesmo cálculo no
 tempo (quadro anterior, alinhado com o atraso de 10 ms). Teste: 0 dB devolve o original.
 
-### Proposta de modos (aguarda escuta A/B do Alex e latência ponta a ponta)
+### Modos (decididos: Leve + Forte no app)
 | Modo | Modelo | CPU | Latência própria | Quando |
 |---|---|---|---|---|
 | **Leve** | RNNoise | 0,4 % de um núcleo | ~20 ms (10 + 10) | padrão; ruído constante; jogo pesado |
