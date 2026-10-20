@@ -11,3 +11,7 @@
 | 2026-10-20 | Licença MIT | Open source e permissiva (pode mudar antes do 1º release) |
 | 2026-10-20 | Projeto em Documentos (OneDrive), `target/` fora do OneDrive | Regra: coisas pesadas fora do OneDrive |
 | 2026-10-20 | Nome provisório `mic-limpo` | Nome definitivo depois |
+| 2026-10-20 | Protótipo da fase 1 usa RNNoise (`nnnoiseless`, sem features padrão); DeepFilterNet só na fase 2 | Rust puro, sem modelo externo; menor custo para validar o pipeline |
+| 2026-10-20 | IA roda na thread de captura; entrada e saída ligadas por `rtrb` | Uma cópia a menos; RNNoise cabe folgado no callback (0,04 ms de 10 ms) |
+| 2026-10-20 | Deriva de relógio tratada provisoriamente com descarte/silêncio | Simples para o protótipo; reamostragem adaptativa fica para depois |
+| 2026-10-20 | CLI do protótipo sem `clap` (parse manual) | Leveza; poucas opções |
