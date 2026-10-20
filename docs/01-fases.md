@@ -1,17 +1,16 @@
 # Fases
 
-**Status atual:** Fase 1 em andamento — blocos 1 (pipeline) e 2 (latência medida) concluídos.
-Latência adicional medida: app com RNNoise **~130 ms** ≈ Voicemeeter atual **~128 ms** (mesmo som,
-gravados juntos). Meta antiga de < 20 ms é inalcançável (ver `03-audio.md`).
-**Próximo passo:** Alex define a nova meta de latência (sugestão: não piorar em relação ao
-Voicemeeter) e faz o **bloco 3**: testar no Discord (microfone = `CABLE Output`, fechar o
-Voicemeeter ou tirar o mic dele, rodar `mic-limpo --entrada Microphone`) e avaliar a qualidade.
-Opcional depois: backend WASAPI próprio com IAudioClient3 (hipótese: −25 a −35 ms).
+**Status atual:** Fase 1 concluída — funciona no Discord; CPU/RAM/latência medidas.
+Latência: app com RNNoise **~130 ms** ≈ Voicemeeter atual **~128 ms**. Meta antiga de < 20 ms é
+inalcançável; **nova meta pendente (Alex decide; sugestão: não piorar em relação ao Voicemeeter)**.
+**Próximo passo:** iniciar a Fase 2 (RNNoise × DeepFilterNet: custo, qualidade e latência,
+incluindo teste de escuta gravado) e/ou a Fase 3 (mockup da UI) — podem andar em paralelo.
+Opcional: backend WASAPI próprio com IAudioClient3 (hipótese: −25 a −35 ms).
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
 | 0. Fundação | Estrutura, docs, git, workspace Rust vazio | `cargo build` passa no Windows | concluída |
-| 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | em andamento |
+| 1. Protótipo do núcleo | Mic → IA → VB-Cable (Windows) | Funciona no Discord; CPU/RAM/latência medidas | concluída |
 | 2. Comparação de modelos | RNNoise vs DeepFilterNet vs Voicemeeter atual | Tabela custo × qualidade; define modos Leve/Forte | — |
 | 3. Mockup da UI | Tela principal + flyout da bandeja | Visual aprovado pelo Alex | — |
 | 4. App mínimo usável | UI Slint + bandeja + presets + config | Uso diário no Windows | — |
@@ -36,3 +35,5 @@ Fases 2 e 3 podem andar em paralelo.
   IAudioClient3 com período ~3 ms no mic e no CABLE Input. Folga/teto menores e MMCSS sem ganho real.
 - 2026-10-20 — Latência do Voicemeeter atual medida com `--comparar` (correlação, mesmo som):
   Voicemeeter ~128 ms × app com RNNoise ~130 ms. Latência do app equivale à de hoje.
+- 2026-10-20 — Fase 1, bloco 3: teste no Discord pelo Alex (entrada = CABLE Output, Voicemeeter
+  aberto em paralelo): teclado e TikTok no celular não audíveis com a IA. **Fase 1 concluída.**

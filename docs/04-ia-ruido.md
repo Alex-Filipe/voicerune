@@ -29,7 +29,10 @@ Descartados: NVIDIA Broadcast (só RTX; a máquina tem GTX 1650) e GPU em geral 
 | Em tempo real (8 s, mic real) | média 0,043 ms/quadro, pior callback 0,24 ms | resumo do protótipo |
 | Processo inteiro (8 s) | CPU ~0,8 % de um núcleo · RAM privada 2,1 MB · working set 10,9 MB | `Get-Process` |
 
-Qualidade do RNNoise ainda **não avaliada** (falta teste de escuta / Discord).
+**2026-10-20 — teste de escuta no Discord (Alex, "Vamos checar", entrada = CABLE Output,
+supressão do Discord desligada):** ruído de teclado e áudio de TikTok no celular **não foram
+ouvidos** com a IA ligada; "acho que ficou bom". Avaliação informal (uma pessoa, sem gravação):
+não mede artefatos na voz nem compara com outros modelos — isso fica para a fase 2.
 
 **Latência própria do RNNoise (cálculo):** ~20 ms em fluxo contínuo = 10 ms para completar o
 quadro + 10 ms de atraso algorítmico. Qualquer modelo com quadros de 10 ms e janela de 20 ms tem
