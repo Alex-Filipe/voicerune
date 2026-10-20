@@ -34,6 +34,10 @@ supressão do Discord desligada):** ruído de teclado e áudio de TikTok no celu
 ouvidos** com a IA ligada; "acho que ficou bom". Avaliação informal (uma pessoa, sem gravação):
 não mede artefatos na voz nem compara com outros modelos — isso fica para a fase 2.
 
+**2026-10-20 — volume "às vezes baixo" (Alex, A/B com Enter no "Vamos checar"):** igual com a IA
+ligada e desligada → **não é o RNNoise**. Coerente com a medição: mic −37,7 dBFS = saída com IA
+−37,7 dBFS. Causa provável: nível do mic já baixo na origem (voz costuma ficar em −20 a −25 dBFS).
+
 **Latência própria do RNNoise (cálculo):** ~20 ms em fluxo contínuo = 10 ms para completar o
 quadro + 10 ms de atraso algorítmico. Qualquer modelo com quadros de 10 ms e janela de 20 ms tem
 piso parecido; DeepFilterNet3 deve ter piso maior (lookahead) — medir na fase 2.

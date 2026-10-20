@@ -33,6 +33,8 @@
   128 = 2,7 ms), thread com MMCSS "Pro Audio" (via `avrt.dll`, sem dependência nova). Se outro app
   travar o período do dispositivo, cai para o período atual e avisa. Exige mixer em 48 kHz float.
   Ainda **opcional**: o padrão segue sendo o cpal até o teste com jogo aberto.
+- Ideia (fase 4): **ganho / normalização de saída** no app — o mic do Alex chega baixo
+  (−37,7 dBFS médio falando) e hoje o app não tem controle de volume.
 - Limites do `cpal` 0.18 no WASAPI: só modo compartilhado; `BufferSize::Fixed` abaixo de 10 ms é
   ignorado (o período continua 480 quadros); não usa IAudioClient3 nem modo exclusivo.
 - Ferramentas (binário `mic-limpo-dev`; antes eram opções do `mic-limpo`):
