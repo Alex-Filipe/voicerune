@@ -134,9 +134,21 @@ mod dfn {
     use df::tract::{DfParams, DfTract, RuntimeParams};
     use ndarray::{ArrayView2, ArrayViewMut2};
 
+    /// Abaixo desta média quadrática (−70 dBFS) a libDF devolve o quadro todo zero na hora e pula
+    /// o processamento; como a saída normal sai 30 ms depois, o zero cai em cima do fim da palavra
+    /// anterior (corte medido em 2026-10-21, ver `docs/04-ia-ruido.md`).
+    const LIMIAR_LIBDF: f32 = 1e-7;
+    /// Dither somado só aos quadros abaixo do limiar: uniforme em ±1e-3 (média quadrática 3,3e-7,
+    /// −65 dBFS), ruído branco que o próprio modelo remove.
+    const DITHER: f32 = 1e-3;
+
     /// DeepFilterNet3 com o modelo padrão embutido no binário (commit fixado no Cargo.lock).
     pub struct Dfn {
         df: DfTract,
+        /// Quadro com dither (sem alocar por quadro).
+        quadro: [f32; FRAME],
+        /// Estado do gerador do dither (LCG; determinístico).
+        rng: u32,
     }
 
     impl Dfn {
@@ -151,12 +163,22 @@ mod dfn {
             if df.hop_size != FRAME || df.sr != 48_000 {
                 return Err(format!("modelo inesperado: hop {} a {} Hz", df.hop_size, df.sr).into());
             }
-            Ok(Self { df })
+            Ok(Self { df, quadro: [0.0; FRAME], rng: 1 })
         }
     }
 
     impl Modelo for Dfn {
         fn processar(&mut self, entrada: &[f32; FRAME], saida: &mut [f32; FRAME]) -> f32 {
+            let ms = entrada.iter().map(|x| x * x).sum::<f32>() / FRAME as f32;
+            let entrada = if ms < LIMIAR_LIBDF {
+                for (q, &x) in self.quadro.iter_mut().zip(entrada) {
+                    self.rng = self.rng.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                    *q = x + DITHER * ((self.rng >> 8) as f32 / (1u32 << 23) as f32 - 1.0);
+                }
+                &self.quadro
+            } else {
+                entrada
+            };
             let ent = ArrayView2::from_shape((1, FRAME), &entrada[..]).expect("forma fixa");
             let sai = ArrayViewMut2::from_shape((1, FRAME), &mut saida[..]).expect("forma fixa");
             match self.df.process(ent, sai) {
@@ -227,5 +249,21 @@ mod tests {
         };
         let lag = (0..=4 * FRAME).max_by(|&a, &b| corr(a).total_cmp(&corr(b))).unwrap();
         assert_eq!(lag, Tipo::Dfn.atraso_amostras());
+    }
+
+    #[cfg(feature = "dfn")]
+    #[test]
+    fn dfn_nao_zera_o_fim_da_fala_antes_de_silencio() {
+        // 20 quadros de voz e 5 de silêncio digital (gate do mic), 10 vezes.
+        let voz = voz_e_ruido(FRAME * 20);
+        let sinal: Vec<f32> = (0..10).flat_map(|_| voz.iter().copied().chain(std::iter::repeat_n(0.0, FRAME * 5))).collect();
+        let mut m = criar(Tipo::Dfn, None).unwrap();
+        let saida = rodar(m.as_mut(), &sinal);
+        let atraso = Tipo::Dfn.atraso_amostras() / FRAME;
+        let zerados = (0..sinal.len() / FRAME - atraso)
+            .filter(|&k| k % 25 >= 2 && k % 25 < 20) // quadros de voz, fora da partida de cada trecho
+            .filter(|&k| saida[(k + atraso) * FRAME..(k + atraso + 1) * FRAME].iter().all(|&x| x == 0.0))
+            .count();
+        assert_eq!(zerados, 0);
     }
 }

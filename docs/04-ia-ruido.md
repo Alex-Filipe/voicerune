@@ -173,3 +173,18 @@ Alex ouviu na página Teste: o Forte "às vezes corta" (voz some e às vezes pic
 - O picote ao vivo (underrun) **ainda não foi medido**. Hipótese: parte do "picota" é este mesmo
   atalho, que também deixa um degrau no STFT.
 
+**Correção (2026-10-21):** no nosso invólucro (`modelo.rs`, `Dfn`), quadro abaixo do limiar
+ganha dither uniforme ±1e-3 (−65 dBFS) antes da libDF, que assim nunca cai no atalho; o próprio
+modelo remove o dither. +1 teste (voz com pausas de silêncio digital: 30 quadros zerados sem a
+correção, 0 com ela). Remedido com o mesmo WAV:
+
+| DFN | Quadros audíveis zerados | Bordas de palavra > 10 dB | Miolo da voz > 10 dB | Resíduo no silêncio do gate (mediana / máx.) | ms por quadro |
+|---|---|---|---|---|---|
+| antes | 127 | 20 % (p90 58 dB) | 2 % | zero / −57 dBFS (fim de palavra atrasado) | ~0,59 |
+| depois, sem limite | 2 | 4 % (p90 6,6 dB) | 0 % | −112 / −85 dBFS | ~0,74 |
+| depois, limite 20 dB | — | 3 % (p90 4,5 dB) | 0 % | −86 / −82 dBFS | ~0,71 |
+
+- CPU sobe ~25 % (o DFN agora processa os 27 % de quadros que pulava): ~7,5 % de um núcleo; o teste
+  de tempo real em release continua passando. Não medido ao vivo no app.
+- O quanto o DFN reduz o ruído não dá para medir nesta gravação (ruído no piso de 16 bits); para
+  isso, gravar com teclado forte. Picote ao vivo (underrun) segue não medido.

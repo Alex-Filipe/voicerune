@@ -53,3 +53,4 @@
 | 2026-10-21 | Teste de escuta = gravar 5 s e ouvir com A/B, numa página própria (não retorno ao vivo) | Escolha do Alex: ouvir-se ao vivo com ~100 ms de atraso atrapalha falar; o A/B na mesma posição compara o efeito da IA |
 | 2026-10-21 | A cópia para o teste sai do `Denoiser` (original e limpo do mesmo quadro), só com a escuta ligada | Alinhados sem conta extra (só o atraso fixo do modelo); thread de áudio não aloca nem trava |
 | 2026-10-21 | O volume de saída vale para Original e Limpo na reprodução | Comparação justa: o mais alto não parece o melhor |
+| 2026-10-21 | Contornar o atalho de −70 dBFS da libDF com dither no nosso invólucro, sem fork da libDF | ~10 linhas, sem dependência nova; resíduo ≤ −85 dBFS; custa ~25 % a mais de CPU do DFN |
