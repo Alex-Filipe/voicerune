@@ -223,8 +223,8 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   fica carregado (o Forte ocupa a RAM do DFN), para religar sem espera.
 - Conferido em release (2026-10-21, cliques simulados): janelinha cabe na janela; desligar →
   status "sem cancelamento", clique no Leve ignorado, `cancelamento = nao` gravado; religar volta ao
-  Forte. Captura: `docs/mockups/capturas/app-inicio.png`. **Não conferido:** o flyout com três
-  opções (360 px de largura) — Alex olha ao clicar no ícone.
+  Forte. Captura: `docs/mockups/capturas/app-inicio.png`. Flyout com as três opções (360 px)
+  conferido pelo Alex: "ficou bom".
 
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
