@@ -13,11 +13,13 @@ mic-limpo-audio.workspace = true
 mic-limpo-ui.workspace = true
 slint.workspace = true
 
-# Encostar o flyout na barra de tarefas (cursor, área útil e DPI do monitor) e CPU do processo.
+# Encostar o flyout na barra de tarefas (cursor, área útil e DPI do monitor), CPU do processo e
+# instância única (evento nomeado).
 [target.'cfg(windows)'.dependencies]
 windows = { workspace = true, features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
+    "Win32_Security",
     "Win32_System_Threading",
     "Win32_UI_HiDpi",
     "Win32_UI_WindowsAndMessaging",

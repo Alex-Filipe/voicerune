@@ -226,6 +226,17 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   Forte. Captura: `docs/mockups/capturas/app-inicio.png`. Flyout com as três opções (360 px)
   conferido pelo Alex: "ficou bom".
 
+### Instância única (Fase 4, bloco 4, 2026-10-21)
+- A 1ª cópia cria o evento nomeado `Local\mic-limpo-abrir` (por sessão do Windows) e uma thread
+  dorme nele. Abrir o app de novo (atalho, exe) acha o evento, chama `AllowSetForegroundWindow` +
+  `SetEvent` e sai antes do backend do Slint e do áudio; a 1ª abre a janela (ou restaura e foca a
+  aberta). Sem crate novo (só a feature `Win32_Security` do `windows`). Fora do Windows: nada (o
+  macOS já abre um `.app` uma vez só; conferir na Fase 5).
+- Conferido em debug (2026-10-21, PowerShell): a 2ª cópia sai com código 0 em ~0,6 s e fica 1
+  processo; só bandeja → a janela volta; minimizada → restaurada. **Não verificado:** a janela vir
+  para a frente. Lançada pelo PowerShell do teste ela não veio (quem lança não tinha o primeiro
+  plano); pelo atalho, clicado pelo Alex, deve vir. Falta o Alex conferir.
+
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
 - Pendências visuais: barra de título nativa não segue o tema forçado; Mica/Acrylic

@@ -1,7 +1,7 @@
 # Fases
 
 **Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos;
-bloco 4 começado (última configuração salva). Página **Teste** (gravar e ouvir A/B) feita.
+bloco 4 começado (última configuração salva, instância única). Página **Teste** (gravar e ouvir A/B) feita.
 - Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `mic-limpo` abre a janela
   Slint ligada ao motor e põe um ícone na bandeja (clique = flyout; menu Abrir/Sair); fechar a
   janela deixa o app só na bandeja. A última configuração volta ao abrir
@@ -16,7 +16,7 @@ bloco 4 começado (última configuração salva). Página **Teste** (gravar e ou
 | 1. Motor controlável | ganho e medidor no `core`; `Controlador` no app troca modo/dispositivo/backend sem reiniciar; avisos por canal | concluído |
 | 2. UI ligada | `mic-limpo` abre a janela Slint com dados reais; `aplicar` fora da thread da janela; medidor só com a janela visível; reagir a aviso fatal | concluído |
 | 3. Bandeja + flyout | `SystemTrayIcon` do Slint 1.18 (`Shell_NotifyIconW`, sem crate extra); fechar destrói o componente; flyout junto da bandeja | concluído |
-| 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | em andamento: config salva feita |
+| 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | em andamento: config salva e instância única feitas |
 | 5. Uso diário | Alex usa alguns dias | — |
 
 **Próximo passo:** Alex quer melhorias antes de seguir. A primeira (página Teste) está feita; no
@@ -24,9 +24,10 @@ teste ele achou o **Forte ruim (às vezes corta)** e cogita trocar o Forte por u
 **Personalizado**. Causa achada e **corrigida** (dither no invólucro do DFN; ver `04-ia-ruido.md`) e mic
 ajustado (sem gate); Alex reouviu: "parece que corrigiu". Medidor de duas camadas (original × depois da
 IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou chave + Leve | Forte | Personalizado
-(desabilitado) com "?" feito e aprovado. Próximo: Alex diz se o Personalizado ainda faz falta; se o Forte voltar a picotar, medir underruns ao
-vivo (`mic-limpo-dev rodar --modelo dfn`). Depois: resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
-bandeja") e instância única (o atalho abre um 2º app hoje). Antes: Alex clica no ícone de verdade, fala e
+(desabilitado) com "?" feito e aprovado. Alex: Personalizado fica bloqueado por enquanto. Instância única
+feita (falta o Alex conferir que o atalho traz a janela para a frente). Se o Forte voltar a picotar, medir
+underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). **Próximo:** iniciar com o sistema (com "iniciar só
+na bandeja"); depois, presets. Antes: Alex clica no ícone de verdade, fala e
 confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
@@ -161,3 +162,7 @@ medidor acorda com a janela minimizada.
 - 2026-10-21 — Cancelamento virou chave + Leve | Forte | Personalizado (desabilitado) com "?" que
   explica cada um; a chave do flyout deixou de pausar o áudio todo. Config antiga continua lida
   (+1 teste). Conferido em release com cliques simulados; Alex conferiu o flyout ("ficou bom"). Ver `05-interface.md`.
+- 2026-10-21 — Fase 4, bloco 4: **instância única** (Alex: Personalizado fica bloqueado por ora).
+  Evento nomeado do Windows, sem crate novo: abrir o app de novo sinaliza a 1ª cópia, que abre ou
+  restaura a janela, e sai em ~0,6 s (debug). Conferido: só bandeja → janela volta; minimizada →
+  restaurada; 1 processo. Não verificado: vir para a frente pelo atalho. Ver `05-interface.md`.

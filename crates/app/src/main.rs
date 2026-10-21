@@ -159,10 +159,16 @@ fn depois(f: impl FnOnce() + 'static) {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // Antes de tudo: a 2ª cópia só avisa a 1ª e sai, sem abrir janela nem áudio.
+    let Some(instancia) = primeira_instancia() else {
+        return Ok(());
+    };
     slint::BackendSelector::new()
         .backend_name("winit".into())
         .with_winit_window_attributes_hook(atributos)
         .select()?;
+    // Depois do backend: o aviso da 2ª cópia chega pelo laço de eventos do winit.
+    instancia.esperar();
 
     let lista = audio::listar()?;
     let nomes = |l: &[audio::Info]| l.iter().map(|d| d.nome.clone()).collect::<Vec<_>>();
@@ -256,6 +262,79 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _ = tx.send(Msg::Sair);
     let _ = controle.join();
     Ok(())
+}
+
+/// Instância única. A 1ª cópia cria um evento nomeado (por sessão do Windows); abrir o app de novo
+/// acha o evento, sinaliza e sai, e a 1ª abre a janela (ou a traz para a frente).
+#[cfg(windows)]
+struct Instancia(windows::Win32::Foundation::HANDLE);
+
+#[cfg(windows)]
+fn primeira_instancia() -> Option<Instancia> {
+    use windows::core::w;
+    use windows::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS};
+    use windows::Win32::System::Threading::{CreateEventW, SetEvent};
+    use windows::Win32::UI::WindowsAndMessaging::{AllowSetForegroundWindow, ASFW_ANY};
+
+    // SAFETY: sem atributos de segurança (padrão); o handle fica aberto até o processo sair.
+    let evento = match unsafe { CreateEventW(None, false, false, w!("Local\\mic-limpo-abrir")) } {
+        Ok(e) => e,
+        // Sem o evento o app abre normalmente (pode haver duas cópias).
+        Err(e) => {
+            eprintln!("instância única: {e}");
+            return Some(Instancia(Default::default()));
+        }
+    };
+    // SAFETY: lê o erro deixado pelo `CreateEventW` logo acima.
+    if unsafe { GetLastError() } != ERROR_ALREADY_EXISTS {
+        return Some(Instancia(evento));
+    }
+    // Quem o usuário acabou de abrir pode trazer janelas para a frente; repassa isso à 1ª cópia.
+    // SAFETY: handle válido, recém-aberto.
+    unsafe {
+        let _ = AllowSetForegroundWindow(ASFW_ANY);
+        let _ = SetEvent(evento);
+    }
+    None
+}
+
+#[cfg(windows)]
+impl Instancia {
+    /// Thread que dorme no evento e abre a janela a cada nova tentativa de abrir o app.
+    fn esperar(self) {
+        use windows::Win32::Foundation::{HANDLE, WAIT_OBJECT_0};
+        use windows::Win32::System::Threading::{WaitForSingleObject, INFINITE};
+        if self.0.is_invalid() {
+            return;
+        }
+        // O `HANDLE` não é `Send`; o número dele é.
+        let h = self.0 .0 as usize;
+        let r = std::thread::Builder::new().name("mic-limpo-instancia".into()).spawn(move || {
+            // SAFETY: o evento nunca é fechado (vive com o processo).
+            while unsafe { WaitForSingleObject(HANDLE(h as *mut _), INFINITE) } == WAIT_OBJECT_0 {
+                if slint::invoke_from_event_loop(abrir_janela).is_err() {
+                    break;
+                }
+            }
+        });
+        if let Err(e) = r {
+            eprintln!("instância única: {e}");
+        }
+    }
+}
+
+/// No macOS o próprio sistema já abre um app `.app` uma vez só (Fase 5).
+#[cfg(not(windows))]
+struct Instancia;
+
+#[cfg(not(windows))]
+fn primeira_instancia() -> Option<Instancia> {
+    Some(Instancia)
+}
+
+#[cfg(not(windows))]
+impl Instancia {
+    fn esperar(self) {}
 }
 
 /// Gancho do winit antes de criar cada janela: o flyout sai da barra de tarefas e ganha os cantos
@@ -418,8 +497,8 @@ fn pedir(origem: Tela, d: &Dados, f: fn(&mut Ajustes, &Dados, &Dispositivos)) {
     });
 }
 
-/// Abrir (menu do ícone ou "Abrir ›" do flyout): cria a janela, ou traz para a frente a que já
-/// está aberta.
+/// Abrir (menu do ícone, "Abrir ›" do flyout ou o app aberto de novo): cria a janela, ou traz
+/// para a frente a que já está aberta.
 fn abrir_janela() {
     if let Some(Some(j)) = com_ui(|ui| ui.janela.as_ref().map(|j| j.clone_strong())) {
         j.window().set_minimized(false);
