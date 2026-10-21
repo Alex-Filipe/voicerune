@@ -21,8 +21,10 @@ bloco 4 começado (última configuração salva). Página **Teste** (gravar e ou
 
 **Próximo passo:** Alex quer melhorias antes de seguir. A primeira (página Teste) está feita; no
 teste ele achou o **Forte ruim (às vezes corta)** e cogita trocar o Forte por um modo
-**Personalizado** — decidir o que o Personalizado ajusta e entender o corte (voz suprimida ou
-falha de áudio). Depois: resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
+**Personalizado**. Causa achada (ver `04-ia-ruido.md`): a libDF zera todo quadro abaixo de
+−70 dBFS e o zero cai no fim da palavra anterior; o mic do Alex está baixo e com gate. Próximo:
+Alex aprova a correção no nosso invólucro do DFN (dither mínimo para nunca cair no atalho),
+remedir com o mesmo WAV e ele reouvir; depois decidir o Personalizado. Depois: resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
 bandeja") e instância única (o atalho abre um 2º app hoje). Antes: Alex clica no ícone de verdade, fala e
 confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
@@ -139,3 +141,6 @@ medidor acorda com a janela minimizada.
   +5 testes (21 passam). Medido: +3,7 MB privada depois de gravar (realocação corrigida, não
   medido de novo); +1 thread após tocar (não verificado se acumula). Alex: Forte "às vezes
   corta"; cogita trocar por Personalizado. Ver `05-interface.md`.
+- 2026-10-21 — Corte do Forte diagnosticado com a gravação do Alex: a libDF zera quadros abaixo de
+  −70 dBFS (27 % do mic dele), comendo ~30 ms do fim das palavras; o limite de redução não age
+  ali. Correção proposta, não feita. Ver `04-ia-ruido.md`.

@@ -156,3 +156,20 @@ durante a fala, e a métrica de piso fica inútil (−200 dB). Nível baixo: voz
 Conclusão (dados até aqui): no uso real do Alex o Forte **não mostrou ganho audível**; o ganho
 objetivo (~6 dB de SI-SDR) apareceu só num dos dois ruídos públicos. Pendente: caso difícil
 (teclado forte, voz de fundo) com o mic sem gate.
+
+### Corte no Forte (2026-10-21, gravação do Alex: `C:\devoz-teste.wav`, 20 s, mic direto)
+Alex ouviu na página Teste: o Forte "às vezes corta" (voz some e às vezes picota).
+- **Causa achada na libDF** (`tract.rs`, `process`): quadro com média quadrática < 1e-7
+  (**−70 dBFS**) sai **todo zero na hora** e pula o processamento (buffers e STFT não andam).
+  Como a saída normal tem 30 ms de atraso, esse zero cai em cima do **fim da palavra anterior**.
+- Medido: 27 % dos quadros do mic do Alex ficam abaixo de −70 dBFS (voz baixa: p90 −42 dBFS;
+  gate do mic: 11 % de zeros digitais). Na saída do DFN, 127 quadros (1,3 s em 20 s) com entrada
+  audível saem todos zero; em 123 deles o quadro 30 ms depois está abaixo do limiar.
+- Nas bordas das palavras, 20 % dos quadros perdem mais de 10 dB (RNNoise: 0 %). O **limite de
+  redução não muda nada** nesses quadros (o atalho vem antes dele); fora deles o limite funciona.
+- No miolo da voz o DFN não corta (mediana 0,3 dB; 2 % > 10 dB; nenhum buraco ≥ 30 ms).
+- A medição do quanto o ruído baixa ficou inválida: o "ruído" do Alex está a −60…−80 dBFS, perto
+  do piso do WAV de 16 bits.
+- O picote ao vivo (underrun) **ainda não foi medido**. Hipótese: parte do "picota" é este mesmo
+  atalho, que também deixa um degrau no STFT.
+
