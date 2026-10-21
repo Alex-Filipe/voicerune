@@ -22,9 +22,7 @@ use std::time::{Duration, Instant};
 use mic_limpo::controlador::{Ajustes, Controlador, Modo};
 use mic_limpo::salvo::Salvo;
 use mic_limpo_audio::{self as audio, Aviso, Fluxo, Pedido};
-use mic_limpo_core::denoise::FRAME;
 use mic_limpo_core::escuta::{self, Gravacao, Reproducao, Tocador};
-use mic_limpo_core::metricas::amostras_ms;
 use mic_limpo_core::modelo::Tipo;
 use mic_limpo_core::motor::Controle;
 use mic_limpo_ui::{Bandeja, Dados, Flyout, JanelaPrincipal};
@@ -137,8 +135,8 @@ struct Ui {
     /// Medidor do que sai da IA (mesma escala e queda que `nivel`).
     nivel_limpo: f32,
     tick: u32,
-    /// (dsp_ns, quadros) na última conta da CPU, para mostrar a do último segundo.
-    dsp_anterior: (u64, u64),
+    /// (tempo de CPU do processo, relógio) na última conta da CPU, para mostrar a do último segundo.
+    cpu_anterior: Option<(Duration, Instant)>,
     teste: Teste,
 }
 
@@ -218,7 +216,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         nivel: 0.0,
         nivel_limpo: 0.0,
         tick: 0,
-        dsp_anterior: (0, 0),
+        cpu_anterior: None,
         teste: Teste {
             gravando: None,
             gravada: None,
@@ -798,13 +796,6 @@ fn receber(ui: &mut Ui, e: Estado) {
         ui.em_cada(|d| mostrar_ajustes(d, &ui.pedido, &ui.disp));
         agendar_gravacao(ui);
     }
-    let mesmo = match (&ui.motor, &e.motor) {
-        (Some((a, _)), Some((b, _))) => Arc::ptr_eq(a, b),
-        _ => false,
-    };
-    if !mesmo {
-        ui.dsp_anterior = (0, 0);
-    }
     ui.motor = e.motor;
     atualizar_numeros(ui);
     ui.em_cada(|d| ui.mostrar(d));
@@ -835,23 +826,49 @@ fn tick(ui: &mut Ui) {
 /// Atualiza atraso, CPU e falhas em `ui.mostrado` (quem chama mostra nas telas).
 fn atualizar_numeros(ui: &mut Ui) {
     let m = &mut ui.mostrado;
+    // CPU do processo inteiro (IA + áudio + janela) em % do PC, na escala do Gerenciador de Tarefas.
+    if let Some(cpu) = cpu_do_processo() {
+        let agora = Instant::now();
+        match ui.cpu_anterior {
+            // Chamada fora do tique (troca de motor): espera o intervalo inteiro.
+            Some((_, t)) if agora - t < Duration::from_millis(500) => {}
+            // Depois de minimizada a média seria de minutos; recomeça a conta.
+            Some((c, t)) if agora - t <= Duration::from_secs(3) => {
+                let nucleos = std::thread::available_parallelism().map_or(1, |n| n.get());
+                let pct = (cpu - c).as_secs_f64() / (agora - t).as_secs_f64() / nucleos as f64 * 100.0;
+                m.cpu = if pct < 0.1 { "< 0,1 %".into() } else { format!("{pct:.1} %").replace('.', ",").into() };
+                ui.cpu_anterior = Some((cpu, agora));
+            }
+            _ => ui.cpu_anterior = Some((cpu, agora)),
+        }
+    }
     let Some((c, modelo)) = &ui.motor else {
-        (m.atraso, m.cpu, m.falhas) = ("—".into(), "—".into(), 0);
+        (m.atraso, m.falhas) = ("—".into(), 0);
         return;
     };
     let met = &c.metricas;
     if met.atraso_saida_us.n() > 0 {
         m.atraso = format!("~{:.0} ms", met.latencia_ms(c.ia(), *modelo)).into();
     }
-    // CPU da IA no último intervalo, em % de um núcleo.
-    let agora = (met.dsp_ns.load(Relaxed), met.quadros.load(Relaxed));
-    let (ns, quadros) = (agora.0.saturating_sub(ui.dsp_anterior.0), agora.1.saturating_sub(ui.dsp_anterior.1));
-    ui.dsp_anterior = agora;
-    if quadros > 0 {
-        let pct = ns as f64 / quadros as f64 / 1e6 / amostras_ms(FRAME as f64) * 100.0;
-        m.cpu = format!("{pct:.1} %").replace('.', ",").into();
-    }
     m.falhas = met.falhas() as i32;
+}
+
+/// Tempo de CPU (núcleo + usuário, todas as threads) gasto pelo processo até agora.
+#[cfg(windows)]
+fn cpu_do_processo() -> Option<Duration> {
+    use windows::Win32::Foundation::FILETIME;
+    use windows::Win32::System::Threading::{GetCurrentProcess, GetProcessTimes};
+    let [mut criacao, mut fim, mut nucleo, mut usuario] = [FILETIME::default(); 4];
+    // SAFETY: o pseudo-handle do próprio processo não precisa ser fechado; só escreve nas variáveis locais.
+    unsafe { GetProcessTimes(GetCurrentProcess(), &mut criacao, &mut fim, &mut nucleo, &mut usuario) }.ok()?;
+    let unidades = |f: FILETIME| (u64::from(f.dwHighDateTime) << 32) | u64::from(f.dwLowDateTime);
+    Some(Duration::from_nanos((unidades(nucleo) + unidades(usuario)) * 100))
+}
+
+/// Fora do Windows o cartão mostra "—" (o macOS é a Fase 5).
+#[cfg(not(windows))]
+fn cpu_do_processo() -> Option<Duration> {
+    None
 }
 
 fn mostrar_ajustes(d: &Dados, a: &Ajustes, disp: &Dispositivos) {

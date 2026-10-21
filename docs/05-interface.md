@@ -34,7 +34,7 @@ para crescer sem poluir a tela.
 | Teste (fone) | Gravar 5 s e ouvir com A/B Original ↔ Limpo (Fase 4, pedido do Alex) |
 | Teste (fone) | Gravar 5 s e ouvir com A/B Original ↔ Limpo (Fase 4, pedido do Alex) |
 | Efeitos | Ícone apagado ("em breve") até existir |
-| Configurações (embaixo) | Baixa latência, Iniciar com o sistema, Tema, Desempenho (atraso, CPU, falhas) |
+| Configurações (embaixo) | Baixa latência, Iniciar com o sistema, Tema, Desempenho (atraso, CPU do app, falhas) |
 | Sobre (embaixo) | Versão, sem rede/telemetria, licença, modelo, selo do Slint (exigido pela licença) |
 | Flyout da bandeja | Liga/desliga, modo, medidor, rota e "Abrir ›" |
 
@@ -69,8 +69,14 @@ para crescer sem poluir a tela.
   atraso, CPU, falhas e modelo. Cada controle chama um callback próprio no `Dados`
   (`modo-escolhido`, `ganho-mudou`, ...): o mic continua "o padrão do sistema" até ser escolhido.
 - Medidor: pico da entrada (antes da IA) em dB, de −60 a 0 dBFS, caindo ~1,8 dB por tick.
-- "CPU" = só o processamento da IA, em % de um núcleo, no último segundo. "Atraso do app" =
+- "CPU do app" = processo inteiro (IA + áudio + janela) em % do PC, como no Gerenciador de Tarefas:
+  delta de núcleo + usuário do `GetProcessTimes` ÷ tempo de relógio ÷ threads lógicas, a cada
+  segundo e só com janela/flyout abertos; abaixo de 0,1 mostra "< 0,1 %"; fora do Windows "—".
+  Até 2026-10-21 era só a IA em % de **um** núcleo (Forte "11,7 %" assustava). "Atraso do app" =
   estimativa do app (soma dos atrasos médios), **sem** o VB-Cable (~55–60 ms a mais).
+- Conferido (2026-10-21, release, 12 threads, mic do Alex, página Configurações aberta, 10 s pelo
+  `TotalProcessorTime` × cartão a cada segundo): **Forte** 1,16 % e 1,04 % × cartão 0,9–1,3 %;
+  **Leve** 0,05 % × cartão "< 0,1 %" (picos 0,1–0,3 %).
 - Troca que falha (ex.: "CABLE In 16ch" recusa o formato, `AUDCLNT_E_UNSUPPORTED_FORMAT`): o motor
   antigo continua, a janela volta ao valor anterior e o status diz "Não deu para trocar (...)".
 - Busca de dispositivo: nome exato primeiro, depois "contém".
