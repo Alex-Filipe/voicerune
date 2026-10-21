@@ -42,3 +42,16 @@
 - **Atenção:** a entrada padrão do Windows hoje é `Voicemeeter Out B1`, então passar `--entrada Microphone`.
 - No Discord: microfone = `CABLE Output (VB-Audio Virtual Cable)`.
 - Saída redirecionada no PowerShell mostra acentos quebrados (UTF-8 lido como ANSI); só visual.
+
+## Mic do Alex no Windows (ajustado em 2026-10-21)
+`mmsys.cpl` → Gravação → Microphone (High Definition Audio Device) (a tela nova de Configurações
+fica bloqueada sem ativação do Windows): Níveis 100 + aumento +20 dB; **aperfeiçoamentos de áudio
+desligados** (eram o gate); formato 48000 Hz (estava 44100). Medido com `gravar` (10 s de fala):
+
+| | Voz (p90) | Pico | Quadros zero (gate) | Quadros < −70 dBFS | Piso (p10) |
+|---|---|---|---|---|---|
+| antes | −42,0 dBFS | −24,9 | 11 % | 27 % | zero digital |
+| depois | −29,6 dBFS | −14,4 | 0 % | 0 % | −57,1 dBFS |
+
+Sem saturação. O piso subiu com o ganho (esperado; é o ruído que a IA tira).
+

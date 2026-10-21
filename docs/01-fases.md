@@ -147,3 +147,6 @@ medidor acorda com a janela minimizada.
 - 2026-10-21 — Corte do Forte corrigido: dither só nos quadros abaixo de −70 dBFS antes da libDF.
   Com a gravação do Alex: quadros zerados 127 → 2; bordas de palavra > 10 dB 20 % → 4 %; resíduo
   no silêncio ≤ −85 dBFS; DFN ~0,59 → ~0,74 ms por quadro. +1 teste (17 no core).
+- 2026-10-21 — Mic do Alex ajustado no `mmsys.cpl` (aperfeiçoamentos desligados, +20 dB, 48 kHz):
+  voz −42 → −30 dBFS, gate sumiu (zeros 11 % → 0 %), sem saturação. Ver `08-ambiente.md`.
+
