@@ -21,10 +21,10 @@ bloco 4 começado (última configuração salva). Página **Teste** (gravar e ou
 
 **Próximo passo:** Alex quer melhorias antes de seguir. A primeira (página Teste) está feita; no
 teste ele achou o **Forte ruim (às vezes corta)** e cogita trocar o Forte por um modo
-**Personalizado**. Causa achada e **corrigida** (dither no invólucro do DFN; ver `04-ia-ruido.md`):
-quadros zerados 127 → 2, bordas de palavra cortadas 20 % → 4 %. Próximo: Alex reouve o Forte na
-página Teste (exe de release já recompilado); se ainda picotar, medir underruns ao vivo
-(`mic-limpo-dev rodar --modelo dfn`); depois decidir se o Personalizado ainda faz falta. Depois: resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
+**Personalizado**. Causa achada e **corrigida** (dither no invólucro do DFN; ver `04-ia-ruido.md`) e mic
+ajustado (sem gate); Alex reouviu: "parece que corrigiu". Próximo: Alex diz se o Personalizado
+ainda faz falta e quais são as outras melhorias; se o Forte voltar a picotar, medir underruns ao
+vivo (`mic-limpo-dev rodar --modelo dfn`). Depois: resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
 bandeja") e instância única (o atalho abre um 2º app hoje). Antes: Alex clica no ícone de verdade, fala e
 confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
@@ -149,4 +149,5 @@ medidor acorda com a janela minimizada.
   no silêncio ≤ −85 dBFS; DFN ~0,59 → ~0,74 ms por quadro. +1 teste (17 no core).
 - 2026-10-21 — Mic do Alex ajustado no `mmsys.cpl` (aperfeiçoamentos desligados, +20 dB, 48 kHz):
   voz −42 → −30 dBFS, gate sumiu (zeros 11 % → 0 %), sem saturação. Ver `08-ambiente.md`.
-
+- 2026-10-21 — Alex reouviu o Forte na página Teste com a correção e o mic ajustado: "parece que
+  corrigiu o problema".
