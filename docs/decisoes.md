@@ -56,4 +56,5 @@
 | 2026-10-21 | Contornar o atalho de −70 dBFS da libDF com dither no nosso invólucro, sem fork da libDF | ~10 linhas, sem dependência nova; resíduo ≤ −85 dBFS; custa ~25 % a mais de CPU do DFN |
 | 2026-10-21 | "Depois da IA" no mesmo medidor (camada por cima), na Início e não só num Personalizado | Serve aos três modos e mostra se o cancelamento funciona; sem ocupar mais espaço |
 | 2026-10-21 | O medidor do limpo lê antes do volume de saída | Senão subir o volume pareceria a IA tirando menos |
+| 2026-10-21 | Cancelamento = chave no título do cartão + Leve / Forte / Personalizado (desabilitado), com "?" que explica; sem pausa na janela | Escolha do Alex: desligar o filtro não deve calar o mic no Discord (a chave antiga do flyout pausava tudo); o modo fica lembrado |
 | 2026-10-21 | Cartão "CPU do app" = processo inteiro (IA + áudio + janela) em % do PC, não a IA em % de um núcleo | Bate com o Gerenciador de Tarefas e não assusta (Forte "11,7 %" de um núcleo ≈ 1 % do PC) |

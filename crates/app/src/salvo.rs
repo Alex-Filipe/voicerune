@@ -10,13 +10,14 @@ use crate::controlador::{Ajustes, Modo};
 
 /// Faixa do controle de volume da janela (dB).
 const GANHO: (f32, f32) = (-12.0, 24.0);
-const MODOS: [(Modo, &str); 3] = [(Modo::Desligado, "desligado"), (Modo::Leve, "leve"), (Modo::Forte, "forte")];
+const MODOS: [(Modo, &str); 2] = [(Modo::Leve, "leve"), (Modo::Forte, "forte")];
 const TEMAS: [&str; 3] = ["sistema", "claro", "escuro"];
 
 /// O que fica de uma execução para a outra.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Salvo {
-    /// Só os campos da janela (ligado, modo, ganho, dispositivos, baixa latência).
+    /// Só os campos da janela (cancelamento, modo, ganho, dispositivos, baixa latência). O app
+    /// sempre abre ligado: `ligado` de versões antigas é ignorado (a janela não tem mais pausa).
     pub ajustes: Ajustes,
     /// 0 = do sistema, 1 = claro, 2 = escuro.
     pub tema: i32,
@@ -52,7 +53,7 @@ impl Salvo {
         let modo = MODOS.iter().find(|(m, _)| *m == a.modo).map_or("leve", |(_, n)| *n);
         let mut t = String::from("# mic-limpo: última configuração (o app regrava a cada mudança)\n");
         t += "# entrada/saida vazias = o padrão do Windows\n";
-        let _ = writeln!(t, "ligado = {}", sim(a.ligado));
+        let _ = writeln!(t, "cancelamento = {}", sim(a.ia));
         let _ = writeln!(t, "modo = {modo}");
         let _ = writeln!(t, "ganho_db = {}", a.ganho_db);
         let _ = writeln!(t, "entrada = {}", nome(&a.entrada));
@@ -79,7 +80,9 @@ impl Salvo {
             let Some((chave, valor)) = linha.split_once('=') else { continue };
             let (a, valor) = (&mut s.ajustes, valor.trim());
             match chave.trim() {
-                "ligado" => a.ligado = sim(valor).unwrap_or(a.ligado),
+                "cancelamento" => a.ia = sim(valor).unwrap_or(a.ia),
+                // Até 2026-10-21 "desligado" era um modo; vira a chave desligada.
+                "modo" if valor == "desligado" => a.ia = false,
                 "modo" => a.modo = MODOS.iter().find(|(_, n)| *n == valor).map_or(a.modo, |(m, _)| *m),
                 "ganho_db" => {
                     if let Some(g) = valor.replace(',', ".").parse::<f32>().ok().filter(|g| g.is_finite()) {
@@ -113,7 +116,7 @@ mod tests {
     fn ida_e_volta() {
         let s = Salvo {
             ajustes: Ajustes {
-                ligado: false,
+                ia: false,
                 modo: Modo::Forte,
                 ganho_db: -3.5,
                 entrada: Some("Microfone (Fifine K669 = USB)".into()),
@@ -135,5 +138,14 @@ mod tests {
         assert_eq!(s.ajustes.ganho_db, GANHO.1);
         assert_eq!(s.ajustes.saida, None);
         assert_eq!(s.tema, 1);
+    }
+
+    #[test]
+    fn config_antiga() {
+        let s = Salvo::de_texto("ligado = nao
+modo = desligado
+");
+        assert!(s.ajustes.ligado && !s.ajustes.ia);
+        assert_eq!(s.ajustes.modo, Modo::Leve);
     }
 }

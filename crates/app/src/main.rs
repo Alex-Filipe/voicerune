@@ -46,7 +46,8 @@ const MARGEM_FLYOUT: f32 = 12.0;
 /// A configuração é gravada este tempo depois da última mudança (arrastar o volume = uma gravação).
 const GRAVAR_APOS: Duration = Duration::from_millis(500);
 
-const MODOS: [Modo; 3] = [Modo::Desligado, Modo::Leve, Modo::Forte];
+/// Na ordem do seletor; o 3º (Personalizado) ainda não existe e fica desabilitado na tela.
+const MODOS: [Modo; 2] = [Modo::Leve, Modo::Forte];
 
 enum Msg {
     Ajustes(Ajustes),
@@ -98,7 +99,8 @@ struct Teste {
 struct Gravando {
     /// Motor que está copiando; se o áudio for reaberto (ou o modo mudar), a gravação é cancelada.
     ctl: Arc<Controle>,
-    modo: Modo,
+    /// `None` = cancelamento desligado.
+    modo: Option<Modo>,
     /// Atraso do modelo em amostras (tirado do limpo no fim).
     atraso: usize,
     grav: Gravacao,
@@ -354,12 +356,12 @@ where
             }
         }
     };
-    d.on_modo_escolhido(ao_mudar(|a, d, _| a.modo = MODOS[d.get_modo().clamp(0, 2) as usize]));
+    d.on_modo_escolhido(ao_mudar(|a, d, _| a.modo = MODOS[d.get_modo().clamp(0, 1) as usize]));
     d.on_ganho_mudou(ao_mudar(|a, d, _| a.ganho_db = d.get_ganho_db().round()));
     d.on_entrada_escolhida(ao_mudar(|a, d, disp| a.entrada = disp.entradas.get(d.get_entrada() as usize).cloned()));
     d.on_saida_escolhida(ao_mudar(|a, d, disp| a.saida = disp.saidas.get(d.get_saida() as usize).cloned()));
     d.on_baixa_latencia_mudou(ao_mudar(|a, d, _| a.baixa_latencia = d.get_baixa_latencia()));
-    d.on_ligado_mudou(ao_mudar(|a, d, _| a.ligado = d.get_ligado()));
+    d.on_cancelamento_mudou(ao_mudar(|a, d, _| a.ia = d.get_cancelamento()));
     d.on_tema_escolhido(|| {
         com_ui(agendar_gravacao);
     });
@@ -718,7 +720,7 @@ fn teste_gravar(ui: &mut Ui) {
     };
     let atraso = if ctl.ia() { modelo.atraso_amostras() } else { 0 };
     ctl.escutar(true);
-    ui.teste.gravando = Some(Gravando { ctl: ctl.clone(), modo: ui.pedido.modo, atraso, grav: Gravacao::nova() });
+    ui.teste.gravando = Some(Gravando { ctl: ctl.clone(), modo: modo_ativo(&ui.pedido), atraso, grav: Gravacao::nova() });
     ui.teste.info = "Fale agora…".into();
 }
 
@@ -756,7 +758,7 @@ fn teste_tick(ui: &mut Ui) {
         return;
     }
     if let Some(g) = &mut ui.teste.gravando {
-        let mesmo = ui.motor.as_ref().is_some_and(|(c, _)| Arc::ptr_eq(c, &g.ctl)) && ui.pedido.modo == g.modo;
+        let mesmo = ui.motor.as_ref().is_some_and(|(c, _)| Arc::ptr_eq(c, &g.ctl)) && modo_ativo(&ui.pedido) == g.modo;
         if !mesmo {
             teste_cancelar(ui);
             ui.teste.info = "Gravação cancelada: o modo ou o áudio mudou no meio.".into();
@@ -767,9 +769,9 @@ fn teste_tick(ui: &mut Ui) {
                 g.ctl.escutar(false);
                 g.grav.alinhar(g.atraso);
                 let modo = match g.modo {
-                    Modo::Desligado => "sem cancelamento",
-                    Modo::Leve => "no modo Leve",
-                    Modo::Forte => "no modo Forte",
+                    None => "sem cancelamento",
+                    Some(Modo::Leve) => "no modo Leve",
+                    Some(Modo::Forte) => "no modo Forte",
                 };
                 ui.teste.info = format!("Gravado {modo}. Troque entre Original e Limpo enquanto ouve.").into();
                 ui.teste.gravada = Some(Arc::new(g.grav));
@@ -871,12 +873,17 @@ fn cpu_do_processo() -> Option<Duration> {
     None
 }
 
+/// O que a IA está fazendo: `None` com o cancelamento desligado.
+fn modo_ativo(a: &Ajustes) -> Option<Modo> {
+    a.ia.then_some(a.modo)
+}
+
 fn mostrar_ajustes(d: &Dados, a: &Ajustes, disp: &Dispositivos) {
     let indice = |nomes: &[String], escolhido: &Option<String>, padrao: Option<usize>| {
         escolhido.as_deref().map_or(padrao, |t| audio::escolher(nomes, t)).map_or(-1, |i| i as i32)
     };
-    d.set_ligado(a.ligado);
-    d.set_modo(MODOS.iter().position(|m| *m == a.modo).unwrap_or(1) as i32);
+    d.set_cancelamento(a.ia);
+    d.set_modo(MODOS.iter().position(|m| *m == a.modo).unwrap_or(0) as i32);
     d.set_ganho_db(a.ganho_db);
     d.set_baixa_latencia(a.baixa_latencia);
     d.set_entrada(indice(&disp.entradas, &a.entrada, disp.padrao_entrada));

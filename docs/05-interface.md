@@ -13,7 +13,7 @@
 Extras: `window-vibrancy` (Mica/Acrylic no Win, vibrancy no Mac), `tray-icon` (bandeja / barra de menu).
 
 ## Princípios de UX
-- Tela principal mínima: mic → **Cancelamento: Desligado / Leve / Forte** → saída; medidor de nível; mute.
+- Tela principal mínima: mic → **Cancelamento: chave + Leve / Forte (/ Personalizado)** → saída; medidor de nível; mute.
 - **Presets** ("Reunião", "Stream", "Jogo") em vez de botões técnicos.
 - Avançado (gate, EQ, roteamento) numa aba escondida.
 - Configuração automática de dispositivo e buffer; nunca mostrar "WDM/KS/MME".
@@ -30,13 +30,13 @@ para crescer sem poluir a tela.
 
 | Página | Conteúdo |
 |---|---|
-| Início | Microfone + medidor, Cancelamento (Desligado / Leve / Forte), Volume de saída (−12 a +24 dB), Enviar para, linha de status |
+| Início | Microfone + medidor, Cancelamento (chave + "?" + Leve / Forte / Personalizado desabilitado), Volume de saída (−12 a +24 dB), Enviar para, linha de status |
 | Teste (fone) | Gravar 5 s e ouvir com A/B Original ↔ Limpo (Fase 4, pedido do Alex) |
 | Teste (fone) | Gravar 5 s e ouvir com A/B Original ↔ Limpo (Fase 4, pedido do Alex) |
 | Efeitos | Ícone apagado ("em breve") até existir |
 | Configurações (embaixo) | Baixa latência, Iniciar com o sistema, Tema, Desempenho (atraso, CPU do app, falhas) |
 | Sobre (embaixo) | Versão, sem rede/telemetria, licença, modelo, selo do Slint (exigido pela licença) |
-| Flyout da bandeja | Liga/desliga, modo, medidor, rota e "Abrir ›" |
+| Flyout da bandeja | Chave do cancelamento, modo, medidor, rota e "Abrir ›" |
 
 ### Implementação em Slint (`crates/ui`)
 - `ui/telas.slint`: `JanelaPrincipal`, `Flyout` e `Bandeja`; estado no global `Dados` (o Rust
@@ -151,7 +151,7 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   de 64 px reduzido pelo shell.
 
 ### Configuração salva (Fase 4, bloco 4)
-- `%APPDATA%\mic-limpo\config.ini` (módulo `salvo` na lib do app): ligado, modo, volume, mic,
+- `%APPDATA%\mic-limpo\config.ini` (módulo `salvo` na lib do app): cancelamento, modo, volume, mic,
   saída, baixa latência, tema e posição/tamanho da janela. Lido na partida; gravado 0,5 s depois da
   última mudança, ao fechar a janela e no Sair (temporário + troca de nome). Apagar o arquivo
   volta aos padrões.
@@ -208,6 +208,23 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   a IA tirou. Mesma escala (−60 a 0 dBFS) e queda nos dois; vale para Início, Teste e flyout.
 - Custo: um `fetch_max` atômico por chamada do modelo (`Controle::tomar_pico_limpo`). +1 teste.
 - Conferido na prévia (claro e escuro) e **aprovado pelo Alex** ao vivo ("gostei, ficou bom").
+
+### Chave do cancelamento + "?" (Fase 4, pedido do Alex, 2026-10-21)
+- O antigo modo "Desligado" virou uma **chave** no título do cartão "Cancelamento de ruído"; embaixo,
+  **Leve | Forte | Personalizado** (este apagado e sem clique: ainda não existe). Desligada, a voz
+  passa sem filtro, os modos ficam apagados e o escolhido continua marcado (religar volta igual).
+- **"?"** ao lado do título abre uma janelinha (`PopupWindow`) explicando chave, Leve, Forte e
+  Personalizado; clicar em qualquer lugar fecha. Sem rótulo extra na chave: o título já diz o quê.
+- **Flyout:** a chave do topo agora é a do cancelamento (antes **pausava o áudio todo**, e o Discord
+  ficava sem mic). A pausa saiu da janela; parar tudo = "Sair" da bandeja. `ligado` continua no
+  `Controlador` (o `mic-limpo-dev rodar` usa no `p`), o app sempre abre ligado.
+- `config.ini`: `cancelamento = sim/nao` + `modo = leve/forte`. Arquivo antigo: `modo = desligado`
+  vira a chave desligada e `ligado` é ignorado (+1 teste). Com a chave desligada o modelo do modo
+  fica carregado (o Forte ocupa a RAM do DFN), para religar sem espera.
+- Conferido em release (2026-10-21, cliques simulados): janelinha cabe na janela; desligar →
+  status "sem cancelamento", clique no Leve ignorado, `cancelamento = nao` gravado; religar volta ao
+  Forte. Captura: `docs/mockups/capturas/app-inicio.png`. **Não conferido:** o flyout com três
+  opções (360 px de largura) — Alex olha ao clicar no ícone.
 
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.

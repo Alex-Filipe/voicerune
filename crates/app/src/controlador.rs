@@ -20,19 +20,16 @@ const ESPERA_MAX: Duration = Duration::from_secs(1);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Modo {
-    Desligado,
     #[default]
     Leve,
     Forte,
 }
 
 impl Modo {
-    /// Modelo do modo; `Desligado` não pede nenhum (fica o que já estiver carregado).
-    fn modelo(self) -> Option<Tipo> {
+    fn modelo(self) -> Tipo {
         match self {
-            Modo::Desligado => None,
-            Modo::Leve => Some(Tipo::Rnnoise),
-            Modo::Forte => Some(Tipo::Dfn),
+            Modo::Leve => Tipo::Rnnoise,
+            Modo::Forte => Tipo::Dfn,
         }
     }
 }
@@ -42,6 +39,8 @@ impl Modo {
 pub struct Ajustes {
     /// Desligado = sem fluxos abertos (nada roda).
     pub ligado: bool,
+    /// Cancelamento ligado. Desligado, a voz passa sem filtro e o modelo do `modo` fica carregado.
+    pub ia: bool,
     pub modo: Modo,
     pub ganho_db: f32,
     /// Parte do nome do microfone; `None` = o padrão do sistema.
@@ -61,6 +60,7 @@ impl Default for Ajustes {
         let m = Config::default();
         Self {
             ligado: true,
+            ia: true,
             modo: Modo::Leve,
             ganho_db: 0.0,
             entrada: None,
@@ -138,15 +138,14 @@ impl Controlador {
             self.ajustes = novos;
             return Ok(if self.ativo.take().is_some() { Troca::Parado } else { Troca::NaHora });
         }
-        let carregado = self.ativo.as_ref().map(|a| a.modelo);
-        let modelo = novos.modo.modelo().or(carregado).unwrap_or_default();
+        let modelo = novos.modo.modelo();
         let reabrir = match &self.ativo {
             None => true,
             Some(a) => a.modelo != modelo || !self.ajustes.mesmos_fluxos(&novos),
         };
         if !reabrir {
             let ctl = &self.ativo.as_ref().expect("checado acima").ctl;
-            ctl.set_ia(novos.modo != Modo::Desligado);
+            ctl.set_ia(novos.ia);
             ctl.set_ganho_db(novos.ganho_db);
             self.ajustes = novos;
             return Ok(Troca::NaHora);
@@ -171,7 +170,7 @@ impl Controlador {
         let cfg = Config {
             folga_ms: a.folga_ms,
             teto_ms: a.teto_ms,
-            ia: a.modo != Modo::Desligado,
+            ia: a.ia,
             modelo,
             limite_db: a.limite_db,
             ganho_db: a.ganho_db,

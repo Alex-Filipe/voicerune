@@ -66,30 +66,21 @@ pub fn mostrar_lista() -> Res<()> {
 
 fn executar(aj: Ajustes, sem_ia: bool, segundos: Option<u64>) -> Res<()> {
     let mut c = Controlador::novo(None);
-    let modo = aj.modo;
     let troca = c.aplicar(aj)?;
     mostrar(&c, troca);
     if sem_ia {
-        mudar(&mut c, |a| a.modo = Modo::Desligado)?;
+        mudar(&mut c, |a| a.ia = false)?;
     }
     if let Some(seg) = segundos {
         println!("Rodando por {seg} s...");
         std::thread::sleep(Duration::from_secs(seg));
     } else {
         println!("Comandos: (vazio) IA, l, f, b, g N, p, q — veja mic-limpo-dev --ajuda");
-        let mut ultimo = modo;
         for linha in std::io::stdin().lock().lines() {
             let linha = linha?;
             let mut partes = linha.split_whitespace();
             let r = match partes.next() {
-                None => mudar(&mut c, |a| {
-                    if a.modo == Modo::Desligado {
-                        a.modo = ultimo;
-                    } else {
-                        ultimo = a.modo;
-                        a.modo = Modo::Desligado;
-                    }
-                }),
+                None => mudar(&mut c, |a| a.ia = !a.ia),
                 Some("q") => break,
                 Some("l") => mudar(&mut c, |a| a.modo = Modo::Leve),
                 Some("f") => mudar(&mut c, |a| a.modo = Modo::Forte),
@@ -148,8 +139,9 @@ fn mostrar(c: &Controlador, troca: Troca) {
         );
     }
     println!(
-        "Modo: {:?} (modelo {}) | ganho {:+.1} dB | limite: {}",
+        "Modo: {:?}{} (modelo {}) | ganho {:+.1} dB | limite: {}",
         aj.modo,
+        if aj.ia { "" } else { ", IA desligada" },
         a.modelo,
         aj.ganho_db,
         aj.limite_db.map_or("nenhum".into(), |db| format!("{db} dB"))

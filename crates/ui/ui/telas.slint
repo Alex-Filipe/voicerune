@@ -6,8 +6,9 @@ import { Button, ComboBox, ProgressIndicator, Slider, Switch, Palette, AboutSlin
 // Estado que o Rust preenche (hoje estático na prévia; na Fase 4 vem do motor).
 export global Dados {
     in-out property <int> pagina: 0; // 0 Início, 1 Configurações, 2 Sobre, 3 Teste
-    in-out property <int> modo: 1; // 0 Desligado, 1 Leve, 2 Forte
-    in-out property <bool> ligado: true;
+    in-out property <int> modo: 0; // 0 Leve, 1 Forte (2 Personalizado ainda não existe)
+    // Chave do cancelamento; desligada, a voz passa sem filtro e o modo fica guardado.
+    in-out property <bool> cancelamento: true;
     in-out property <float> ganho-db: 6;
     in property <float> nivel: 0.35; // 0..1, medidor de entrada (original)
     in property <float> nivel-limpo: 0.2; // 0..1, o que sai da IA (mesma escala)
@@ -43,7 +44,7 @@ export global Dados {
     callback entrada-escolhida();
     callback saida-escolhida();
     callback baixa-latencia-mudou();
-    callback ligado-mudou();
+    callback cancelamento-mudou();
     callback tema-escolhido();
 }
 
@@ -179,6 +180,10 @@ component Medidor inherits Rectangle {
 
 component Segmentado inherits Rectangle {
     in property <[string]> opcoes;
+    // Opções que ainda não existem: apagadas e sem clique.
+    in property <[bool]> travadas;
+    // Falso: tudo apagado e sem clique, mas a escolha continua marcada (volta igual ao religar).
+    in property <bool> habilitado: true;
     in-out property <int> atual;
     callback escolheu();
     height: 34px;
@@ -193,8 +198,9 @@ component Segmentado inherits Rectangle {
             horizontal-stretch: 1;
             min-width: 0px;
             preferred-width: 0px;
+            property <bool> pode: habilitado && !travadas[i];
             border-radius: 4px;
-            background: i == atual ? Cores.acento : (ta.has-hover ? Cores.hover : transparent);
+            background: i == atual ? (habilitado ? Cores.acento : Cores.borda) : (pode && ta.has-hover ? Cores.hover : transparent);
             animate background { duration: 120ms; }
             accessible-role: tab;
             accessible-label: op;
@@ -202,17 +208,80 @@ component Segmentado inherits Rectangle {
                 text: op;
                 font-size: 14px;
                 font-weight: i == atual ? 600 : 400;
-                color: i == atual ? Cores.acento-texto : Cores.texto;
+                color: i == atual ? (habilitado ? Cores.acento-texto : Cores.texto) : pode ? Cores.texto : Cores.texto2;
                 horizontal-alignment: center;
                 vertical-alignment: center;
             }
 
             ta := TouchArea {
+                enabled: pode;
                 clicked => {
                     if atual != i {
                         atual = i;
                         escolheu();
                     }
+                }
+            }
+        }
+    }
+}
+
+// "?" que abre uma janelinha com explicações (clicar em qualquer lugar fecha).
+component Ajuda inherits Rectangle {
+    in property <[{nome: string, texto: string}]> itens;
+    // Onde a janelinha abre, relativo ao "?" (para caber na janela).
+    in property <length> janela-x: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    border-width: 1px;
+    border-color: ta.has-hover ? Cores.texto : Cores.texto2;
+    accessible-role: button;
+    accessible-label: "Ajuda";
+    Text {
+        text: "?";
+        font-size: 11px;
+        font-weight: 600;
+        color: ta.has-hover ? Cores.texto : Cores.texto2;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    ta := TouchArea {
+        clicked => {
+            janela.show();
+        }
+    }
+
+    janela := PopupWindow {
+        x: root.janela-x;
+        y: root.height + 6px;
+        width: 300px;
+        height: conteudo.preferred-height;
+        Rectangle {
+            background: Cores.cartao;
+            border-width: 1px;
+            border-color: Cores.borda;
+            border-radius: 6px;
+            drop-shadow-blur: 12px;
+            drop-shadow-offset-y: 2px;
+            drop-shadow-color: #00000040;
+        }
+
+        conteudo := VerticalLayout {
+            padding: 12px;
+            spacing: 8px;
+            for item in itens: VerticalLayout {
+                spacing: 2px;
+                Texto {
+                    text: item.nome;
+                    font-size: 13px;
+                    font-weight: 600;
+                }
+
+                Rotulo {
+                    text: item.texto;
+                    wrap: word-wrap;
                 }
             }
         }
@@ -291,8 +360,8 @@ component PaginaInicio inherits VerticalLayout {
         }
 
         Medidor {
-            nivel: Dados.ligado ? Dados.nivel : 0;
-            nivel-limpo: Dados.ligado ? Dados.nivel-limpo : 0;
+            nivel: Dados.nivel;
+            nivel-limpo: Dados.nivel-limpo;
         }
     }
 
@@ -303,15 +372,41 @@ component PaginaInicio inherits VerticalLayout {
                 d: Icones.ia;
             }
 
-            Texto {
-                text: "Cancelamento de ruído";
-                font-weight: 600;
+            HorizontalLayout {
                 horizontal-stretch: 1;
+                alignment: start;
+                spacing: 8px;
+                Texto {
+                    text: "Cancelamento de ruído";
+                    font-weight: 600;
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    Ajuda {
+                        janela-x: -200px;
+                        itens: [
+                            { nome: "Ligado / desligado", texto: "Desligado, sua voz continua indo para o destino, só que sem filtro." },
+                            { nome: "Leve", texto: "Tira ruído constante, como ventilador e chiado. Quase não usa CPU." },
+                            { nome: "Forte", texto: "Tira também ruídos que variam, como rua e barulhos de fundo. Um pouco mais de atraso e de CPU." },
+                            { nome: "Personalizado", texto: "Em breve." },
+                        ];
+                    }
+                }
+            }
+
+            Switch {
+                checked <=> Dados.cancelamento;
+                toggled => {
+                    Dados.cancelamento-mudou();
+                }
             }
         }
 
         Segmentado {
-            opcoes: ["Desligado", "Leve", "Forte"];
+            opcoes: ["Leve", "Forte", "Personalizado"];
+            travadas: [false, false, true];
+            habilitado: Dados.cancelamento;
             atual <=> Dados.modo;
             escolheu => {
                 Dados.modo-escolhido();
@@ -371,14 +466,14 @@ component PaginaInicio inherits VerticalLayout {
             width: 8px;
             height: 8px;
             border-radius: 4px;
-            background: Dados.erro != "" ? Cores.ruim : Dados.ligado ? Cores.ok : Cores.texto2;
+            background: Dados.erro != "" ? Cores.ruim : Cores.ok;
         }
 
         Rotulo {
             horizontal-stretch: 1;
             wrap: word-wrap;
             // O atraso é a estimativa do app; o VB-Cable soma ~55–60 ms (medido na Fase 1).
-            text: Dados.erro != "" ? Dados.erro : !Dados.ligado ? "Pausado" : Dados.modo == 0 ? "Funcionando · sem cancelamento · atraso do app " + Dados.atraso : "Funcionando · atraso do app " + Dados.atraso;
+            text: Dados.erro != "" ? Dados.erro : !Dados.cancelamento ? "Funcionando · sem cancelamento · atraso do app " + Dados.atraso : "Funcionando · atraso do app " + Dados.atraso;
         }
     }
 }
@@ -399,10 +494,10 @@ component PaginaTeste inherits VerticalLayout {
         LinhaAjuste {
             icone: Icones.mic;
             titulo: "Gravar";
-            sub: Dados.modo == 0 ? "Cancelamento desligado: o limpo sai igual" : Dados.modo == 1 ? "No modo Leve" : "No modo Forte";
+            sub: !Dados.cancelamento ? "Cancelamento desligado: o limpo sai igual" : Dados.modo == 0 ? "No modo Leve" : "No modo Forte";
             Button {
                 text: Dados.teste-estado == 1 ? "Gravando…" : Dados.teste-estado == 0 ? "Gravar" : "Gravar de novo";
-                enabled: Dados.ligado && Dados.teste-estado != 1;
+                enabled: Dados.teste-estado != 1;
                 clicked => {
                     Dados.teste-gravar();
                 }
@@ -410,8 +505,8 @@ component PaginaTeste inherits VerticalLayout {
         }
 
         Medidor {
-            nivel: Dados.ligado ? Dados.nivel : 0;
-            nivel-limpo: Dados.ligado ? Dados.nivel-limpo : 0;
+            nivel: Dados.nivel;
+            nivel-limpo: Dados.nivel-limpo;
         }
 
         // Sempre no layout (só aparece em uso), para a página não pular.
@@ -806,21 +901,23 @@ export component Flyout inherits Window {
         spacing: 12px;
         HorizontalLayout {
             Texto {
-                text: "mic-limpo";
+                text: "Cancelamento de ruído";
                 font-weight: 600;
                 horizontal-stretch: 1;
             }
 
             Switch {
-                checked <=> Dados.ligado;
+                checked <=> Dados.cancelamento;
                 toggled => {
-                    Dados.ligado-mudou();
+                    Dados.cancelamento-mudou();
                 }
             }
         }
 
         Segmentado {
-            opcoes: ["Desligado", "Leve", "Forte"];
+            opcoes: ["Leve", "Forte", "Personalizado"];
+            travadas: [false, false, true];
+            habilitado: Dados.cancelamento;
             atual <=> Dados.modo;
             escolheu => {
                 Dados.modo-escolhido();
@@ -837,8 +934,8 @@ export component Flyout inherits Window {
                 alignment: center;
                 horizontal-stretch: 1;
                 Medidor {
-                    nivel: Dados.ligado ? Dados.nivel : 0;
-            nivel-limpo: Dados.ligado ? Dados.nivel-limpo : 0;
+                    nivel: Dados.nivel;
+                    nivel-limpo: Dados.nivel-limpo;
                 }
             }
         }

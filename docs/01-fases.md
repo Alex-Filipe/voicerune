@@ -23,7 +23,8 @@ bloco 4 começado (última configuração salva). Página **Teste** (gravar e ou
 teste ele achou o **Forte ruim (às vezes corta)** e cogita trocar o Forte por um modo
 **Personalizado**. Causa achada e **corrigida** (dither no invólucro do DFN; ver `04-ia-ruido.md`) e mic
 ajustado (sem gate); Alex reouviu: "parece que corrigiu". Medidor de duas camadas (original × depois da
-IA) feito e aprovado; cartão "CPU do app" (% do PC) feito. Próximo: Alex diz se o Personalizado ainda faz falta; se o Forte voltar a picotar, medir underruns ao
+IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou chave + Leve | Forte | Personalizado
+(desabilitado) com "?" — Alex confere o flyout. Próximo: Alex diz se o Personalizado ainda faz falta; se o Forte voltar a picotar, medir underruns ao
 vivo (`mic-limpo-dev rodar --modelo dfn`). Depois: resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
 bandeja") e instância única (o atalho abre um 2º app hoje). Antes: Alex clica no ícone de verdade, fala e
 confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
@@ -157,3 +158,6 @@ medidor acorda com a janela minimizada.
 - 2026-10-21 — Cartão "CPU" virou "CPU do app": processo inteiro em % do PC (`GetProcessTimes`),
   como o Gerenciador de Tarefas. Conferido em release: Forte ~1,0–1,2 %, Leve < 0,1 %, batendo com o
   `TotalProcessorTime`. Ver `05-interface.md`.
+- 2026-10-21 — Cancelamento virou chave + Leve | Forte | Personalizado (desabilitado) com "?" que
+  explica cada um; a chave do flyout deixou de pausar o áudio todo. Config antiga continua lida
+  (+1 teste). Conferido em release com cliques simulados; flyout não conferido. Ver `05-interface.md`.
