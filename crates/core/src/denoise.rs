@@ -34,8 +34,9 @@ impl<M: Modelo> Denoiser<M> {
     }
 
     /// Recebe amostras mono em [-1, 1]. A cada quadro completo chama `emitir` com o
-    /// quadro processado (ou só copiado, se `ativo` for falso) e a probabilidade de voz.
-    pub fn push(&mut self, amostras: &[f32], ativo: bool, mut emitir: impl FnMut(&[f32], f32)) {
+    /// quadro processado (ou só copiado, se `ativo` for falso), o quadro original e a
+    /// probabilidade de voz.
+    pub fn push(&mut self, amostras: &[f32], ativo: bool, mut emitir: impl FnMut(&[f32], &[f32], f32)) {
         for &s in amostras {
             self.entrada[self.cheio] = s;
             self.cheio += 1;
@@ -47,7 +48,7 @@ impl<M: Modelo> Denoiser<M> {
                     self.saida.copy_from_slice(&self.entrada);
                     1.0
                 };
-                emitir(&self.saida, vad);
+                emitir(&self.saida, &self.entrada, vad);
             }
         }
     }
@@ -69,7 +70,7 @@ mod tests {
         let mut quadros = 0;
         // Blocos de tamanho que não divide FRAME, como os callbacks de áudio reais.
         for _ in 0..10 {
-            d.push(&[0.0; 441], true, |q, _| {
+            d.push(&[0.0; 441], true, |q, _, _| {
                 assert_eq!(q.len(), FRAME);
                 quadros += 1;
             });
@@ -81,7 +82,7 @@ mod tests {
     fn bypass_preserva_o_sinal() {
         let mut d = Denoiser::new();
         let entrada: Vec<f32> = (0..FRAME).map(|i| (i as f32 / FRAME as f32) - 0.5).collect();
-        d.push(&entrada, false, |q, _| {
+        d.push(&entrada, false, |q, _, _| {
             for (a, b) in q.iter().zip(&entrada) {
                 assert!((a - b).abs() < 1e-6);
             }

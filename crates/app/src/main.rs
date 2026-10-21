@@ -5,6 +5,9 @@
 //! repassa os avisos dos fluxos para a de controle. Nenhuma acorda se nada mudar, fora o medidor
 //! (~30 Hz) com a janela ou o flyout abertos. Fechar a janela destrói o componente e o app fica
 //! só na bandeja; Sair (menu do ícone) encerra. Para usar sem janela: `mic-limpo-dev rodar`.
+//!
+//! Página Teste: a janela liga a cópia do motor (`Controle::escutar`) e junta original e limpo a
+//! cada tick do medidor; a reprodução é um fluxo de saída à parte, aberto pela thread de controle.
 
 // Sem console no app de verdade; em debug ele fica para ver os `eprintln!`.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -18,8 +21,9 @@ use std::time::{Duration, Instant};
 
 use mic_limpo::controlador::{Ajustes, Controlador, Modo};
 use mic_limpo::salvo::Salvo;
-use mic_limpo_audio::{self as audio, Aviso};
+use mic_limpo_audio::{self as audio, Aviso, Fluxo, Pedido};
 use mic_limpo_core::denoise::FRAME;
+use mic_limpo_core::escuta::{self, Gravacao, Reproducao, Tocador};
 use mic_limpo_core::metricas::amostras_ms;
 use mic_limpo_core::modelo::Tipo;
 use mic_limpo_core::motor::Controle;
@@ -49,6 +53,9 @@ const MODOS: [Modo; 3] = [Modo::Desligado, Modo::Leve, Modo::Forte];
 enum Msg {
     Ajustes(Ajustes),
     Aviso(Aviso),
+    /// Tocar a gravação do teste em `saida` (parte do nome; `None` = padrão do sistema).
+    Ouvir { grav: Arc<Gravacao>, rep: Arc<Reproducao>, saida: Option<String>, ganho_db: f32 },
+    PararOuvir,
     Sair,
 }
 
@@ -76,6 +83,27 @@ struct Mostrado {
     atraso: SharedString,
     cpu: SharedString,
     falhas: i32,
+}
+
+/// Página Teste. Gravando, tocando e gravada valem nessa ordem.
+struct Teste {
+    gravando: Option<Gravando>,
+    gravada: Option<Arc<Gravacao>>,
+    tocando: Option<Arc<Reproducao>>,
+    info: SharedString,
+    /// 0 Original, 1 Limpo.
+    versao: i32,
+    /// Onde ouvir (índice em `Dispositivos::saidas`).
+    saida: i32,
+}
+
+struct Gravando {
+    /// Motor que está copiando; se o áudio for reaberto (ou o modo mudar), a gravação é cancelada.
+    ctl: Arc<Controle>,
+    modo: Modo,
+    /// Atraso do modelo em amostras (tirado do limpo no fim).
+    atraso: usize,
+    grav: Gravacao,
 }
 
 #[derive(Clone, Copy)]
@@ -109,6 +137,7 @@ struct Ui {
     tick: u32,
     /// (dsp_ns, quadros) na última conta da CPU, para mostrar a do último segundo.
     dsp_anterior: (u64, u64),
+    teste: Teste,
 }
 
 thread_local! {
@@ -160,6 +189,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .spawn(move || controlar(rx, tx_aviso))?;
     tx.send(Msg::Ajustes(inicial.clone()))?;
 
+    let saida_teste = disp.padrao_saida.unwrap_or(0) as i32;
     UI.set(Some(Ui {
         janela: None,
         flyout: None,
@@ -186,6 +216,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         nivel: 0.0,
         tick: 0,
         dsp_anterior: (0, 0),
+        teste: Teste {
+            gravando: None,
+            gravada: None,
+            tocando: None,
+            info: SharedString::new(),
+            versao: 1,
+            saida: saida_teste,
+        },
     }));
 
     // A bandeja visível mantém o laço de eventos vivo depois que a janela fecha.
@@ -247,7 +285,24 @@ impl Ui {
         d.set_tema(self.tema_atual());
         mostrar_ajustes(d, &self.pedido, &self.disp);
         self.mostrar(d);
+        self.mostrar_teste(d);
         d.set_nivel(self.nivel);
+    }
+
+    fn mostrar_teste(&self, d: &Dados) {
+        let t = &self.teste;
+        let (estado, progresso) = if let Some(g) = &t.gravando {
+            (1, g.grav.len() as f32 / (escuta::AMOSTRAS + g.atraso) as f32)
+        } else if let (Some(rep), Some(grav)) = (&t.tocando, &t.gravada) {
+            (3, rep.pos.load(Relaxed) as f32 / grav.len().max(1) as f32)
+        } else {
+            (if t.gravada.is_some() { 2 } else { 0 }, 0.0)
+        };
+        d.set_teste_estado(estado);
+        d.set_teste_progresso(progresso.min(1.0));
+        d.set_teste_info(t.info.clone());
+        d.set_teste_versao(t.versao);
+        d.set_teste_saida(t.saida);
     }
 
     fn mostrar(&self, d: &Dados) {
@@ -305,6 +360,29 @@ where
     d.on_tema_escolhido(|| {
         com_ui(agendar_gravacao);
     });
+    let no_teste = |f: fn(&mut Ui, &Dados)| {
+        let w = c.as_weak();
+        move || {
+            if let Some(c) = w.upgrade() {
+                com_ui(|ui| {
+                    f(ui, &c.global::<Dados>());
+                    ui.em_cada(|d| ui.mostrar_teste(d));
+                });
+            }
+        }
+    };
+    d.on_teste_gravar(no_teste(|ui, _| teste_gravar(ui)));
+    d.on_teste_ouvir(no_teste(|ui, d| {
+        ui.teste.saida = d.get_teste_saida();
+        teste_ouvir(ui);
+    }));
+    d.on_teste_parar(no_teste(|ui, _| teste_parar(ui)));
+    d.on_teste_versao_mudou(no_teste(|ui, d| {
+        ui.teste.versao = d.get_teste_versao();
+        if let Some(rep) = &ui.teste.tocando {
+            rep.limpo.store(ui.teste.versao == 1, Relaxed);
+        }
+    }));
     d.on_abrir_janela(|| {
         depois(|| {
             fechar_flyout(false);
@@ -380,6 +458,11 @@ fn fechar_janela() {
             guardar_janela(ui, j);
             gravar(ui);
         }
+        // O teste só anda com a janela aberta (o tick para com ela); a gravação (~2 MB) sai junto.
+        teste_cancelar(ui);
+        teste_parar(ui);
+        ui.teste.gravada = None;
+        ui.teste.info = SharedString::new();
         ui.ajustar_medidor();
         j
     });
@@ -554,6 +637,8 @@ fn posicao_flyout(_largura: f32, _altura: f32) -> Option<slint::PhysicalPosition
 /// Thread de controle: aplica os pedidos e reage aos avisos. Dorme no `recv` se nada muda.
 fn controlar(rx: Receiver<Msg>, avisos: Sender<Aviso>) {
     let mut c = Controlador::novo(Some(avisos));
+    // Reprodução do teste (fluxo de saída à parte do motor); guardar o `Fluxo` o mantém tocando.
+    let mut _tocando: Option<Fluxo> = None;
     while let Ok(primeira) = rx.recv() {
         // Junta o que chegou de uma vez (ex.: arrastando o ganho): só o último pedido vale.
         let (mut pedido, mut fatal) = (None, None);
@@ -562,8 +647,24 @@ fn controlar(rx: Receiver<Msg>, avisos: Sender<Aviso>) {
                 Msg::Ajustes(a) => pedido = Some(a),
                 Msg::Aviso(a) if a.fatal => fatal = Some(a),
                 Msg::Aviso(a) => eprintln!("aviso ({}): {}", if a.entrada { "entrada" } else { "saída" }, a.texto),
+                Msg::Ouvir { grav, rep, saida, ganho_db } => {
+                    _tocando = None;
+                    match abrir_tocador(grav, rep, saida, ganho_db) {
+                        Ok(f) => _tocando = Some(f),
+                        Err(e) => {
+                            let texto = format!("Não consegui tocar: {e}");
+                            let _ = slint::invoke_from_event_loop(move || {
+                                com_ui(|ui| teste_falhou(ui, texto));
+                            });
+                        }
+                    }
+                }
+                Msg::PararOuvir => _tocando = None,
                 Msg::Sair => return,
             }
+        }
+        if pedido.is_none() && fatal.is_none() {
+            continue;
         }
         let (mut erro, mut reverter) = (String::new(), None);
         if let Some(a) = pedido {
@@ -598,6 +699,86 @@ fn controlar(rx: Receiver<Msg>, avisos: Sender<Aviso>) {
     }
 }
 
+fn abrir_tocador(grav: Arc<Gravacao>, rep: Arc<Reproducao>, saida: Option<String>, ganho_db: f32) -> Result<Fluxo, Box<dyn Error>> {
+    let mut t = Tocador::novo(grav, rep, ganho_db);
+    let f = audio::abrir_saida(&Pedido { trecho: saida, ..Pedido::default() }, move |d, p| t.preencher(d, p.canais))?;
+    f.iniciar()?;
+    Ok(f)
+}
+
+/// "Gravar": liga a cópia no motor atual; o tick junta as amostras (`teste_tick`).
+fn teste_gravar(ui: &mut Ui) {
+    teste_parar(ui);
+    let Some((ctl, modelo)) = &ui.motor else {
+        ui.teste.info = "Ligue o áudio para gravar.".into();
+        return;
+    };
+    let atraso = if ctl.ia() { modelo.atraso_amostras() } else { 0 };
+    ctl.escutar(true);
+    ui.teste.gravando = Some(Gravando { ctl: ctl.clone(), modo: ui.pedido.modo, atraso, grav: Gravacao::nova() });
+    ui.teste.info = "Fale agora…".into();
+}
+
+fn teste_cancelar(ui: &mut Ui) {
+    if let Some(g) = ui.teste.gravando.take() {
+        g.ctl.escutar(false);
+    }
+}
+
+fn teste_ouvir(ui: &mut Ui) {
+    let Some(grav) = ui.teste.gravada.clone() else { return };
+    let rep = Arc::new(Reproducao::default());
+    rep.limpo.store(ui.teste.versao == 1, Relaxed);
+    let saida = ui.disp.saidas.get(ui.teste.saida as usize).cloned();
+    let _ = ui.tx.send(Msg::Ouvir { grav, rep: rep.clone(), saida, ganho_db: ui.pedido.ganho_db });
+    ui.teste.tocando = Some(rep);
+}
+
+fn teste_parar(ui: &mut Ui) {
+    if ui.teste.tocando.take().is_some() {
+        let _ = ui.tx.send(Msg::PararOuvir);
+    }
+}
+
+fn teste_falhou(ui: &mut Ui, texto: String) {
+    ui.teste.tocando = None;
+    ui.teste.info = texto.into();
+    ui.em_cada(|d| ui.mostrar_teste(d));
+}
+
+/// A cada tick: junta o que o motor copiou e fecha a gravação no tamanho; solta a reprodução
+/// que chegou ao fim.
+fn teste_tick(ui: &mut Ui) {
+    if ui.teste.gravando.is_none() && ui.teste.tocando.is_none() {
+        return;
+    }
+    if let Some(g) = &mut ui.teste.gravando {
+        let mesmo = ui.motor.as_ref().is_some_and(|(c, _)| Arc::ptr_eq(c, &g.ctl)) && ui.pedido.modo == g.modo;
+        if !mesmo {
+            teste_cancelar(ui);
+            ui.teste.info = "Gravação cancelada: o modo ou o áudio mudou no meio.".into();
+        } else {
+            g.ctl.colher_escuta(&mut g.grav);
+            if g.grav.len() >= escuta::AMOSTRAS + g.atraso {
+                let mut g = ui.teste.gravando.take().expect("checado acima");
+                g.ctl.escutar(false);
+                g.grav.alinhar(g.atraso);
+                let modo = match g.modo {
+                    Modo::Desligado => "sem cancelamento",
+                    Modo::Leve => "no modo Leve",
+                    Modo::Forte => "no modo Forte",
+                };
+                ui.teste.info = format!("Gravado {modo}. Troque entre Original e Limpo enquanto ouve.").into();
+                ui.teste.gravada = Some(Arc::new(g.grav));
+            }
+        }
+    }
+    if ui.teste.tocando.as_ref().is_some_and(|r| r.fim.load(Relaxed)) {
+        teste_parar(ui);
+    }
+    ui.em_cada(|d| ui.mostrar_teste(d));
+}
+
 fn receber(ui: &mut Ui, e: Estado) {
     ui.mostrado.erro = e.erro.into();
     ui.mostrado.rota = e.rota.into();
@@ -626,6 +807,7 @@ fn receber(ui: &mut Ui, e: Estado) {
 
 /// Medidor (~30 Hz) e, a cada segundo, os números. Não faz nada com a janela minimizada e sem flyout.
 fn tick(ui: &mut Ui) {
+    teste_tick(ui);
     let minimizada = ui.janela.as_ref().is_none_or(|j| j.window().is_minimized());
     if ui.flyout.is_none() && minimizada {
         return;

@@ -5,14 +5,18 @@
 //! Modelos que alocam por quadro (DeepFilterNet) rodam numa thread própria: a entrada só empurra
 //! as amostras num ring buffer e acorda a thread (`unpark`), que processa e empurra direto no
 //! ring buffer da saída.
+//!
+//! Para o teste de escuta, o motor copia cada quadro (original e limpo, intercalados) num ring
+//! buffer à parte, só enquanto `Controle::escutar` estiver ligado.
 
 use std::error::Error;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering::{Acquire, Relaxed, Release}};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::{self, Thread};
 use std::time::Instant;
 
 use crate::denoise::{Denoiser, FRAME, SAMPLE_RATE};
+use crate::escuta::Gravacao;
 use crate::metricas::Metricas;
 use crate::modelo::{self, Modelo, Rnnoise, Tipo};
 
@@ -20,6 +24,8 @@ use crate::modelo::{self, Modelo, Rnnoise, Tipo};
 const CAPACIDADE: usize = SAMPLE_RATE as usize / 5;
 /// Maior pacote de entrada processado de uma vez (1 s); o excesso é ignorado.
 const MAX_PACOTE: usize = SAMPLE_RATE as usize;
+/// Ring buffer da escuta: 0,5 s de pares (original, limpo), esvaziado pelo app a cada ~33 ms.
+const CAPACIDADE_ESCUTA: usize = SAMPLE_RATE as usize;
 
 pub type Erro = Box<dyn Error>;
 
@@ -62,6 +68,10 @@ pub struct Controle {
     pico: AtomicU32,
     /// A saída já entregou áudio de verdade (saiu da espera inicial) ao menos uma vez.
     tocando: AtomicBool,
+    /// Copiar os quadros para a escuta.
+    escutando: AtomicBool,
+    /// Lado do app do ring buffer da escuta (só o app usa; a thread de áudio nunca trava aqui).
+    escuta: Mutex<Option<rtrb::Consumer<f32>>>,
     pub metricas: Metricas,
 }
 
@@ -89,6 +99,25 @@ impl Controle {
     pub fn tocando(&self) -> bool {
         self.tocando.load(Relaxed)
     }
+    /// Liga ou desliga a cópia dos quadros para a escuta; ao ligar, descarta o que sobrou.
+    pub fn escutar(&self, ligado: bool) {
+        if ligado {
+            self.colher_escuta(&mut Gravacao::default());
+        }
+        self.escutando.store(ligado, Relaxed);
+    }
+    /// Passa para `g` os pares copiados desde a última chamada.
+    pub fn colher_escuta(&self, g: &mut Gravacao) {
+        let mut escuta = self.escuta.lock().unwrap_or_else(|e| e.into_inner());
+        let Some(cons) = escuta.as_mut() else { return };
+        let Ok(c) = cons.read_chunk(cons.slots() & !1) else { return };
+        let (a, b) = c.as_slices();
+        for par in a.as_chunks::<2>().0.iter().chain(b.as_chunks::<2>().0) {
+            g.original.push(par[0]);
+            g.limpo.push(par[1]);
+        }
+        c.commit_all();
+    }
 }
 
 /// Cria o motor: o `Controle` fica com quem controla; `Entrada` e `Saida` vão para os callbacks.
@@ -98,11 +127,13 @@ pub fn criar(cfg: Config) -> Result<(Arc<Controle>, Entrada, Saida), Erro> {
     ctl.set_ia(cfg.ia);
     ctl.set_ganho_db(cfg.ganho_db);
     let (prod, cons) = rtrb::RingBuffer::new(CAPACIDADE);
+    let (escuta, cons_escuta) = rtrb::RingBuffer::new(CAPACIDADE_ESCUTA);
+    *ctl.escuta.lock().unwrap_or_else(|e| e.into_inner()) = Some(cons_escuta);
     let amostras = |ms: u32| (SAMPLE_RATE * ms / 1000) as usize;
     let caminho = if cfg.modelo.thread_propria() {
-        Caminho::Thread(Trabalhador::iniciar(cfg, prod, ctl.clone())?)
+        Caminho::Thread(Trabalhador::iniciar(cfg, prod, escuta, ctl.clone())?)
     } else {
-        Caminho::Local { den: Box::new(Denoiser::com(Rnnoise::new(cfg.limite_db))), prod }
+        Caminho::Local { den: Box::new(Denoiser::com(Rnnoise::new(cfg.limite_db))), prod, escuta }
     };
     let entrada = Entrada { caminho, mono: vec![0.0; MAX_PACOTE], ctl: ctl.clone() };
     let saida = Saida {
@@ -116,17 +147,31 @@ pub fn criar(cfg: Config) -> Result<(Arc<Controle>, Entrada, Saida), Erro> {
     Ok((ctl, entrada, saida))
 }
 
-/// Aplica o modelo por quadro e empurra o resultado para a saída, medindo o tempo gasto.
+/// Aplica o modelo por quadro e empurra o resultado para a saída, medindo o tempo gasto (e,
+/// com a escuta ligada, copia original e limpo para ela; quadro sem espaço lá é pulado inteiro).
 /// Roda na thread de áudio (RNNoise) ou na thread própria do modelo (DeepFilterNet).
-fn aplicar<M: Modelo>(den: &mut Denoiser<M>, amostras: &[f32], prod: &mut rtrb::Producer<f32>, ctl: &Controle) {
+fn aplicar<M: Modelo>(
+    den: &mut Denoiser<M>,
+    amostras: &[f32],
+    prod: &mut rtrb::Producer<f32>,
+    escuta: &mut rtrb::Producer<f32>,
+    ctl: &Controle,
+) {
     let m = &ctl.metricas;
     let t0 = Instant::now();
     let mut quadros = 0;
-    den.push(amostras, ctl.ia(), |q, _vad| {
+    let escutando = ctl.escutando.load(Relaxed);
+    den.push(amostras, ctl.ia(), |q, orig, _vad| {
         quadros += 1;
         for &x in q {
             if prod.push(x).is_err() {
                 m.perdidas.fetch_add(1, Relaxed);
+            }
+        }
+        if escutando && escuta.slots() >= 2 * FRAME {
+            for (&o, &l) in orig.iter().zip(q) {
+                let _ = escuta.push(o);
+                let _ = escuta.push(l);
             }
         }
     });
@@ -140,7 +185,7 @@ fn aplicar<M: Modelo>(den: &mut Denoiser<M>, amostras: &[f32], prod: &mut rtrb::
 
 enum Caminho {
     /// O modelo roda na própria thread de áudio (só o RNNoise).
-    Local { den: Box<Denoiser<Rnnoise>>, prod: rtrb::Producer<f32> },
+    Local { den: Box<Denoiser<Rnnoise>>, prod: rtrb::Producer<f32>, escuta: rtrb::Producer<f32> },
     /// O modelo roda na thread própria; a entrada só repassa as amostras.
     Thread(Trabalhador),
 }
@@ -154,7 +199,12 @@ struct Trabalhador {
 
 impl Trabalhador {
     /// Cria o modelo dentro da thread (o DeepFilterNet não é `Send`) e espera a carga terminar.
-    fn iniciar(cfg: Config, mut prod: rtrb::Producer<f32>, ctl: Arc<Controle>) -> Result<Self, Erro> {
+    fn iniciar(
+        cfg: Config,
+        mut prod: rtrb::Producer<f32>,
+        mut escuta: rtrb::Producer<f32>,
+        ctl: Arc<Controle>,
+    ) -> Result<Self, Erro> {
         let (para_ia, mut cons) = rtrb::RingBuffer::new(CAPACIDADE);
         let parar = Arc::new(AtomicBool::new(false));
         let p = parar.clone();
@@ -182,7 +232,7 @@ impl Trabalhador {
                 quadro[..a.len()].copy_from_slice(a);
                 quadro[a.len()..].copy_from_slice(b);
                 c.commit_all();
-                aplicar(&mut den, &quadro, &mut prod, &ctl);
+                aplicar(&mut den, &quadro, &mut prod, &mut escuta, &ctl);
             }
         })?;
         pronto_rx.recv().map_err(|_| "a thread do modelo terminou sem avisar")??;
@@ -219,8 +269,8 @@ impl Entrada {
         }
         ctl.pico.fetch_max(pico.min(1.0).to_bits(), Relaxed);
         match caminho {
-            Caminho::Local { den, prod } => {
-                aplicar(den, &mono[..n], prod, ctl);
+            Caminho::Local { den, prod, escuta } => {
+                aplicar(den, &mono[..n], prod, escuta, ctl);
                 m.acumulo.add(den.pendentes() as u64);
             }
             Caminho::Thread(tr) => {
@@ -370,6 +420,27 @@ mod tests {
         ent.processar(&[0.1, 0.1, -0.7, -0.7, 0.3, 0.3], 2, Tempos::default());
         assert!((ctl.tomar_pico() - 0.7).abs() < 1e-6);
         assert_eq!(ctl.tomar_pico(), 0.0);
+    }
+
+    #[test]
+    fn escuta_copia_original_e_limpo_so_quando_ligada() {
+        let (ctl, mut ent, _sai) = sem_ia(10, 20);
+        ent.processar(&[0.1; FRAME], 1, Tempos::default());
+        let mut g = Gravacao::default();
+        ctl.colher_escuta(&mut g);
+        assert!(g.is_empty());
+        ctl.escutar(true);
+        let sinal: Vec<f32> = (0..2 * FRAME).map(|i| i as f32 / 1e4).collect();
+        ent.processar(&sinal, 1, Tempos::default());
+        ctl.colher_escuta(&mut g);
+        assert_eq!(g.len(), 2 * FRAME);
+        // Sem IA o limpo é o próprio original.
+        assert_eq!(g.original, sinal);
+        assert_eq!(g.limpo, sinal);
+        ctl.escutar(false);
+        ent.processar(&sinal, 1, Tempos::default());
+        ctl.colher_escuta(&mut g);
+        assert_eq!(g.len(), 2 * FRAME);
     }
 
     #[cfg(feature = "dfn")]

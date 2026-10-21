@@ -50,3 +50,6 @@
 | 2026-10-20 | Última configuração em `%APPDATA%\mic-limpo\config.ini`, texto `chave = valor` feito à mão | Sem dependência nova (serde/toml); legível e editável; chave inválida fica no padrão |
 | 2026-10-20 | Gravar 0,5 s depois da última mudança (e ao fechar a janela e no Sair), num temporário trocado de lugar | Arrastar o volume = uma gravação; arquivo nunca fica pela metade |
 | 2026-10-20 | Dispositivo salvo ausente na partida volta ao padrão; janela salva fora de qualquer monitor é ignorada | O áudio sempre abre; a janela nunca nasce fora da tela |
+| 2026-10-21 | Teste de escuta = gravar 5 s e ouvir com A/B, numa página própria (não retorno ao vivo) | Escolha do Alex: ouvir-se ao vivo com ~100 ms de atraso atrapalha falar; o A/B na mesma posição compara o efeito da IA |
+| 2026-10-21 | A cópia para o teste sai do `Denoiser` (original e limpo do mesmo quadro), só com a escuta ligada | Alinhados sem conta extra (só o atraso fixo do modelo); thread de áudio não aloca nem trava |
+| 2026-10-21 | O volume de saída vale para Original e Limpo na reprodução | Comparação justa: o mais alto não parece o melhor |

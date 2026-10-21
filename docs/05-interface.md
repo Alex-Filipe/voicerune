@@ -31,6 +31,8 @@ para crescer sem poluir a tela.
 | Página | Conteúdo |
 |---|---|
 | Início | Microfone + medidor, Cancelamento (Desligado / Leve / Forte), Volume de saída (−12 a +24 dB), Enviar para, linha de status |
+| Teste (fone) | Gravar 5 s e ouvir com A/B Original ↔ Limpo (Fase 4, pedido do Alex) |
+| Teste (fone) | Gravar 5 s e ouvir com A/B Original ↔ Limpo (Fase 4, pedido do Alex) |
 | Efeitos | Ícone apagado ("em breve") até existir |
 | Configurações (embaixo) | Baixa latência, Iniciar com o sistema, Tema, Desempenho (atraso, CPU, falhas) |
 | Sobre (embaixo) | Versão, sem rede/telemetria, licença, modelo, selo do Slint (exigido pela licença) |
@@ -157,6 +159,42 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   salva no Sair; reabrir volta na posição e no modo (o motor também). Arquivo editado com mic
   inexistente + tema claro + 6 dB → abre com o mic padrão, tema claro e +6 dB. +2 testes de
   unidade (ida e volta, arquivo estranho).
+
+### Página Teste (Fase 4, pedido do Alex)
+- **Gravar:** liga a cópia no motor (`Controle::escutar`): a cada quadro, original e limpo vão
+  intercalados para um ring buffer à parte (0,5 s, ~190 KB fixos por motor); com a escuta
+  desligada, o custo na thread de áudio é ler um atômico. A janela junta tudo a cada tick do
+  medidor (~33 ms) até 5 s, tira o atraso do modelo do limpo e guarda a gravação (~1,9 MB).
+  O áudio continua indo normalmente para o CABLE.
+- **Ouvir:** a thread de controle abre um fluxo de saída à parte (padrão do Windows ou o escolhido
+  em "Ouvir em") com o `Tocador` (`core::escuta`): troca Original ↔ Limpo na mesma posição, com
+  rampa de 5 ms; aplica o volume de saída atual aos dois (comparação justa). No fim o fluxo fecha.
+- Trocar de modo ou reabrir o áudio no meio cancela a gravação. Fechar a janela cancela o teste e
+  solta a gravação (o tick só existe com a janela).
+- Testado (2026-10-21): cliques simulados em debug (gravar, ouvir, A/B, parar, fim sozinho) e
+  escuta do Alex ("ficou bom"). Medido (release, Leve): página parada 0,9 % de um núcleo com o
+  medidor; +3,7 MB privada depois de gravar, por realocação do `Vec` (corrigido reservando a folga;
+  esperado ~+1,9 MB, **não medido de novo**). +1 thread depois da 1ª reprodução: **não verificado**
+  se acumula a cada reprodução. +5 testes de unidade.
+- Alex achou o Forte ruim no teste ("às vezes corta"): ver `04-ia-ruido.md` e o próximo passo.
+
+### Página Teste (Fase 4, pedido do Alex)
+- **Gravar:** liga a cópia no motor (`Controle::escutar`): a cada quadro, original e limpo vão
+  intercalados para um ring buffer à parte (0,5 s, ~190 KB fixos por motor); com a escuta
+  desligada, o custo na thread de áudio é ler um atômico. A janela junta tudo a cada tick do
+  medidor (~33 ms) até 5 s, tira o atraso do modelo do limpo e guarda a gravação (~1,9 MB).
+  O áudio continua indo normalmente para o CABLE.
+- **Ouvir:** a thread de controle abre um fluxo de saída à parte (padrão do Windows ou o escolhido
+  em "Ouvir em") com o `Tocador` (`core::escuta`): troca Original ↔ Limpo na mesma posição, com
+  rampa de 5 ms; aplica o volume de saída atual aos dois (comparação justa). No fim o fluxo fecha.
+- Trocar de modo ou reabrir o áudio no meio cancela a gravação. Fechar a janela cancela o teste e
+  solta a gravação (o tick só existe com a janela).
+- Testado (2026-10-21): cliques simulados em debug (gravar, ouvir, A/B, parar, fim sozinho) e
+  escuta do Alex ("ficou bom"). Medido (release, Leve): página parada 0,9 % de um núcleo com o
+  medidor; +3,7 MB privada depois de gravar, por realocação do `Vec` (corrigido reservando a folga;
+  esperado ~+1,9 MB, **não medido de novo**). +1 thread depois da 1ª reprodução: **não verificado**
+  se acumula a cada reprodução. +5 testes de unidade.
+- Alex achou o Forte ruim no teste ("às vezes corta"): ver `04-ia-ruido.md` e o próximo passo.
 
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.

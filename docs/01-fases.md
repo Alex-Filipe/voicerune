@@ -1,7 +1,7 @@
 # Fases
 
 **Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos;
-bloco 4 começado (última configuração salva).
+bloco 4 começado (última configuração salva). Página **Teste** (gravar e ouvir A/B) feita.
 - Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `mic-limpo` abre a janela
   Slint ligada ao motor e põe um ícone na bandeja (clique = flyout; menu Abrir/Sair); fechar a
   janela deixa o app só na bandeja. A última configuração volta ao abrir
@@ -19,7 +19,10 @@ bloco 4 começado (última configuração salva).
 | 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | em andamento: config salva feita |
 | 5. Uso diário | Alex usa alguns dias | — |
 
-**Próximo passo:** resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
+**Próximo passo:** Alex quer melhorias antes de seguir. A primeira (página Teste) está feita; no
+teste ele achou o **Forte ruim (às vezes corta)** e cogita trocar o Forte por um modo
+**Personalizado** — decidir o que o Personalizado ajusta e entender o corte (voz suprimida ou
+falha de áudio). Depois: resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
 bandeja") e instância única (o atalho abre um 2º app hoje). Antes: Alex clica no ícone de verdade, fala e
 confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
@@ -130,3 +133,9 @@ medidor acorda com a janela minimizada.
   `%APPDATA%\mic-limpo\config.ini` em texto `chave = valor` (módulo `salvo`, sem dependência nova),
   gravado 0,5 s após cada mudança, ao fechar a janela e no Sair; dispositivo ausente volta ao
   padrão; janela fora da tela é ignorada. Testado de ponta a ponta em debug; +2 testes (14 passam).
+- 2026-10-21 — Página **Teste** (pedido do Alex, opção "gravar e ouvir"): grava 5 s de original e
+  limpo lado a lado (cópia no motor, ring buffer à parte) e toca na saída escolhida, alternando
+  Original ↔ Limpo na mesma posição. Testado com cliques simulados e pelo Alex ("ficou bom");
+  +5 testes (21 passam). Medido: +3,7 MB privada depois de gravar (realocação corrigida, não
+  medido de novo); +1 thread após tocar (não verificado se acumula). Alex: Forte "às vezes
+  corta"; cogita trocar por Personalizado. Ver `05-interface.md`.
