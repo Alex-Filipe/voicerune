@@ -166,6 +166,12 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   inexistente + tema claro + 6 dB → abre com o mic padrão, tema claro e +6 dB. +2 testes de
   unidade (ida e volta, arquivo estranho).
 
+- **Divergência não reproduzida (2026-10-21):** o app do Alex aberto às 20:08:55 mostrava Leve, 0 dB
+  e tema claro (Windows escuro) enquanto o `config.ini` (gravado 20:05:37) dizia Forte, +5 dB, `tema =
+  sistema`; Alex não mexeu em nada. Depois: fechar a janela regravou o arquivo e a cópia seguinte
+  abriu em Forte, +5 dB, escuro (certo). Matar o processo (como nos testes) não grava: normal. Se
+  voltar a acontecer, anotar o que aparece ao abrir e o conteúdo do arquivo antes de fechar o app.
+
 ### Página Teste (Fase 4, pedido do Alex)
 - **Gravar:** liga a cópia no motor (`Controle::escutar`): a cada quadro, original e limpo vão
   intercalados para um ring buffer à parte (0,5 s, ~190 KB fixos por motor); com a escuta

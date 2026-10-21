@@ -32,7 +32,9 @@ confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU co
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
 mic antes do app; corte audível da troca não medido ponta a ponta (hipótese ~0); timer do
-medidor acorda com a janela minimizada.
+medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 20:08 de 2026-10-21 mostrou
+Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
+gravar conferem (ver `05-interface.md`, Configuração salva).
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
