@@ -54,3 +54,5 @@
 | 2026-10-21 | A cópia para o teste sai do `Denoiser` (original e limpo do mesmo quadro), só com a escuta ligada | Alinhados sem conta extra (só o atraso fixo do modelo); thread de áudio não aloca nem trava |
 | 2026-10-21 | O volume de saída vale para Original e Limpo na reprodução | Comparação justa: o mais alto não parece o melhor |
 | 2026-10-21 | Contornar o atalho de −70 dBFS da libDF com dither no nosso invólucro, sem fork da libDF | ~10 linhas, sem dependência nova; resíduo ≤ −85 dBFS; custa ~25 % a mais de CPU do DFN |
+| 2026-10-21 | "Depois da IA" no mesmo medidor (camada por cima), na Início e não só num Personalizado | Serve aos três modos e mostra se o cancelamento funciona; sem ocupar mais espaço |
+| 2026-10-21 | O medidor do limpo lê antes do volume de saída | Senão subir o volume pareceria a IA tirando menos |

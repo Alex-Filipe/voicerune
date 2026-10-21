@@ -134,6 +134,8 @@ struct Ui {
     /// Gravação adiada da configuração (ver `GRAVAR_APOS`).
     gravacao: Timer,
     nivel: f32,
+    /// Medidor do que sai da IA (mesma escala e queda que `nivel`).
+    nivel_limpo: f32,
     tick: u32,
     /// (dsp_ns, quadros) na última conta da CPU, para mostrar a do último segundo.
     dsp_anterior: (u64, u64),
@@ -214,6 +216,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .map(|(x, y, l, h)| (slint::PhysicalPosition::new(x, y), slint::PhysicalSize::new(l, h))),
         gravacao: Timer::default(),
         nivel: 0.0,
+        nivel_limpo: 0.0,
         tick: 0,
         dsp_anterior: (0, 0),
         teste: Teste {
@@ -287,6 +290,7 @@ impl Ui {
         self.mostrar(d);
         self.mostrar_teste(d);
         d.set_nivel(self.nivel);
+        d.set_nivel_limpo(self.nivel_limpo);
     }
 
     fn mostrar_teste(&self, d: &Dados) {
@@ -331,6 +335,7 @@ impl Ui {
         } else if !aberta {
             self.medidor = None;
             self.nivel = 0.0;
+            self.nivel_limpo = 0.0;
         }
     }
 }
@@ -812,10 +817,14 @@ fn tick(ui: &mut Ui) {
     if ui.flyout.is_none() && minimizada {
         return;
     }
-    let pico = ui.motor.as_ref().map_or(0.0, |(c, _)| c.tomar_pico());
-    let alvo = if pico > 0.0 { ((20.0 * pico.log10() + FAIXA_DB) / FAIXA_DB).clamp(0.0, 1.0) } else { 0.0 };
-    ui.nivel = alvo.max(ui.nivel - QUEDA);
-    ui.em_cada(|d| d.set_nivel(ui.nivel));
+    let (pico, pico_limpo) = ui.motor.as_ref().map_or((0.0, 0.0), |(c, _)| (c.tomar_pico(), c.tomar_pico_limpo()));
+    let alvo = |p: f32| if p > 0.0 { ((20.0 * p.log10() + FAIXA_DB) / FAIXA_DB).clamp(0.0, 1.0) } else { 0.0 };
+    ui.nivel = alvo(pico).max(ui.nivel - QUEDA);
+    ui.nivel_limpo = alvo(pico_limpo).max(ui.nivel_limpo - QUEDA);
+    ui.em_cada(|d| {
+        d.set_nivel(ui.nivel);
+        d.set_nivel_limpo(ui.nivel_limpo);
+    });
     ui.tick += 1;
     if ui.tick.is_multiple_of(TICKS_NUMEROS) {
         atualizar_numeros(ui);

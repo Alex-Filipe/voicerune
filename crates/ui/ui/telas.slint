@@ -9,7 +9,8 @@ export global Dados {
     in-out property <int> modo: 1; // 0 Desligado, 1 Leve, 2 Forte
     in-out property <bool> ligado: true;
     in-out property <float> ganho-db: 6;
-    in property <float> nivel: 0.35; // 0..1, medidor de entrada
+    in property <float> nivel: 0.35; // 0..1, medidor de entrada (original)
+    in property <float> nivel-limpo: 0.2; // 0..1, o que sai da IA (mesma escala)
     in property <[string]> entradas: ["Microfone (Fifine K669)"];
     in-out property <int> entrada: 0;
     in property <[string]> saidas: ["CABLE Input (VB-Audio)"];
@@ -145,14 +146,25 @@ component LinhaAjuste inherits HorizontalLayout {
     @children
 }
 
+// Duas camadas: em cinza o que o mic capta, em cores por cima o que sai da IA. O cinza que
+// aparece é o que a IA tirou.
 component Medidor inherits Rectangle {
     in property <float> nivel;
+    in property <float> nivel-limpo;
     height: 6px;
     border-radius: 3px;
     background: Cores.sutil;
     Rectangle {
         x: 0;
         width: parent.width * clamp(nivel, 0, 1);
+        height: parent.height;
+        border-radius: 3px;
+        background: Cores.texto2.transparentize(55%);
+    }
+
+    Rectangle {
+        x: 0;
+        width: parent.width * clamp(nivel-limpo, 0, 1);
         height: parent.height;
         border-radius: 3px;
         clip: true;
@@ -280,6 +292,7 @@ component PaginaInicio inherits VerticalLayout {
 
         Medidor {
             nivel: Dados.ligado ? Dados.nivel : 0;
+            nivel-limpo: Dados.ligado ? Dados.nivel-limpo : 0;
         }
     }
 
@@ -398,6 +411,7 @@ component PaginaTeste inherits VerticalLayout {
 
         Medidor {
             nivel: Dados.ligado ? Dados.nivel : 0;
+            nivel-limpo: Dados.ligado ? Dados.nivel-limpo : 0;
         }
 
         // Sempre no layout (só aparece em uso), para a página não pular.
@@ -824,6 +838,7 @@ export component Flyout inherits Window {
                 horizontal-stretch: 1;
                 Medidor {
                     nivel: Dados.ligado ? Dados.nivel : 0;
+            nivel-limpo: Dados.ligado ? Dados.nivel-limpo : 0;
                 }
             }
         }

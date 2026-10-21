@@ -66,6 +66,8 @@ pub struct Controle {
     /// Pico de |amostra| da entrada desde a última leitura (bits de um f32 ≥ 0: para floats
     /// não negativos a ordem dos bits é a dos valores, então `fetch_max` funciona).
     pico: AtomicU32,
+    /// Mesmo que `pico`, do que sai do modelo (antes do ganho): a diferença é o que a IA tirou.
+    pico_limpo: AtomicU32,
     /// A saída já entregou áudio de verdade (saiu da espera inicial) ao menos uma vez.
     tocando: AtomicBool,
     /// Copiar os quadros para a escuta.
@@ -94,6 +96,10 @@ impl Controle {
     /// Pico da entrada (0 a 1, antes da IA) desde a última chamada; zera ao ler.
     pub fn tomar_pico(&self) -> f32 {
         f32::from_bits(self.pico.swap(0, Relaxed))
+    }
+    /// Pico do que sai do modelo (0 a 1, antes do ganho) desde a última chamada; zera ao ler.
+    pub fn tomar_pico_limpo(&self) -> f32 {
+        f32::from_bits(self.pico_limpo.swap(0, Relaxed))
     }
     /// Se a saída já entregou áudio processado ao dispositivo (para trocar de motor sem corte).
     pub fn tocando(&self) -> bool {
@@ -161,8 +167,10 @@ fn aplicar<M: Modelo>(
     let t0 = Instant::now();
     let mut quadros = 0;
     let escutando = ctl.escutando.load(Relaxed);
+    let mut pico = 0.0f32;
     den.push(amostras, ctl.ia(), |q, orig, _vad| {
         quadros += 1;
+        pico = q.iter().fold(pico, |p, x| p.max(x.abs()));
         for &x in q {
             if prod.push(x).is_err() {
                 m.perdidas.fetch_add(1, Relaxed);
@@ -176,6 +184,7 @@ fn aplicar<M: Modelo>(
         }
     });
     if quadros > 0 {
+        ctl.pico_limpo.fetch_max(pico.min(1.0).to_bits(), Relaxed);
         let ns = t0.elapsed().as_nanos() as u64;
         m.quadros.fetch_add(quadros, Relaxed);
         m.dsp_ns.fetch_add(ns, Relaxed);
@@ -420,6 +429,22 @@ mod tests {
         ent.processar(&[0.1, 0.1, -0.7, -0.7, 0.3, 0.3], 2, Tempos::default());
         assert!((ctl.tomar_pico() - 0.7).abs() < 1e-6);
         assert_eq!(ctl.tomar_pico(), 0.0);
+    }
+
+    #[test]
+    fn pico_do_limpo_segue_a_saida_do_modelo() {
+        let (ctl, mut ent, _sai) = sem_ia(10, 20);
+        // Sem IA o limpo é o original; o pico só conta quadros completos.
+        ent.processar(&[0.4; FRAME - 1], 1, Tempos::default());
+        assert_eq!(ctl.tomar_pico_limpo(), 0.0);
+        ent.processar(&[0.4; 1], 1, Tempos::default());
+        assert!((ctl.tomar_pico_limpo() - 0.4).abs() < 1e-6);
+        assert_eq!(ctl.tomar_pico_limpo(), 0.0);
+        // Com a IA, silêncio + ruído baixo: o limpo não passa do original.
+        ctl.set_ia(true);
+        let ruido: Vec<f32> = (0..FRAME * 20).map(|i| 0.05 * ((i * 7919 % 1000) as f32 / 500.0 - 1.0)).collect();
+        ent.processar(&ruido, 1, Tempos::default());
+        assert!(ctl.tomar_pico_limpo() < ctl.tomar_pico());
     }
 
     #[test]
