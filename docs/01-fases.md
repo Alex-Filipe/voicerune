@@ -25,7 +25,7 @@ teste ele achou o **Forte ruim (às vezes corta)** e cogita trocar o Forte por u
 ajustado (sem gate); Alex reouviu: "parece que corrigiu". Medidor de duas camadas (original × depois da
 IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou chave + Leve | Forte | Personalizado
 (desabilitado) com "?" feito e aprovado. Alex: Personalizado fica bloqueado por enquanto. Instância única
-feita (falta o Alex conferir que o atalho traz a janela para a frente). Se o Forte voltar a picotar, medir
+feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Se o Forte voltar a picotar, medir
 underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). **Próximo:** iniciar com o sistema (com "iniciar só
 na bandeja"); depois, presets. Antes: Alex clica no ícone de verdade, fala e
 confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
@@ -166,3 +166,6 @@ medidor acorda com a janela minimizada.
   Evento nomeado do Windows, sem crate novo: abrir o app de novo sinaliza a 1ª cópia, que abre ou
   restaura a janela, e sai em ~0,6 s (debug). Conferido: só bandeja → janela volta; minimizada →
   restaurada; 1 processo. Não verificado: vir para a frente pelo atalho. Ver `05-interface.md`.
+- 2026-10-21 — Bug achado pelo Alex: minimizar + atalho duas vezes deixava a janela vazia (só o
+  medidor). Causa no Slint 1.18 (renderizador de software no Windows; também pela barra, mais raro);
+  contorno: redesenho completo forçado ao voltar de minimizada. Release: vazia 12/15 → 0/15.

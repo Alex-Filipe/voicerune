@@ -526,6 +526,26 @@ fn abrir_janela() {
         depois(fechar_janela);
         CloseRequestResponse::HideWindow
     });
+    // Contorno do Slint 1.18 (renderizador de software no Windows): minimizada, a janela às vezes
+    // é desenhada inteira mesmo invisível (ex.: ao perder o foco) e, ao voltar, só o que mudou é
+    // redesenhado — fica vazia, só com o medidor. Ao voltar, `repintar` força a janela inteira.
+    let minimizada = Cell::new(false);
+    let w = j.as_weak();
+    j.window().on_winit_window_event(move |_, e| {
+        if let WindowEvent::Resized(t) = e {
+            if t.width == 0 || t.height == 0 {
+                minimizada.set(true);
+            } else if minimizada.replace(false) {
+                let w = w.clone();
+                depois(move || {
+                    if let Some(j) = w.upgrade() {
+                        j.set_repintar(j.get_repintar().wrapping_add(1));
+                    }
+                });
+            }
+        }
+        EventResult::Propagate
+    });
     com_ui(|ui| {
         ui.janela = Some(j.clone_strong());
         ui.ajustar_medidor();

@@ -236,6 +236,14 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   processo; só bandeja → a janela volta; minimizada → restaurada. **Não verificado:** a janela vir
   para a frente. Lançada pelo PowerShell do teste ela não veio (quem lança não tinha o primeiro
   plano); pelo atalho, clicado pelo Alex, deve vir. Falta o Alex conferir.
+- **Bug achado pelo Alex (corrigido):** minimizar e clicar no atalho duas vezes deixava a janela
+  vazia, só com o medidor (fechar no X não tinha o problema: a janela é recriada). Causa no Slint
+  1.18 com `renderer-software` no Windows: minimizada, a janela às vezes é desenhada inteira mesmo
+  invisível (consome o "redesenhar tudo" que o Slint marca ao minimizar) e o softbuffer valida a
+  janela toda; ao voltar, só o que mudou é redesenhado. Acontecia também restaurando pela barra
+  (`ShowWindow`), mais raro. Contorno: no `Resized` de volta de minimizada, o app muda
+  `repintar`, que suja um retângulo de fundo do tamanho da janela. Medido (release, `PrintWindow`,
+  15 restaurações: 1 ou 2 pedidos com 0/300/2000 ms e pela barra): vazia em 12/15 sem o contorno, 0/15 com ele.
 
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
