@@ -201,8 +201,7 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   modelo, **antes** do volume de saída, para a comparação ser justa). O cinza que aparece é o que
   a IA tirou. Mesma escala (−60 a 0 dBFS) e queda nos dois; vale para Início, Teste e flyout.
 - Custo: um `fetch_max` atômico por chamada do modelo (`Controle::tomar_pico_limpo`). +1 teste.
-- Conferido na prévia (claro e escuro). **Não medido** ao vivo nem aprovado pelo Alex ("se não
-  gostar, retiramos").
+- Conferido na prévia (claro e escuro) e **aprovado pelo Alex** ao vivo ("gostei, ficou bom").
 
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.

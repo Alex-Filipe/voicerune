@@ -23,7 +23,7 @@ bloco 4 começado (última configuração salva). Página **Teste** (gravar e ou
 teste ele achou o **Forte ruim (às vezes corta)** e cogita trocar o Forte por um modo
 **Personalizado**. Causa achada e **corrigida** (dither no invólucro do DFN; ver `04-ia-ruido.md`) e mic
 ajustado (sem gate); Alex reouviu: "parece que corrigiu". Medidor de duas camadas (original × depois da
-IA) feito, à espera da aprovação do Alex. Próximo: Alex diz se o Personalizado ainda faz falta; se o Forte voltar a picotar, medir underruns ao
+IA) feito e aprovado. Próximo: Alex diz se o Personalizado ainda faz falta; se o Forte voltar a picotar, medir underruns ao
 vivo (`mic-limpo-dev rodar --modelo dfn`). Depois: resto do bloco 4 — presets, iniciar com o sistema (com "iniciar só na
 bandeja") e instância única (o atalho abre um 2º app hoje). Antes: Alex clica no ícone de verdade, fala e
 confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
@@ -153,3 +153,4 @@ medidor acorda com a janela minimizada.
   corrigiu o problema".
 - 2026-10-21 — Medidor de duas camadas (pedido do Alex): cinza = mic, cores = depois da IA (antes do
   volume); o cinza que sobra é o que a IA tirou. +1 teste (18 no core). Ver `05-interface.md`.
+- 2026-10-21 — Alex aprovou o medidor de duas camadas ao vivo.
