@@ -251,6 +251,27 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   `repintar`, que suja um retângulo de fundo do tamanho da janela. Medido (release, `PrintWindow`,
   15 restaurações: 1 ou 2 pedidos com 0/300/2000 ms e pela barra): vazia em 12/15 sem o contorno, 0/15 com ele.
 
+### Iniciar com o sistema (Fase 4, bloco 4, 2026-10-22)
+- Configurações, cartão "Iniciar com o sistema" (chave) + "Só na bandeja" (chave, desabilitada com a
+  1ª desligada). Fora do Windows o cartão some (`iniciar-disponivel`; macOS na Fase 5).
+- Módulo `partida` (crate `app`): valor `mic-limpo` em `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+  = `"<exe atual>"` + ` --bandeja` se marcado; desligar apaga o valor. Sem administrador, sem crate
+  novo (feature `Win32_System_Registry` do `windows`).
+- **O registro é a fonte da verdade:** a tela lê dele ao abrir a janela (e depois de cada mudança).
+  Desativado no Gerenciador de Tarefas (`Explorer\StartupApproved\Run`, 1º byte ímpar) conta como
+  desligado; religar pelo app apaga essa marca. O `config.ini` guarda só a preferência
+  `so_bandeja` (padrão `sim`), para desligar e religar sem perdê-la.
+- `mic-limpo --bandeja`: só o ícone, sem janela. A cópia da partida é a 1ª; o atalho depois só traz
+  a janela (instância única).
+- Limitação: o caminho do exe é o de quem mexeu na chave por último (ex.: o de debug); a chave
+  aparece ligada mesmo se o registro apontar para outro exe. Mexer na chave regrava com o atual.
+- Conferido (2026-10-22, debug, cliques simulados + `reg query`): ligar grava com `--bandeja`;
+  desmarcar "Só na bandeja" tira o argumento; desligar apaga; desativação simulada do Gerenciador
+  (`03…`) → chave desligada ao reabrir, e religar limpa a marca; `so_bandeja` gravado no
+  `config.ini`. Release, linha registrada (`"…\release\mic-limpo.exe" --bandeja`): só o ícone,
+  nenhuma janela; abrir o exe de novo trouxe a janela no mesmo processo. +2 testes (24 passam).
+  **Pendente (Alex):** ligar no app de release e reiniciar o PC de verdade.
+
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
 - Pendências visuais: barra de título nativa não segue o tema forçado; Mica/Acrylic

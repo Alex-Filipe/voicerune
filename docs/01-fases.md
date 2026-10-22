@@ -1,7 +1,7 @@
 # Fases
 
 **Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos;
-bloco 4 começado (última configuração salva, instância única). Página **Teste** (gravar e ouvir A/B) feita.
+bloco 4 começado (última configuração salva, instância única, iniciar com o sistema). Página **Teste** (gravar e ouvir A/B) feita.
 - Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `mic-limpo` abre a janela
   Slint ligada ao motor e põe um ícone na bandeja (clique = flyout; menu Abrir/Sair); fechar a
   janela deixa o app só na bandeja. A última configuração volta ao abrir
@@ -16,7 +16,7 @@ bloco 4 começado (última configuração salva, instância única). Página **T
 | 1. Motor controlável | ganho e medidor no `core`; `Controlador` no app troca modo/dispositivo/backend sem reiniciar; avisos por canal | concluído |
 | 2. UI ligada | `mic-limpo` abre a janela Slint com dados reais; `aplicar` fora da thread da janela; medidor só com a janela visível; reagir a aviso fatal | concluído |
 | 3. Bandeja + flyout | `SystemTrayIcon` do Slint 1.18 (`Shell_NotifyIconW`, sem crate extra); fechar destrói o componente; flyout junto da bandeja | concluído |
-| 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | em andamento: config salva e instância única feitas |
+| 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | em andamento: config salva, instância única e iniciar com o sistema feitos; falta presets |
 | 5. Uso diário | Alex usa alguns dias | — |
 
 **Próximo passo:** Alex quer melhorias antes de seguir. A primeira (página Teste) está feita; no
@@ -25,10 +25,10 @@ teste ele achou o **Forte ruim (às vezes corta)** e cogita trocar o Forte por u
 ajustado (sem gate); Alex reouviu: "parece que corrigiu". Medidor de duas camadas (original × depois da
 IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou chave + Leve | Forte | Personalizado
 (desabilitado) com "?" feito e aprovado. Alex: Personalizado fica bloqueado por enquanto. Instância única
-feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Se o Forte voltar a picotar, medir
-underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). **Próximo:** iniciar com o sistema (com "iniciar só
-na bandeja"); depois, presets. Antes: Alex clica no ícone de verdade, fala e
-confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
+feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Iniciar com o
+sistema (+ "Só na bandeja") feito; falta o Alex ligar no app de release e reiniciar o PC de verdade. Se o Forte
+voltar a picotar, medir underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). **Próximo:** presets. Antes:
+Alex clica no ícone de verdade, fala e confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
 mic antes do app; corte audível da troca não medido ponta a ponta (hipótese ~0); timer do
@@ -171,3 +171,9 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
 - 2026-10-21 — Bug achado pelo Alex: minimizar + atalho duas vezes deixava a janela vazia (só o
   medidor). Causa no Slint 1.18 (renderizador de software no Windows; também pela barra, mais raro);
   contorno: redesenho completo forçado ao voltar de minimizada. Release: vazia 12/15 → 0/15.
+- 2026-10-22 — Fase 4, bloco 4: **iniciar com o sistema** + "Só na bandeja" (plano aprovado pelo Alex).
+  Valor `mic-limpo` em `HKCU\...\CurrentVersion\Run` (exe atual + `--bandeja`), módulo `partida`, sem
+  crate novo; o registro é a fonte da verdade (desativado no Gerenciador de Tarefas = desligado) e o
+  `config.ini` guarda só `so_bandeja`. Conferido com cliques simulados + `reg query` (liga, desliga,
+  argumento, desativação) e `mic-limpo --bandeja` em release (só o ícone; abrir de novo traz a janela).
+  +2 testes (24 passam). Pendente: reinício de verdade (Alex). Ver `05-interface.md`.

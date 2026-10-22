@@ -14,7 +14,7 @@ const MODOS: [(Modo, &str); 2] = [(Modo::Leve, "leve"), (Modo::Forte, "forte")];
 const TEMAS: [&str; 3] = ["sistema", "claro", "escuro"];
 
 /// O que fica de uma execução para a outra.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Salvo {
     /// Só os campos da janela (cancelamento, modo, ganho, dispositivos, baixa latência). O app
     /// sempre abre ligado: `ligado` de versões antigas é ignorado (a janela não tem mais pausa).
@@ -23,6 +23,15 @@ pub struct Salvo {
     pub tema: i32,
     /// Posição e tamanho da janela em px físicos: x, y, largura, altura.
     pub janela: Option<(i32, i32, u32, u32)>,
+    /// Preferência "iniciar com o sistema só na bandeja", guardada mesmo com a partida desligada.
+    /// Se ligar ou não fica no registro do Windows (`partida`), não aqui.
+    pub so_bandeja: bool,
+}
+
+impl Default for Salvo {
+    fn default() -> Self {
+        Self { ajustes: Ajustes::default(), tema: 0, janela: None, so_bandeja: true }
+    }
 }
 
 impl Salvo {
@@ -63,6 +72,7 @@ impl Salvo {
         if let Some((x, y, l, h)) = self.janela {
             let _ = writeln!(t, "janela = {x} {y} {l} {h}");
         }
+        let _ = writeln!(t, "so_bandeja = {}", sim(self.so_bandeja));
         t
     }
 
@@ -94,6 +104,7 @@ impl Salvo {
                 "baixa_latencia" => a.baixa_latencia = sim(valor).unwrap_or(a.baixa_latencia),
                 "tema" => s.tema = TEMAS.iter().position(|n| *n == valor).map_or(s.tema, |i| i as i32),
                 "janela" => s.janela = janela(valor),
+                "so_bandeja" => s.so_bandeja = sim(valor).unwrap_or(s.so_bandeja),
                 _ => {}
             }
         }
@@ -126,13 +137,14 @@ mod tests {
             },
             tema: 2,
             janela: Some((-1700, 40, 516, 579)),
+            so_bandeja: false,
         };
         assert_eq!(Salvo::de_texto(&s.para_texto()), s);
     }
 
     #[test]
     fn arquivo_estranho_fica_no_padrao() {
-        let s = Salvo::de_texto("lixo\nmodo = turbo\nganho_db = NaN\nligado = talvez\njanela = 1 2 0 4\nnova = 1\n");
+        let s = Salvo::de_texto("lixo\nmodo = turbo\nganho_db = NaN\nligado = talvez\njanela = 1 2 0 4\nnova = 1\nso_bandeja = 2\n");
         assert_eq!(s, Salvo::default());
         let s = Salvo::de_texto("\u{feff}ganho_db = 99 \r\nsaida =\r\ntema = claro\r\n");
         assert_eq!(s.ajustes.ganho_db, GANHO.1);

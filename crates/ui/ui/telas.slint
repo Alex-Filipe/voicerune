@@ -17,7 +17,10 @@ export global Dados {
     in property <[string]> saidas: ["CABLE Input (VB-Audio)"];
     in-out property <int> saida: 0;
     in-out property <bool> baixa-latencia: true;
+    // Iniciar com o sistema (lido do registro do Windows); fora do Windows o cartão some.
+    in property <bool> iniciar-disponivel: true;
     in-out property <bool> iniciar-com-sistema: false;
+    in-out property <bool> iniciar-so-bandeja: true;
     in-out property <int> tema: 0; // 0 sistema, 1 claro, 2 escuro
     in property <string> atraso: "~85 ms";
     in property <string> cpu: "1,4 %";
@@ -46,6 +49,7 @@ export global Dados {
     callback baixa-latencia-mudou();
     callback cancelamento-mudou();
     callback tema-escolhido();
+    callback iniciar-mudou();
 }
 
 global Cores {
@@ -610,13 +614,29 @@ component PaginaConfig inherits VerticalLayout {
         }
     }
 
-    Cartao {
+    if Dados.iniciar-disponivel: Cartao {
         LinhaAjuste {
             icone: Icones.energia;
             titulo: "Iniciar com o sistema";
-            sub: "Abre minimizado na bandeja";
+            sub: "Abre junto com o Windows";
             Switch {
                 checked <=> Dados.iniciar-com-sistema;
+                toggled => {
+                    Dados.iniciar-mudou();
+                }
+            }
+        }
+
+        // Sem ícone: fica alinhada ao título de cima, como parte dele.
+        LinhaAjuste {
+            titulo: "Só na bandeja";
+            sub: "Abre sem a janela, só o ícone";
+            Switch {
+                enabled: Dados.iniciar-com-sistema;
+                checked <=> Dados.iniciar-so-bandeja;
+                toggled => {
+                    Dados.iniciar-mudou();
+                }
             }
         }
     }

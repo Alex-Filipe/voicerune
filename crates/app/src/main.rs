@@ -5,6 +5,7 @@
 //! repassa os avisos dos fluxos para a de controle. Nenhuma acorda se nada mudar, fora o medidor
 //! (~30 Hz) com a janela ou o flyout abertos. Fechar a janela destrói o componente e o app fica
 //! só na bandeja; Sair (menu do ícone) encerra. Para usar sem janela: `mic-limpo-dev rodar`.
+//! Com `--bandeja` (a linha registrada por "iniciar com o sistema", ver `partida`) abre só o ícone.
 //!
 //! Página Teste: a janela liga a cópia do motor (`Controle::escutar`) e junta original e limpo a
 //! cada tick do medidor; a reprodução é um fluxo de saída à parte, aberto pela thread de controle.
@@ -20,6 +21,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use mic_limpo::controlador::{Ajustes, Controlador, Modo};
+use mic_limpo::partida;
 use mic_limpo::salvo::Salvo;
 use mic_limpo_audio::{self as audio, Aviso, Fluxo, Pedido};
 use mic_limpo_core::escuta::{self, Gravacao, Reproducao, Tocador};
@@ -131,6 +133,10 @@ struct Ui {
     tema: i32,
     /// Posição e tamanho da última janela, para reabrir no mesmo lugar.
     lugar: Option<(slint::PhysicalPosition, slint::PhysicalSize)>,
+    /// Iniciar com o sistema, como está no registro (ver `ler_partida`).
+    iniciar: bool,
+    /// Só na bandeja: o do registro se registrado; senão a preferência do `config.ini`.
+    so_bandeja: bool,
     /// Gravação adiada da configuração (ver `GRAVAR_APOS`).
     gravacao: Timer,
     nivel: f32,
@@ -163,6 +169,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let Some(instancia) = primeira_instancia() else {
         return Ok(());
     };
+    // Iniciado pelo sistema com "só na bandeja": sem janela, só o ícone.
+    let so_icone = std::env::args().skip(1).any(|a| a == partida::ARG_BANDEJA);
     slint::BackendSelector::new()
         .backend_name("winit".into())
         .with_winit_window_attributes_hook(atributos)
@@ -198,6 +206,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     tx.send(Msg::Ajustes(inicial.clone()))?;
 
     let saida_teste = disp.padrao_saida.unwrap_or(0) as i32;
+    let registrado = partida::ler();
     UI.set(Some(Ui {
         janela: None,
         flyout: None,
@@ -220,6 +229,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .janela
             .filter(|&j| na_tela(j))
             .map(|(x, y, l, h)| (slint::PhysicalPosition::new(x, y), slint::PhysicalSize::new(l, h))),
+        iniciar: registrado.is_some(),
+        so_bandeja: registrado.unwrap_or(salvo.so_bandeja),
         gravacao: Timer::default(),
         nivel: 0.0,
         nivel_limpo: 0.0,
@@ -243,7 +254,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         let _ = slint::quit_event_loop();
     });
     bandeja.show()?;
-    abrir_janela();
+    if !so_icone {
+        abrir_janela();
+    }
 
     slint::run_event_loop()?;
 
@@ -365,6 +378,8 @@ impl Ui {
         d.set_entradas(modelo_de(&self.disp.entradas));
         d.set_saidas(modelo_de(&self.disp.saidas));
         d.set_tema(self.tema_atual());
+        d.set_iniciar_disponivel(partida::DISPONIVEL);
+        self.mostrar_partida(d);
         mostrar_ajustes(d, &self.pedido, &self.disp);
         self.mostrar(d);
         self.mostrar_teste(d);
@@ -396,6 +411,18 @@ impl Ui {
         d.set_atraso(m.atraso.clone());
         d.set_cpu(m.cpu.clone());
         d.set_falhas(m.falhas);
+    }
+
+    fn mostrar_partida(&self, d: &Dados) {
+        d.set_iniciar_com_sistema(self.iniciar);
+        d.set_iniciar_so_bandeja(self.so_bandeja);
+    }
+
+    /// Relê do registro: o Gerenciador de Tarefas (ou outro exe) pode ter mudado a partida.
+    fn ler_partida(&mut self) {
+        let registrado = partida::ler();
+        self.iniciar = registrado.is_some();
+        self.so_bandeja = registrado.unwrap_or(self.so_bandeja);
     }
 
     fn tema_atual(&self) -> i32 {
@@ -443,6 +470,13 @@ where
     d.on_cancelamento_mudou(ao_mudar(|a, d, _| a.ia = d.get_cancelamento()));
     d.on_tema_escolhido(|| {
         com_ui(agendar_gravacao);
+    });
+    let w = c.as_weak();
+    d.on_iniciar_mudou(move || {
+        if let Some(c) = w.upgrade() {
+            let d = c.global::<Dados>();
+            com_ui(|ui| mudar_partida(ui, d.get_iniciar_com_sistema(), d.get_iniciar_so_bandeja()));
+        }
     });
     let no_teste = |f: fn(&mut Ui, &Dados)| {
         let w = c.as_weak();
@@ -511,6 +545,7 @@ fn abrir_janela() {
     };
     ligar(&j, Tela::Janela);
     let tema = com_ui(|ui| {
+        ui.ler_partida();
         ui.preencher(&j.global::<Dados>());
         ui.tema_atual()
     });
@@ -584,6 +619,21 @@ fn guardar_janela(ui: &mut Ui, j: &JanelaPrincipal) {
     }
 }
 
+/// Chaves de "iniciar com o sistema": grava no registro e mostra o que ficou lá de verdade.
+fn mudar_partida(ui: &mut Ui, ligado: bool, bandeja: bool) {
+    ui.so_bandeja = bandeja;
+    if let Err(e) = partida::gravar(ligado, bandeja) {
+        eprintln!("iniciar com o sistema: {e}");
+        ui.mostrado.erro = format!("Não consegui mudar o iniciar com o sistema: {e}").into();
+    }
+    ui.ler_partida();
+    ui.em_cada(|d| {
+        ui.mostrar_partida(d);
+        ui.mostrar(d);
+    });
+    agendar_gravacao(ui);
+}
+
 fn agendar_gravacao(ui: &mut Ui) {
     ui.gravacao.start(TimerMode::SingleShot, GRAVAR_APOS, || {
         com_ui(|ui| gravar(ui));
@@ -596,6 +646,7 @@ fn gravar(ui: &Ui) {
         ajustes: ui.pedido.clone(),
         tema: ui.tema_atual(),
         janela: ui.lugar.map(|(p, t)| (p.x, p.y, t.width, t.height)),
+        so_bandeja: ui.so_bandeja,
     };
     if let Err(e) = salvo.gravar() {
         eprintln!("gravar a configuração: {e}");
