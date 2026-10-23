@@ -32,3 +32,22 @@ pub fn limpar_onda(onda: &VecModel<Barra>) {
         onda.set_row_data(i, Barra::default());
     }
 }
+
+#[cfg(test)]
+mod testes {
+    use super::*;
+
+    #[test]
+    fn onda_anda_para_a_esquerda() {
+        let onda = onda_vazia();
+        for i in 1..=3 {
+            empurrar_onda(&onda, Barra { mic: i as f32, limpo: 0.0 });
+        }
+        let mic: Vec<f32> = onda.iter().map(|b| b.mic).collect();
+        assert_eq!(mic.len(), BARRAS_ONDA);
+        assert_eq!(&mic[BARRAS_ONDA - 3..], &[1.0, 2.0, 3.0]);
+        assert!(mic[..BARRAS_ONDA - 3].iter().all(|&m| m == 0.0));
+        limpar_onda(&onda);
+        assert!(onda.iter().all(|b| b == Barra::default()));
+    }
+}
