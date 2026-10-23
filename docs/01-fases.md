@@ -2,6 +2,7 @@
 
 **Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos;
 bloco 4 começado (última configuração salva, instância única, iniciar com o sistema). Página **Teste** (gravar e ouvir A/B) feita.
+Visual **vidro** com fundo sólido feito (2026-10-23), aguardando o Alex aprovar as capturas.
 - Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `mic-limpo` abre a janela
   Slint ligada ao motor e põe um ícone na bandeja (clique = flyout; menu Abrir/Sair); fechar a
   janela deixa o app só na bandeja. A última configuração volta ao abrir
@@ -27,9 +28,10 @@ IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou c
 (desabilitado) com "?" feito e aprovado. Alex: Personalizado fica bloqueado por enquanto. Instância única
 feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Iniciar com o
 sistema (+ "Só na bandeja") feito; falta o Alex ligar no app de release e reiniciar o PC de verdade. Se o Forte
-voltar a picotar, medir underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). **Próximo:** novo visual "vidro"
-(aprovado pelo Alex, `docs/mockups/b-vidro.html`; fundo sólido primeiro, vibrancy depois); depois, presets. Antes:
-Alex clica no ícone de verdade, fala e confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
+voltar a picotar, medir underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). Visual "vidro" com fundo sólido
+feito (ver `05-interface.md`, Visual vidro). **Próximo:** Alex aprova as capturas `docs/mockups/capturas/vidro-*.png`
+e usa o app (falar e ver a onda; a onda custa ~+1,5 ponto de 1 núcleo, ele decide se fica a 30 Hz); depois
+**desfoque real** (`window-vibrancy`, sessão própria, medir CPU/RAM antes de aceitar); depois, presets. Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
 mic antes do app; corte audível da troca não medido ponta a ponta (hipótese ~0); timer do
@@ -181,3 +183,9 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
 - 2026-10-23 — Mockup da direção B "vidro" (`docs/mockups/b-vidro.html`, estilo dos apps do Mac, igual
   no Windows e no Mac) aprovado pelo Alex. Implementação numa sessão própria: fundo sólido primeiro,
   desfoque real (`window-vibrancy`) depois, com CPU/RAM medidos.
+- 2026-10-23 — Visual **vidro com fundo sólido** implementado (`telas.slint` reescrito): painel único sem
+  barra lateral, botão redondo do cancelamento, onda ao vivo (pico de cada tick do medidor, 40 barras a
+  30 Hz), volume grande com − / +, ladrilhos, lista agrupada (ComboBox invisível por cima), pílulas,
+  rodapé com Teste/Configurações/Sobre e voltar; flyout no mesmo estilo. Tudo conferido no app de
+  release com cliques simulados. Medido: onda ~+1,5 ponto de 1 núcleo (~0,13 % do PC) sobre o medidor,
+  RAM igual (app 25,0 / 6,2 MB). Capturas `vidro-*` em `docs/mockups/capturas/`. +1 teste (25 passam).

@@ -32,28 +32,34 @@ para crescer sem poluir a tela.
 único (sem barra lateral; Teste/Configurações/Sobre pelos ícones do rodapé), botão redondo do
 cancelamento, onda ao vivo (cinza = mic, acento = limpo), volume em número grande com − / +, ladrilhos
 Leve/Forte/Personalizado, dispositivos em lista agrupada, pílulas de recursos. Fundo sólido primeiro;
-desfoque real só depois de medir o `window-vibrancy`. A onda a 30 Hz é custo a medir (hipótese).
+desfoque real só depois de medir o `window-vibrancy`. **Feito com fundo sólido em 2026-10-23** (ver
+"Visual vidro" abaixo); a onda a 30 Hz foi medida.
 
-| Página | Conteúdo |
+| Painel | Conteúdo |
 |---|---|
-| Início | Microfone + medidor, Cancelamento (chave + "?" + Leve / Forte / Personalizado desabilitado), Volume de saída (−12 a +24 dB), Enviar para, linha de status |
-| Teste (fone) | Gravar 5 s e ouvir com A/B Original ↔ Limpo (Fase 4, pedido do Alex) |
-| Teste (fone) | Gravar 5 s e ouvir com A/B Original ↔ Limpo (Fase 4, pedido do Alex) |
-| Efeitos | Ícone apagado ("em breve") até existir |
-| Configurações (embaixo) | Baixa latência, Iniciar com o sistema, Tema, Desempenho (atraso, CPU do app, falhas) |
-| Sobre (embaixo) | Versão, sem rede/telemetria, licença, modelo, selo do Slint (exigido pela licença) |
-| Flyout da bandeja | Chave do cancelamento, modo, medidor, rota e "Abrir ›" |
+| Início | Cabeçalho (nome, status, botão redondo = chave do cancelamento), onda ao vivo, volume grande (− / + e faixa de −12 a +24 dB), Cancelamento em ladrilhos (+ "?"), Dispositivos em lista agrupada, Recursos (Baixa latência, Testar voz, Iniciar com o sistema), rodapé ("CPU do app · sem rede"; lua = claro/escuro, Teste, Configurações, Sobre) |
+| Teste (fone) | Gravar 5 s e ouvir com A/B Original ↔ Limpo; "‹" volta ao Início |
+| Configurações | Baixa latência, Iniciar com o sistema + Só na bandeja, Tema (Do sistema / Claro / Escuro), Desempenho (atraso, CPU do app, falhas) |
+| Sobre | Versão, sem rede/telemetria, licença, modelo, selo do Slint (exigido pela licença) |
+| Flyout da bandeja | Status, botão redondo, medidor, Leve / Forte / Personalizado, volume, rota e "Abrir ›" |
+
+O ícone "Efeitos (em breve)" da barra lateral saiu com ela; o ladrilho Personalizado (desabilitado)
+ocupa esse lugar.
 
 ### Implementação em Slint (`crates/ui`)
 - `ui/telas.slint`: `JanelaPrincipal`, `Flyout` e `Bandeja`; estado no global `Dados` (o Rust
   preenche; cada tela tem o seu, o app repõe o estado em cada tela nova).
-- Estilo Fluent; cores próprias claro/escuro seguindo o tema do sistema e a **cor de destaque do
-  Windows**. Tema pode ser forçado (Configurações → Tema).
+- Desde o vidro (2026-10-23): cores próprias claro/escuro (fundo sólido quente, acento azul fixo do
+  mockup, não o do Windows) e componentes próprios (botão redondo, ladrilhos, pílulas, faixa, chave,
+  botões). Do estilo Fluent sobram o `ComboBox` (invisível por cima das linhas de dispositivo: a lista
+  aberta é a do Fluent) e o `AboutSlint`. Tema segue o sistema e pode ser forçado (Configurações →
+  Tema, ou a lua do rodapé).
 - Leveza: `.slint` compilado para Rust no build; sem features padrão do Slint (só `backend-winit`
   + `renderer-software`: sem OpenGL; desde o bloco 3 da Fase 4 também `system-tray` e
   `unstable-winit-030`, sem crate novo no Windows); só a página visível é instanciada (`if`).
 - Prévia: `mic-limpo-ui-previa [--flyout] [--pagina N] [--claro|--escuro] [--medidor-parado]
-  [--medir] [--sair-apos-ms N]`. Capturas em `docs/mockups/capturas/`.
+  [--medir] [--sair-apos-ms N]` (`--pagina` 0 Início, 1 Configurações, 2 Sobre, 3 Teste; anima
+  medidor e onda com fala fictícia). Capturas em `docs/mockups/capturas/` (as do vidro: `vidro-*`).
 
 ### Medições da prévia (2026-10-20, release, Windows 11, 12 threads)
 
@@ -278,10 +284,40 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   nenhuma janela; abrir o exe de novo trouxe a janela no mesmo processo. +2 testes (24 passam).
   **Pendente (Alex):** ligar no app de release e reiniciar o PC de verdade.
 
+### Visual vidro, fundo sólido (2026-10-23)
+- `telas.slint` reescrito no layout do `b-vidro.html` (tabela acima). Tudo ligado ao motor como
+  antes; conferido no app de release com cliques simulados: botão redondo (status "Sem filtro",
+  ladrilhos apagados), − / + (config gravada), ladrilho Leve, pílula Baixa latência, lua (tema escuro,
+  barra de título acompanhou), lista do microfone abre, Configurações (iniciar com o sistema liga e
+  desliga no registro), Teste (gravar, ouvir, parar), Sobre, voltar; flyout pela bandeja (Forte
+  troca e a janela acompanha, "Abrir ›").
+- Onda: `Dados.onda` (40 `Barra { mic, limpo }`, a mais nova no fim). A cada tick do medidor (30 Hz)
+  o app empurra o **pico do tick** (sem a queda do medidor) com `empurrar_onda` (`crates/ui/src/lib.rs`),
+  que muda as linhas no lugar; só com a janela visível; recomeça vazia ao abrir a janela.
+- Ladrilhos ficam sem clique com o cancelamento desligado (como o segmento aprovado em 2026-10-21;
+  no mockup eles respondiam).
+
+Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênteses do PC):
+
+| Caso | RAM (working set) | Privada | CPU |
+|---|---|---|---|
+| App, Leve, mic em silêncio, Início (onda) | 25,0 MB | 6,2 MB | 2,7–3,1 % (0,22–0,25 %) |
+| App, idem, Configurações (sem onda; mesmo timer) | 25,3 MB | 6,2 MB | 0,9–1,4 % (0,07–0,12 %) |
+| Prévia antiga, Início com medidor a 30 Hz | 20,9 MB | 4,0 MB | 2,1–2,3 % (0,18–0,19 %) |
+| Prévia nova, Início com onda a 30 Hz (11 janelas) | 20,4 MB | 4,3 MB | 2,9–4,2 %, ~3,7 % (0,24–0,35 %) |
+| Prévias paradas (antiga / nova) | 20,1 / 20,4 MB | 4,0 / 4,4 MB | 0,00 % |
+
+- **Hipótese fechada:** a onda custa ~+1,5 ponto de 1 núcleo (~0,13 % do PC) a mais que o medidor,
+  sem tendência de subir em 3 min; RAM igual (+0,3 MB privada). Na janela do app antigo eram
+  24,8 / 5,4 MB (bloco 3). Uma janela de 20 s da prévia nova deu 31,4 MB de working set e não se
+  repetiu (privada igual). Se pesar: onda a 15 Hz ou menos barras (não medido).
+
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
-- Pendências visuais: barra de título nativa não segue o tema forçado; Mica/Acrylic
-  (`window-vibrancy`) não testado. Ícone próprio da janela: `crates/ui/ui/icone.svg`.
+- Pendências visuais: Mica/Acrylic (`window-vibrancy`) não testado (próximo passo). A barra de
+  título acompanhou o tema forçado pela lua em 2026-10-23 (antes anotada como não seguindo; não
+  revisto pelo Configurações). A lista aberta dos dispositivos é a do Fluent (cinza, marca na cor
+  do Windows), fora do estilo vidro. Ícone próprio da janela: `crates/ui/ui/icone.svg`.
 - Armadilha resolvida: **nunca** pôr `Palette.color-scheme = ColorScheme.unknown`. Os widgets do
   Fluent e as nossas cores passam a divergir (texto branco em fundo branco: caixas de seleção
   "somem"). "Do sistema" volta para o esquema que o sistema tinha antes do 1º ajuste.
