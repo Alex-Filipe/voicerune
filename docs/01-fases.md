@@ -29,8 +29,8 @@ IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou c
 feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Iniciar com o
 sistema (+ "Só na bandeja") feito; falta o Alex ligar no app de release e reiniciar o PC de verdade. Se o Forte
 voltar a picotar, medir underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). Visual "vidro" com fundo sólido
-feito e aprovado pelo Alex (ver `05-interface.md`, Visual vidro). **Próximo:** **desfoque real** (`window-vibrancy`,
-sessão própria, medir CPU/RAM antes de aceitar); depois, presets. A onda custa ~+1,5 ponto de 1 núcleo (fica a 30 Hz
+feito e aprovado pelo Alex (ver `05-interface.md`, Visual vidro). Alex decidiu: **sem desfoque no Windows** (fica o
+fundo sólido); desfoque só no Mac (Fase 5). **Próximo:** **presets** (fim do bloco 4). A onda custa ~+1,5 ponto de 1 núcleo (fica a 30 Hz
 salvo pedido do Alex). Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
@@ -190,3 +190,6 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
   release com cliques simulados. Medido: onda ~+1,5 ponto de 1 núcleo (~0,13 % do PC) sobre o medidor,
   RAM igual (app 25,0 / 6,2 MB). Capturas `vidro-*` em `docs/mockups/capturas/`. +1 teste (25 passam).
 - 2026-10-23 — Alex aprovou o visual vidro (capturas `vidro-*`). Segue o desfoque real numa sessão nova.
+- 2026-10-23 — Desfoque no Windows testado (Mica pelo winit, sem crate novo, funcionou no app de release) e
+  **descartado pelo Alex**: no Windows fica o fundo sólido; desfoque só no Mac (Fase 5). Código desfeito, nada
+  medido. Achados em `05-interface.md` ("Desfoque: só no Mac"). Próximo: presets.

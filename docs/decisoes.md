@@ -68,3 +68,4 @@
 | 2026-10-23 | Onda = pico de cada tick do medidor (sem a queda), 40 barras a 30 Hz, só com a janela visível | As palavras não se borram; medido: ~+1,5 ponto de 1 núcleo (~0,13 % do PC) sobre o medidor, RAM igual |
 | 2026-10-23 | Lua do rodapé alterna claro/escuro; "Do sistema" fica em Configurações | O mockup tem o ícone; um clique para o caso comum |
 | 2026-10-23 | Capturas do vidro com nomes novos (`vidro-*.png`) | As antigas são resultado entregue e ficam |
+| 2026-10-23 | Sem desfoque (Mica/Acrylic) no Windows: fica o vidro com fundo sólido; desfoque só no Mac (Fase 5) | Escolha do Alex depois de ver o Mica funcionando; menos código e nada a medir no Windows |

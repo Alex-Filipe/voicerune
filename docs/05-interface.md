@@ -33,7 +33,8 @@ para crescer sem poluir a tela.
 cancelamento, onda ao vivo (cinza = mic, acento = limpo), volume em número grande com − / +, ladrilhos
 Leve/Forte/Personalizado, dispositivos em lista agrupada, pílulas de recursos. Fundo sólido primeiro;
 desfoque real só depois de medir o `window-vibrancy`. **Feito com fundo sólido em 2026-10-23** (ver
-"Visual vidro" abaixo); a onda a 30 Hz foi medida.
+"Visual vidro" abaixo); a onda a 30 Hz foi medida. **No Windows fica o fundo sólido** (Alex, 2026-10-23);
+desfoque só no Mac (Fase 5; ver "Desfoque: só no Mac" abaixo).
 
 | Painel | Conteúdo |
 |---|---|
@@ -312,9 +313,21 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
   24,8 / 5,4 MB (bloco 3). Uma janela de 20 s da prévia nova deu 31,4 MB de working set e não se
   repetiu (privada igual). Se pesar: onda a 15 Hz ou menos barras (não medido).
 
+### Desfoque: só no Mac (decidido 2026-10-23)
+- Alex: no Windows o vidro não precisa de desfoque; fica o fundo sólido. Desfoque só no Mac (Fase 5).
+- Achados do teste no Windows (código desfeito, não commitado; nada medido de CPU/RAM):
+  - Não precisa de crate: o winit 0.30 do Slint tem `with_transparent(true)` +
+    `with_system_backdrop(MainWindow/TransientWindow)` (= `DwmSetWindowAttribute(DWMWA_SYSTEMBACKDROP_TYPE)`),
+    aplicáveis no gancho `atributos`. O `renderer-software` do Slint 1.18 escreve alfa pré-multiplicado no
+    softbuffer e limpa a área suja com o fundo da janela, então um `Window.background` transparente funciona.
+  - Visto no app de release: Mica na janela (atributo 38 = 2), claro e escuro legíveis com o véu
+    `#faf7f466` / `#28201c80`; flyout (Acrylic) não chegou a ser visto.
+- `window-vibrancy` 0.8.1 (MIT/Apache, sem rede; Mac: `objc2*`): candidato para a Fase 5
+  (`NSVisualEffectView`); avaliar lá, com CPU/RAM medidos.
+
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
-- Pendências visuais: Mica/Acrylic (`window-vibrancy`) não testado (próximo passo). A barra de
+- Pendências visuais: desfoque só no Mac (Fase 5). A barra de
   título acompanhou o tema forçado pela lua em 2026-10-23 (antes anotada como não seguindo; não
   revisto pelo Configurações). A lista aberta dos dispositivos é a do Fluent (cinza, marca na cor
   do Windows), fora do estilo vidro. Ícone próprio da janela: `crates/ui/ui/icone.svg`.
