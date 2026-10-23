@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mic-limpo · vidro</title>
+<!-- Direção B (2026-10-23): painel de vidro no estilo dos apps do macOS, igual no Windows e no Mac.
+     Só ideia visual; nada aqui está ligado ao motor. -->
+<style>
+  :root {
+    --fundo-pagina: radial-gradient(1200px 700px at 15% 20%, #c9a27a 0%, transparent 60%),
+                    radial-gradient(900px 600px at 85% 70%, #6d5a4a 0%, transparent 60%),
+                    radial-gradient(700px 500px at 70% 10%, #2f6fd6 0%, transparent 55%),
+                    linear-gradient(135deg, #8b6f55, #3b3029);
+    --vidro: rgba(40, 32, 28, 0.62);
+    --vidro-borda: rgba(255, 255, 255, 0.12);
+    --bloco: rgba(255, 255, 255, 0.07);
+    --bloco-hover: rgba(255, 255, 255, 0.12);
+    --bloco-borda: rgba(255, 255, 255, 0.08);
+    --texto: #f5f2ef;
+    --texto2: rgba(245, 242, 239, 0.62);
+    --texto3: rgba(245, 242, 239, 0.38);
+    --acento: #4cc2ff;
+    --acento-texto: #002a40;
+    --ok: #6ee07a;
+    --trilho: rgba(255, 255, 255, 0.16);
+    --sombra: 0 30px 80px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(0, 0, 0, 0.5);
+    --original: rgba(255, 255, 255, 0.22);
+  }
+  :root[data-tema="claro"] {
+    --fundo-pagina: radial-gradient(1200px 700px at 15% 20%, #f3d9bd 0%, transparent 60%),
+                    radial-gradient(900px 600px at 85% 70%, #c9b8a8 0%, transparent 60%),
+                    radial-gradient(700px 500px at 70% 10%, #8fb6f2 0%, transparent 55%),
+                    linear-gradient(135deg, #e8d6c4, #b8a593);
+    --vidro: rgba(250, 247, 244, 0.68);
+    --vidro-borda: rgba(255, 255, 255, 0.7);
+    --bloco: rgba(0, 0, 0, 0.045);
+    --bloco-hover: rgba(0, 0, 0, 0.08);
+    --bloco-borda: rgba(0, 0, 0, 0.06);
+    --texto: #1d1b19;
+    --texto2: rgba(29, 27, 25, 0.62);
+    --texto3: rgba(29, 27, 25, 0.38);
+    --acento: #0a84ff;
+    --acento-texto: #ffffff;
+    --ok: #1f9d3a;
+    --trilho: rgba(0, 0, 0, 0.12);
+    --sombra: 0 30px 80px rgba(60, 40, 20, 0.28), 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+    --original: rgba(0, 0, 0, 0.14);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--fundo-pagina);
+    background-attachment: fixed;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    color: var(--texto);
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 16px 48px;
+  }
+  .topo {
+    max-width: 980px; margin: 0 auto 24px; display: flex; justify-content: space-between; align-items: center;
+    color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.35);
+  }
+  .topo h1 { font-size: 16px; font-weight: 600; margin: 0; }
+  .topo button {
+    font: inherit; font-size: 13px; color: #fff; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.25);
+    border-radius: 999px; padding: 6px 14px; cursor: pointer; backdrop-filter: blur(10px);
+  }
+  .palco { max-width: 980px; margin: 0 auto; display: flex; gap: 40px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+  .legenda { text-align: center; font-size: 12px; color: rgba(255,255,255,.8); margin-top: 10px; text-shadow: 0 1px 6px rgba(0,0,0,.4); }
+
+  /* Painel de vidro */
+  .vidro {
+    background: var(--vidro);
+    backdrop-filter: blur(40px) saturate(1.7);
+    -webkit-backdrop-filter: blur(40px) saturate(1.7);
+    border: 0.5px solid var(--vidro-borda);
+    border-radius: 18px;
+    box-shadow: var(--sombra);
+  }
+  .janela { width: 400px; max-width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .flyout { width: 320px; max-width: 100%; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+  .cabeca { display: flex; align-items: center; gap: 10px; }
+  .app-icone {
+    width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+    background: var(--bloco); border: 0.5px solid var(--bloco-borda);
+  }
+  .cabeca .nome { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+  .cabeca .estado { font-size: 12px; color: var(--texto2); display: flex; align-items: center; gap: 6px; margin-top: 1px; }
+  .ponto { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .ponto.off { background: var(--texto3); box-shadow: none; }
+  .energia {
+    margin-left: auto; width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--acento); color: var(--acento-texto); display: grid; place-items: center;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--acento) 45%, transparent);
+    transition: background .2s, color .2s, box-shadow .2s;
+  }
+  .energia.off { background: var(--bloco-hover); color: var(--texto2); box-shadow: none; }
+
+  /* Visual ao vivo */
+  .palco-voz {
+    position: relative; height: 150px; border-radius: 14px; overflow: hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border: 0.5px solid var(--bloco-borda);
+    display: flex; align-items: center; justify-content: center;
+  }
+  :root[data-tema="claro"] .palco-voz { background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.25)); }
+  .palco-voz .canto { position: absolute; top: 10px; right: 12px; font-size: 11px; color: var(--texto3); display: flex; gap: 10px; }
+  .palco-voz .canto i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .onda { display: flex; align-items: center; gap: 3px; height: 92px; }
+  .barra { position: relative; width: 5px; height: 100%; display: flex; align-items: center; }
+  .barra span { position: absolute; left: 0; right: 0; border-radius: 3px; top: 50%; transform: translateY(-50%); transition: height .09s linear; }
+  .barra .o { background: var(--original); }
+  .barra .l { background: var(--acento); }
+
+  /* Números grandes */
+  .grande { display: flex; align-items: center; justify-content: space-between; }
+  .grande .valor { font-size: 46px; font-weight: 300; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .grande .valor sup { font-size: 16px; font-weight: 400; vertical-align: 22px; margin-left: 2px; color: var(--texto2); letter-spacing: 0; }
+  .grande .sub { font-size: 12px; color: var(--texto2); margin-top: 6px; display: flex; align-items: center; gap: 5px; }
+  .passos { display: flex; gap: 8px; }
+  .passo {
+    width: 40px; height: 40px; border-radius: 10px; border: 0.5px solid var(--bloco-borda);
+    background: var(--bloco); color: var(--texto); font-size: 20px; cursor: pointer; display: grid; place-items: center;
+  }
+  .passo:hover { background: var(--bloco-hover); }
+
+  .faixa { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--texto3); }
+  input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; height: 4px; border-radius: 2px; background: var(--trilho); outline: none; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--acento);
+    border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--acento); border: 3px solid #fff; cursor: pointer; }
+
+  .secao { font-size: 12px; color: var(--texto2); display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .secao .direita { color: var(--texto3); }
+  .ajuda {
+    width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--texto3); color: var(--texto2);
+    font-size: 10px; display: inline-grid; place-items: center; margin-left: 6px; cursor: help;
+  }
+
+  /* Ladrilhos (modo) */
+  .ladrilhos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .ladrilho {
+    font: inherit; height: 64px; border-radius: 12px; border: 0.5px solid var(--bloco-borda); background: var(--bloco);
+    color: var(--texto); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 12px;
+    transition: background .15s, color .15s;
+  }
+  .ladrilho:hover { background: var(--bloco-hover); }
+  .ladrilho.ativo { background: var(--acento); color: var(--acento-texto); border-color: transparent; }
+  .ladrilho:disabled { opacity: .4; cursor: default; }
+  .ladrilho:disabled:hover { background: var(--bloco); }
+  .ladrilhos.desligado .ladrilho.ativo { background: var(--bloco-hover); color: var(--texto); }
+
+  /* Lista agrupada (dispositivos) */
+  .grupo { border-radius: 12px; background: var(--bloco); border: 0.5px solid var(--bloco-borda); overflow: hidden; }
+  .linha { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
+  .linha + .linha { border-top: 0.5px solid var(--bloco-borda); }
+  .linha:hover { background: var(--bloco-hover); }
+  .linha .rot { color: var(--texto2); width: 82px; flex: none; }
+  .linha .val { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .linha .seta { color: var(--texto3); }
+
+  /* Recursos (pílulas) */
+  .pilulas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pilula {
+    font: inherit; font-size: 12px; height: 40px; border-radius: 10px; border: 0.5px solid var(--bloco-borda); background: var(--bloco);
+    color: var(--texto); display: flex; align-items: center; gap: 7px; padding: 0 10px; cursor: pointer; text-align: left;
+  }
+  .pilula:hover { background: var(--bloco-hover); }
+  .pilula.ativo { background: var(--acento); color: var(--acento-texto); border-color: transparent; }
+
+  .rodape { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--texto2); padding-top: 2px; }
+  .rodape .icones { margin-left: auto; display: flex; gap: 4px; }
+  .rodape .icones button {
+    width: 30px; height: 30px; border-radius: 8px; border: 0; background: transparent; color: var(--texto2); cursor: pointer; display: grid; place-items: center;
+  }
+  .rodape .icones button:hover { background: var(--bloco-hover); color: var(--texto); }
+
+  /* Flyout */
+  .medidor { position: relative; height: 6px; border-radius: 3px; background: var(--trilho); overflow: hidden; }
+  .medidor span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; transition: width .09s linear; }
+  .medidor .o { background: var(--original); }
+  .medidor .l { background: var(--acento); }
+  .segmento { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--bloco); border: 0.5px solid var(--bloco-borda); border-radius: 10px; padding: 3px; gap: 3px; }
+  .segmento button { font: inherit; font-size: 12px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--texto); cursor: pointer; }
+  .segmento button.ativo { background: var(--acento); color: var(--acento-texto); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+  .segmento button:disabled { opacity: .4; cursor: default; }
+  .rota { font-size: 12px; color: var(--texto2); display: flex; justify-content: space-between; align-items: center; }
+  .rota a { color: var(--acento); text-decoration: none; font-weight: 500; }
+
+  svg { display: block; }
+  @media (max-width: 460px) { .janela, .flyout { width: 100%; } }
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <h1>mic-limpo · direção B (vidro)</h1>
+  <button id="tema">Tema claro</button>
+</div>
+
+<div class="palco">
+  <div>
+    <!-- JANELA PRINCIPAL -->
+    <div class="vidro janela">
+      <div class="cabeca">
+        <div class="app-icone">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 6a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0z M5 11a7 7 0 0 0 14 0 M12 18v3"/></svg>
+        </div>
+        <div>
+          <div class="nome">mic-limpo</div>
+          <div class="estado"><span class="ponto" id="ponto"></span><span id="estado">Limpando · atraso ~95 ms</span></div>
+        </div>
+        <button class="energia" id="energia" title="Cancelamento de ruído">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v8 M7 6a7 7 0 1 0 10 0"/></svg>
+        </button>
+      </div>
+
+      <div class="palco-voz">
+        <div class="canto"><span><i style="background:var(--original)"></i>Mic</span><span><i style="background:var(--acento)"></i>Limpo</span></div>
+        <div class="onda" id="onda"></div>
+      </div>
+
+      <div>
+        <div class="grande">
+          <div>
+            <div class="valor"><span id="db">+5</span><sup>dB</sup></div>
+            <div class="sub">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6"/></svg>
+              Volume de saída
+            </div>
+          </div>
+          <div class="passos">
+            <button class="passo" data-passo="-1">−</button>
+            <button class="passo" data-passo="1">+</button>
+          </div>
+        </div>
+        <div class="faixa" style="margin-top:12px">−12 <input type="range" id="volume" min="-12" max="24" step="1" value="5"> +24</div>
+      </div>
+
+      <div>
+        <div class="secao"><span>Cancelamento<span class="ajuda" title="Leve: RNNoise, quase sem CPU. Forte: DeepFilterNet3, tira mais ruído.">?</span></span><span class="direita" id="modo-info">DeepFilterNet3</span></div>
+        <div class="ladrilhos" id="modos">
+          <button class="ladrilho" data-modo="RNNoise">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M20 4C10 4 5 9 4 20 M4 20c3-6 7-9 12-10"/></svg>Leve</button>
+          <button class="ladrilho ativo" data-modo="DeepFilterNet3">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>Forte</button>
+          <button class="ladrilho" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10 M18 7h2 M4 17h2 M10 17h10 M14 7a2 2 0 1 0 4 0 2 2 0 1 0-4 0 M6 17a2 2 0 1 0 4 0 2 2 0 1 0-4 0"/></svg>Personalizado</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="secao"><span>Dispositivos</span></div>
+        <div class="grupo">
+          <div class="linha">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 6a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0z M5 11a7 7 0 0 0 14 0 M12 18v3"/></svg>
+            <span class="rot">Microfone</span><span class="val">Fifine K669</span><span class="seta">⌄</span>
+          </div>
+          <div class="linha">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11"/></svg>
+            <span class="rot">Enviar para</span><span class="val">CABLE Input (VB-Audio)</span><span class="seta">⌄</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="secao"><span>Recursos</span></div>
+        <div class="pilulas">
+          <button class="pilula ativo" data-alterna>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></svg>Baixa latência</button>
+          <button class="pilula">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 16v-4a8 8 0 0 1 16 0v4 M4 14h3v6H4z M20 14h-3v6h3z"/></svg>Testar voz</button>
+          <button class="pilula" data-alterna>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v8 M7 6a7 7 0 1 0 10 0"/></svg>Auto-iniciar</button>
+        </div>
+      </div>
+
+      <div class="rodape">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h16 M7 14v4 M12 9v9 M17 5v13"/></svg>
+        CPU do app 1,0 % · sem rede
+        <div class="icones">
+          <button title="Tema"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M19 14A7 7 0 0 1 10 5a7 7 0 1 0 9 9z"/></svg></button>
+          <button title="Configurações"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 12a3 3 0 1 0 6 0 3 3 0 1 0-6 0 M12 3v2.5 M12 18.5V21 M3 12h2.5 M18.5 12H21 M5.6 5.6l1.8 1.8 M16.6 16.6l1.8 1.8 M5.6 18.4l1.8-1.8 M16.6 7.4l1.8-1.8"/></svg></button>
+          <button title="Sobre"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0 M12 11v6 M12 7.5V8"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="legenda">Janela</div>
+  </div>
+
+  <div>
+    <!-- FLYOUT DA BANDEJA -->
+    <div class="vidro flyout">
+      <div class="cabeca">
+        <div>
+          <div class="nome">Cancelamento de ruído</div>
+          <div class="estado"><span class="ponto" id="ponto2"></span><span id="estado2">Forte · ~95 ms</span></div>
+        </div>
+        <button class="energia" id="energia2" title="Cancelamento de ruído" style="width:34px;height:34px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v8 M7 6a7 7 0 1 0 10 0"/></svg>
+        </button>
+      </div>
+      <div class="medidor"><span class="o" id="mo"></span><span class="l" id="ml"></span></div>
+      <div class="segmento" id="seg">
+        <button data-i="0">Leve</button><button data-i="1" class="ativo">Forte</button><button disabled>Personalizado</button>
+      </div>
+      <div class="faixa">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6"/></svg>
+        <input type="range" id="volume2" min="-12" max="24" step="1" value="5"><span id="db2" style="width:42px;text-align:right;color:var(--texto2)">+5 dB</span>
+      </div>
+      <div class="rota"><span>Fifine K669 → CABLE Input</span><a href="#">Abrir ›</a></div>
+    </div>
+    <div class="legenda">Flyout da bandeja / barra de menus</div>
+  </div>
+</div>
+
+<script>
+  const raiz = document.documentElement;
+  document.getElementById('tema').onclick = (e) => {
+    const claro = raiz.dataset.tema !== 'claro';
+    raiz.dataset.tema = claro ? 'claro' : '';
+    e.target.textContent = claro ? 'Tema escuro' : 'Tema claro';
+  };
+
+  // Estado compartilhado entre janela e flyout.
+  const st = { ligado: true, modo: 1, db: 5 };
+  const nomes = ['Leve', 'Forte'], modelos = ['RNNoise', 'DeepFilterNet3'];
+
+  function mostrar() {
+    const sinal = st.db > 0 ? '+' : st.db < 0 ? '−' : '';
+    document.getElementById('db').textContent = sinal + Math.abs(st.db);
+    document.getElementById('db2').textContent = sinal + Math.abs(st.db) + ' dB';
+    document.getElementById('volume').value = st.db;
+    document.getElementById('volume2').value = st.db;
+    for (const id of ['energia', 'energia2']) document.getElementById(id).classList.toggle('off', !st.ligado);
+    for (const id of ['ponto', 'ponto2']) document.getElementById(id).classList.toggle('off', !st.ligado);
+    document.getElementById('estado').textContent = st.ligado ? 'Limpando · atraso ~95 ms' : 'Sem filtro · voz passa direto';
+    document.getElementById('estado2').textContent = st.ligado ? nomes[st.modo] + ' · ~95 ms' : 'Desligado';
+    document.getElementById('modo-info').textContent = st.ligado ? modelos[st.modo] : 'desligado';
+    document.getElementById('modos').classList.toggle('desligado', !st.ligado);
+    document.querySelectorAll('#modos .ladrilho:not(:disabled)').forEach((b, i) => b.classList.toggle('ativo', i === st.modo));
+    document.querySelectorAll('#seg button[data-i]').forEach((b, i) => b.classList.toggle('ativo', i === st.modo));
+  }
+  const limitar = v => Math.max(-12, Math.min(24, v));
+  for (const id of ['energia', 'energia2']) document.getElementById(id).onclick = () => { st.ligado = !st.ligado; mostrar(); };
+  document.querySelectorAll('[data-passo]').forEach(b => b.onclick = () => { st.db = limitar(st.db + +b.dataset.passo); mostrar(); });
+  for (const id of ['volume', 'volume2']) document.getElementById(id).oninput = e => { st.db = +e.target.value; mostrar(); };
+  document.querySelectorAll('#modos .ladrilho:not(:disabled)').forEach((b, i) => b.onclick = () => { st.modo = i; mostrar(); });
+  document.querySelectorAll('#seg button[data-i]').forEach(b => b.onclick = () => { st.modo = +b.dataset.i; mostrar(); });
+  document.querySelectorAll('[data-alterna]').forEach(b => b.onclick = () => b.classList.toggle('ativo'));
+
+  // Onda ao vivo de mentira: fala em rajadas + ruído de fundo; o limpo tira o ruído.
+  const N = 36, onda = document.getElementById('onda'), barras = [];
+  for (let i = 0; i < N; i++) {
+    const b = document.createElement('div');
+    b.className = 'barra';
+    b.innerHTML = '<span class="o"></span><span class="l"></span>';
+    onda.appendChild(b);
+    barras.push([b.children[0], b.children[1]]);
+  }
+  const voz = new Array(N).fill(0), ruido = new Array(N).fill(0);
+  let t = 0;
+  setInterval(() => {
+    t += 1;
+    const falando = Math.sin(t / 9) + Math.sin(t / 3.7) * 0.5 > 0.2;
+    voz.shift(); ruido.shift();
+    voz.push(falando ? 0.35 + Math.random() * 0.6 : 0);
+    ruido.push(0.12 + Math.random() * 0.18);
+    const ganho = Math.pow(10, st.db / 40);
+    for (let i = 0; i < N; i++) {
+      const o = Math.min(1, Math.max(voz[i], ruido[i]));
+      const l = st.ligado ? Math.min(1, voz[i] * (st.modo ? 0.97 : 0.92) + (st.modo ? 0.01 : 0.03)) : o;
+      barras[i][0].style.height = (6 + o * 86) + 'px';
+      barras[i][1].style.height = (l > 0.02 ? 6 + l * 86 * Math.min(ganho, 1.1) : 0) + 'px';
+    }
+    document.getElementById('mo').style.width = Math.max(voz[N - 1], ruido[N - 1]) * 100 + '%';
+    const ultimoL = st.ligado ? voz[N - 1] * 0.95 : Math.max(voz[N - 1], ruido[N - 1]);
+    document.getElementById('ml').style.width = ultimoL * 100 + '%';
+  }, 70);
+
+  mostrar();
+</script>
+</body>
+</html>

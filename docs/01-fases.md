@@ -27,7 +27,8 @@ IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou c
 (desabilitado) com "?" feito e aprovado. Alex: Personalizado fica bloqueado por enquanto. Instância única
 feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Iniciar com o
 sistema (+ "Só na bandeja") feito; falta o Alex ligar no app de release e reiniciar o PC de verdade. Se o Forte
-voltar a picotar, medir underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). **Próximo:** presets. Antes:
+voltar a picotar, medir underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). **Próximo:** novo visual "vidro"
+(aprovado pelo Alex, `docs/mockups/b-vidro.html`; fundo sólido primeiro, vibrancy depois); depois, presets. Antes:
 Alex clica no ícone de verdade, fala e confere medidor, flyout, trocas e status. Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
@@ -177,3 +178,6 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
   `config.ini` guarda só `so_bandeja`. Conferido com cliques simulados + `reg query` (liga, desliga,
   argumento, desativação) e `mic-limpo --bandeja` em release (só o ícone; abrir de novo traz a janela).
   +2 testes (24 passam). Pendente: reinício de verdade (Alex). Ver `05-interface.md`.
+- 2026-10-23 — Mockup da direção B "vidro" (`docs/mockups/b-vidro.html`, estilo dos apps do Mac, igual
+  no Windows e no Mac) aprovado pelo Alex. Implementação numa sessão própria: fundo sólido primeiro,
+  desfoque real (`window-vibrancy`) depois, com CPU/RAM medidos.

@@ -28,6 +28,12 @@ Direções testadas em HTML (`docs/mockups/direcoes.html`): A · Fluent compacto
 C · faixa de canal. **Escolhida a A com barra lateral de ícones** (`docs/mockups/a-lateral.html`),
 para crescer sem poluir a tela.
 
+**2026-10-23:** o Alex aprovou um visual novo, a direção B "vidro" (`docs/mockups/b-vidro.html`): painel
+único (sem barra lateral; Teste/Configurações/Sobre pelos ícones do rodapé), botão redondo do
+cancelamento, onda ao vivo (cinza = mic, acento = limpo), volume em número grande com − / +, ladrilhos
+Leve/Forte/Personalizado, dispositivos em lista agrupada, pílulas de recursos. Fundo sólido primeiro;
+desfoque real só depois de medir o `window-vibrancy`. A onda a 30 Hz é custo a medir (hipótese).
+
 | Página | Conteúdo |
 |---|---|
 | Início | Microfone + medidor, Cancelamento (chave + "?" + Leve / Forte / Personalizado desabilitado), Volume de saída (−12 a +24 dB), Enviar para, linha de status |
