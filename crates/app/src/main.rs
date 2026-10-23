@@ -15,6 +15,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::error::Error;
+use std::rc::Rc;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
@@ -27,7 +28,7 @@ use mic_limpo_audio::{self as audio, Aviso, Fluxo, Pedido};
 use mic_limpo_core::escuta::{self, Gravacao, Reproducao, Tocador};
 use mic_limpo_core::modelo::Tipo;
 use mic_limpo_core::motor::Controle;
-use mic_limpo_ui::{Bandeja, Dados, Flyout, JanelaPrincipal};
+use mic_limpo_ui::{empurrar_onda, limpar_onda, onda_vazia, Bandeja, Barra, Dados, Flyout, JanelaPrincipal};
 use slint::winit_030::winit::{event::WindowEvent, window::WindowAttributes};
 use slint::winit_030::{EventResult, WinitWindowAccessor};
 use slint::{CloseRequestResponse, ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel};
@@ -142,6 +143,8 @@ struct Ui {
     nivel: f32,
     /// Medidor do que sai da IA (mesma escala e queda que `nivel`).
     nivel_limpo: f32,
+    /// Histórico do medidor desenhado no Início (só anda com a janela visível).
+    onda: Rc<VecModel<Barra>>,
     tick: u32,
     /// (tempo de CPU do processo, relógio) na última conta da CPU, para mostrar a do último segundo.
     cpu_anterior: Option<(Duration, Instant)>,
@@ -234,6 +237,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         gravacao: Timer::default(),
         nivel: 0.0,
         nivel_limpo: 0.0,
+        onda: Rc::new(onda_vazia()),
         tick: 0,
         cpu_anterior: None,
         teste: Teste {
@@ -385,6 +389,7 @@ impl Ui {
         self.mostrar_teste(d);
         d.set_nivel(self.nivel);
         d.set_nivel_limpo(self.nivel_limpo);
+        d.set_onda(ModelRc::from(self.onda.clone()));
     }
 
     fn mostrar_teste(&self, d: &Dados) {
@@ -546,6 +551,8 @@ fn abrir_janela() {
     ligar(&j, Tela::Janela);
     let tema = com_ui(|ui| {
         ui.ler_partida();
+        // A onda recomeça vazia (sem o histórico da vez anterior).
+        limpar_onda(&ui.onda);
         ui.preencher(&j.global::<Dados>());
         ui.tema_atual()
     });
@@ -953,7 +960,7 @@ fn receber(ui: &mut Ui, e: Estado) {
     ui.em_cada(|d| ui.mostrar(d));
 }
 
-/// Medidor (~30 Hz) e, a cada segundo, os números. Não faz nada com a janela minimizada e sem flyout.
+/// Medidor e onda (~30 Hz) e, a cada segundo, os números. Não faz nada com a janela minimizada e sem flyout.
 fn tick(ui: &mut Ui) {
     teste_tick(ui);
     let minimizada = ui.janela.as_ref().is_none_or(|j| j.window().is_minimized());
@@ -962,12 +969,17 @@ fn tick(ui: &mut Ui) {
     }
     let (pico, pico_limpo) = ui.motor.as_ref().map_or((0.0, 0.0), |(c, _)| (c.tomar_pico(), c.tomar_pico_limpo()));
     let alvo = |p: f32| if p > 0.0 { ((20.0 * p.log10() + FAIXA_DB) / FAIXA_DB).clamp(0.0, 1.0) } else { 0.0 };
-    ui.nivel = alvo(pico).max(ui.nivel - QUEDA);
-    ui.nivel_limpo = alvo(pico_limpo).max(ui.nivel_limpo - QUEDA);
+    let (mic, limpo) = (alvo(pico), alvo(pico_limpo));
+    ui.nivel = mic.max(ui.nivel - QUEDA);
+    ui.nivel_limpo = limpo.max(ui.nivel_limpo - QUEDA);
     ui.em_cada(|d| {
         d.set_nivel(ui.nivel);
         d.set_nivel_limpo(ui.nivel_limpo);
     });
+    // A onda leva o pico de cada tick, sem a queda do medidor (as palavras não se borram).
+    if !minimizada {
+        empurrar_onda(&ui.onda, Barra { mic, limpo });
+    }
     ui.tick += 1;
     if ui.tick.is_multiple_of(TICKS_NUMEROS) {
         atualizar_numeros(ui);
