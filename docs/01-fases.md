@@ -2,7 +2,7 @@
 
 **Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos;
 bloco 4 começado (última configuração salva, instância única, iniciar com o sistema). Página **Teste** (gravar e ouvir A/B) feita.
-Visual **vidro** com fundo sólido feito (2026-10-23), aguardando o Alex aprovar as capturas.
+Visual **vidro** com fundo sólido feito e **aprovado pelo Alex** (2026-10-23).
 - Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `mic-limpo` abre a janela
   Slint ligada ao motor e põe um ícone na bandeja (clique = flyout; menu Abrir/Sair); fechar a
   janela deixa o app só na bandeja. A última configuração volta ao abrir
@@ -29,9 +29,9 @@ IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou c
 feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Iniciar com o
 sistema (+ "Só na bandeja") feito; falta o Alex ligar no app de release e reiniciar o PC de verdade. Se o Forte
 voltar a picotar, medir underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). Visual "vidro" com fundo sólido
-feito (ver `05-interface.md`, Visual vidro). **Próximo:** Alex aprova as capturas `docs/mockups/capturas/vidro-*.png`
-e usa o app (falar e ver a onda; a onda custa ~+1,5 ponto de 1 núcleo, ele decide se fica a 30 Hz); depois
-**desfoque real** (`window-vibrancy`, sessão própria, medir CPU/RAM antes de aceitar); depois, presets. Pendências que não bloqueiam: CPU com medidor animado e
+feito e aprovado pelo Alex (ver `05-interface.md`, Visual vidro). **Próximo:** **desfoque real** (`window-vibrancy`,
+sessão própria, medir CPU/RAM antes de aceitar); depois, presets. A onda custa ~+1,5 ponto de 1 núcleo (fica a 30 Hz
+salvo pedido do Alex). Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
 mic antes do app; corte audível da troca não medido ponta a ponta (hipótese ~0); timer do
@@ -189,3 +189,4 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
   rodapé com Teste/Configurações/Sobre e voltar; flyout no mesmo estilo. Tudo conferido no app de
   release com cliques simulados. Medido: onda ~+1,5 ponto de 1 núcleo (~0,13 % do PC) sobre o medidor,
   RAM igual (app 25,0 / 6,2 MB). Capturas `vidro-*` em `docs/mockups/capturas/`. +1 teste (25 passam).
+- 2026-10-23 — Alex aprovou o visual vidro (capturas `vidro-*`). Segue o desfoque real numa sessão nova.
