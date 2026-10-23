@@ -1,17 +1,18 @@
 //! Prévia das telas com dados estáticos (sem áudio), para ajustar o visual e medir leveza.
 
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use mic_limpo_ui::{Dados, Flyout, JanelaPrincipal};
-use slint::{ComponentHandle, Timer, TimerMode};
+use mic_limpo_ui::{empurrar_onda, onda_vazia, Barra, Dados, Flyout, JanelaPrincipal};
+use slint::{ComponentHandle, ModelRc, Timer, TimerMode};
 
 const AJUDA: &str = "\
 mic-limpo-ui-previa [opções]
 
   --flyout           mostra o flyout da bandeja em vez da janela principal
-  --pagina N         0 Início, 1 Configurações, 2 Sobre
+  --pagina N         0 Início, 1 Configurações, 2 Sobre, 3 Teste
   --claro | --escuro força o tema (padrão: o do sistema)
-  --medidor-parado   não anima o medidor (medir a janela parada)
+  --medidor-parado   não anima o medidor nem a onda (medir a janela parada)
   --medir            mostra o tempo até o laço de eventos rodar
   --sair-apos-ms N   fecha sozinho depois de N ms (medir abrir + fechar)";
 
@@ -45,17 +46,24 @@ fn ler_opcoes() -> Opcoes {
     o
 }
 
-/// Nível de microfone fictício: passeio aleatório entre 5 % e 90 % (xorshift, sem dependências).
-fn animar_medidor(dados: impl Fn(f32) + 'static) -> Timer {
+/// Mic fictício a 30 Hz, como no mockup: fala em rajadas sobre um ruído de fundo; o limpo é só a
+/// fala (xorshift, sem dependências). Recebe (mic, limpo) em 0..1.
+fn animar_medidor(dados: impl Fn(f32, f32) + 'static) -> Timer {
     let timer = Timer::default();
-    let (mut estado, mut nivel) = (0x9e37_79b9_u32, 0.3_f32);
-    timer.start(TimerMode::Repeated, Duration::from_millis(33), move || {
+    let (mut estado, mut t) = (0x9e37_79b9_u32, 0_u32);
+    let mut sorteio = move || {
         estado ^= estado << 13;
         estado ^= estado >> 17;
         estado ^= estado << 5;
-        let passo = (estado as f32 / u32::MAX as f32 - 0.5) * 0.2;
-        nivel = (nivel + passo).clamp(0.05, 0.9);
-        dados(nivel);
+        estado as f32 / u32::MAX as f32
+    };
+    timer.start(TimerMode::Repeated, Duration::from_millis(33), move || {
+        t += 1;
+        let s = t as f32 / 2.0;
+        let falando = (s / 9.0).sin() + (s / 3.7).sin() * 0.5 > 0.2;
+        let voz = if falando { 0.35 + sorteio() * 0.6 } else { 0.0 };
+        let ruido = 0.12 + sorteio() * 0.18;
+        dados(voz.max(ruido).min(1.0), voz * 0.95);
     });
     timer
 }
@@ -68,11 +76,16 @@ macro_rules! preparar {
         if $o.tema != 0 {
             $janela.invoke_aplicar_tema($o.tema);
         }
+        let onda = Rc::new(onda_vazia());
+        d.set_onda(ModelRc::from(onda.clone()));
         let fraca = $janela.as_weak();
         (!$o.medidor_parado).then(|| {
-            animar_medidor(move |n| {
+            animar_medidor(move |mic, limpo| {
                 if let Some(j) = fraca.upgrade() {
-                    j.global::<Dados>().set_nivel(n);
+                    let d = j.global::<Dados>();
+                    d.set_nivel(mic);
+                    d.set_nivel_limpo(limpo);
+                    empurrar_onda(&onda, Barra { mic, limpo });
                 }
             })
         })
