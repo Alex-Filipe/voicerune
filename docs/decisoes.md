@@ -69,3 +69,5 @@
 | 2026-10-23 | Lua do rodapé alterna claro/escuro; "Do sistema" fica em Configurações | O mockup tem o ícone; um clique para o caso comum |
 | 2026-10-23 | Capturas do vidro com nomes novos (`vidro-*.png`) | As antigas são resultado entregue e ficam |
 | 2026-10-23 | Sem desfoque (Mica/Acrylic) no Windows: fica o vidro com fundo sólido; desfoque só no Mac (Fase 5) | Escolha do Alex depois de ver o Mica funcionando; menos código e nada a medir no Windows |
+| 2026-10-30 | Nome do app: **VoiceRune** (substitui o provisório `mic-limpo`) | Escolha do Alex: gosta de RPG (Diablo, PoE); a renomeação no código fica para uma tarefa própria |
+| 2026-10-30 | Ícone: microfone rúnico (traços retos) lilás `#c4b5ff` dentro de hexágono laranja `#ff8a3d`, fundo `#1b1530` | Escolha do Alex entre 12 esboços; um SVG só (`crates/ui/ui/icone.svg`) é a fonte, `.ico`/`.icns`/PNG saem dele |

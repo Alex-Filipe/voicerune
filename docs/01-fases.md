@@ -193,3 +193,8 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
 - 2026-10-23 — Desfoque no Windows testado (Mica pelo winit, sem crate novo, funcionou no app de release) e
   **descartado pelo Alex**: no Windows fica o fundo sólido; desfoque só no Mac (Fase 5). Código desfeito, nada
   medido. Achados em `05-interface.md` ("Desfoque: só no Mac"). Próximo: presets.
+- 2026-10-30 — Nome escolhido pelo Alex: **VoiceRune** (código e docs ainda dizem `mic-limpo`; renomear é
+  tarefa própria). Ícone escolhido entre 12 esboços: microfone rúnico lilás em hexágono laranja sobre roxo
+  escuro. `crates/ui/ui/icone.svg` (janela e bandeja) trocado; `assets/icone/` com PNG 256/1024,
+  `voicerune.ico` (16–256) e `voicerune.icns` (16–1024), gerados com resvg + Pillow fora do projeto.
+  **Não visto no app** (janela/bandeja) nem embutido no `.exe`. Em 16–24 px o desenho fica embolado.
