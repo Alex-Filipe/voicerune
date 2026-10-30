@@ -34,8 +34,7 @@ feito e aprovado pelo Alex (ver `05-interface.md`, Visual vidro). Alex decidiu: 
 fundo sólido); desfoque só no Mac (Fase 5). **Próximo:** **presets** (fim do bloco 4). A onda custa ~+1,5 ponto de 1 núcleo (fica a 30 Hz
 salvo pedido do Alex). Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
-dispositivos não atualizam ao plugar; atalho `mic-limpo.lnk` da área de trabalho ainda abre o exe
-velho (`mic-limpo.exe`); migração do registro não testada de verdade; teste com jogo aberto; underrun na partida do DFN; gate do
+dispositivos não atualizam ao plugar; migração do registro não testada de verdade; teste com jogo aberto; underrun na partida do DFN; gate do
 mic antes do app; corte audível da troca não medido ponta a ponta (hipótese ~0); timer do
 medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 20:08 de 2026-10-21 mostrou
 Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
@@ -206,4 +205,4 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
   nova não existe (sem apagar a antiga); valor `VoiceRune` no `Run`, migrando o `mic-limpo` ao abrir.
   `target-dir` e pasta do repositório mantêm o nome antigo. Conferido no app de release: a config antiga
   voltou (captura `voicerune-config-migrada.png`). Migração do registro **não testada** de verdade (não
-  havia valor antigo). +1 teste (25 passam). Atalho da área de trabalho ainda aponta para `mic-limpo.exe`.
+  havia valor antigo). +1 teste (25 passam). Atalho da área de trabalho virou `VoiceRune.lnk` → `releaseoicerune.exe`.

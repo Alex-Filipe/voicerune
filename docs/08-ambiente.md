@@ -24,9 +24,8 @@
 - `cargo build --release`; binários em `C:\dev\cargo-target\mic-limpo\release\`:
   `voicerune.exe` (app) e `voicerune-dev.exe` (ferramentas; até 2026-10-30 `mic-limpo*.exe`, que ficaram velhos na pasta). `cargo test --workspace` roda os testes; o teste de tempo real do DFN só roda em
   `cargo test --workspace --release` (em debug o modelo é lento demais e fica ignorado).
-- Atalho na área de trabalho (`mic-limpo.lnk`, criado em 2026-10-20) aponta para o
-  `release\mic-limpo.exe`, que **não é mais recompilado** desde o renome (2026-10-30): precisa apontar
-  para `releaseoicerune.exe`. **Fechar o app (Sair na bandeja)
+- Atalho na área de trabalho (`VoiceRune.lnk`; era `mic-limpo.lnk`, criado em 2026-10-20, renomeado e
+  reapontado em 2026-10-30) aponta direto para o `releaseoicerune.exe`: sempre a versão compilada mais nova. **Fechar o app (Sair na bandeja)
   antes de `cargo build --release`**, senão o build falha (exe em uso). Exe ainda sem ícone embutido.
 - Configuração do app: `%APPDATA%\VoiceRune\config.ini` (texto; apagar volta aos padrões; sem ele o app lê o antigo `%APPDATA%\mic-limpo\config.ini`).
 - App: `voicerune` abre a janela (em release, sem console). Sem janela, pelas ferramentas:
