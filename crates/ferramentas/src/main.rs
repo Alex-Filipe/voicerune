@@ -1,4 +1,4 @@
-//! voicerune-dev: ferramentas de medição do mic-limpo (fora do app do usuário).
+//! voicerune-dev: ferramentas de medição do VoiceRune (fora do app do usuário).
 
 mod bench;
 mod comparar;

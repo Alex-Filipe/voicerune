@@ -1,4 +1,4 @@
-//! mic-limpo: a janela (Slint) ligada ao motor pelo `Controlador`, com ícone na bandeja.
+//! VoiceRune: a janela (Slint) ligada ao motor pelo `Controlador`, com ícone na bandeja.
 //!
 //! Threads: a da janela só lê e mostra; a de controle (`voicerune-controle`) é dona do
 //! `Controlador` e aplica os ajustes (abrir fluxos e carregar o DFN leva até ~0,3 s); a de avisos
@@ -294,7 +294,7 @@ fn primeira_instancia() -> Option<Instancia> {
     use windows::Win32::UI::WindowsAndMessaging::{AllowSetForegroundWindow, ASFW_ANY};
 
     // SAFETY: sem atributos de segurança (padrão); o handle fica aberto até o processo sair.
-    let evento = match unsafe { CreateEventW(None, false, false, w!("Local\\mic-limpo-abrir")) } {
+    let evento = match unsafe { CreateEventW(None, false, false, w!("Local\\VoiceRune-abrir")) } {
         Ok(e) => e,
         // Sem o evento o app abre normalmente (pode haver duas cópias).
         Err(e) => {

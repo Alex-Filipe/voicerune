@@ -1,4 +1,4 @@
-// Telas do mic-limpo: janela principal (painel único), ícone e flyout da bandeja.
+// Telas do VoiceRune: janela principal (painel único), ícone e flyout da bandeja.
 // Visual "vidro" aprovado no mockup HTML (docs/mockups/b-vidro.html), por enquanto com fundo sólido
 // (o desfoque de verdade é uma etapa à parte).
 
@@ -875,7 +875,7 @@ component PaginaInicio inherits VerticalLayout {
             alignment: center;
             spacing: 1px;
             Texto {
-                text: "mic-limpo";
+                text: "VoiceRune";
                 font-size: 15px;
                 font-weight: 600;
             }
@@ -1445,7 +1445,7 @@ component PaginaSobre inherits VerticalLayout {
             padding: 12px;
             spacing: 4px;
             Texto {
-                text: "mic-limpo " + Dados.versao;
+                text: "VoiceRune " + Dados.versao;
                 font-weight: 600;
             }
 
@@ -1484,7 +1484,7 @@ component PaginaSobre inherits VerticalLayout {
 }
 
 export component JanelaPrincipal inherits Window {
-    title: "mic-limpo";
+    title: "VoiceRune";
     icon: @image-url("icone.svg");
     preferred-width: 400px;
     min-width: 380px;
@@ -1537,7 +1537,7 @@ export component JanelaPrincipal inherits Window {
 // Ícone na bandeja (Shell_NotifyIconW no Windows): clique abre o flyout; botão direito, o menu.
 export component Bandeja inherits SystemTrayIcon {
     icon: @image-url("icone.svg");
-    tooltip: "mic-limpo";
+    tooltip: "VoiceRune";
     callback clicado();
     callback abrir();
     callback sair();
@@ -1562,7 +1562,7 @@ export component Bandeja inherits SystemTrayIcon {
 }
 
 export component Flyout inherits Window {
-    title: "mic-limpo";
+    title: "VoiceRune";
     no-frame: true;
     always-on-top: true;
     width: 320px;
