@@ -76,7 +76,7 @@ oficial (ver abaixo):
 | Tempo por quadro de 10 ms | média 0,041 · p99 0,071 · máx 0,23 ms | média 0,81 · p99 1,21 · máx 1,78 ms |
 | Custo médio | **0,4 %** de um núcleo | **8,1 %** de um núcleo (~20×) |
 | Atraso algorítmico | 479 amostras = 10,0 ms | 1440 amostras = 30,0 ms |
-| Onde roda | thread de áudio | thread própria `mic-limpo-ia` (aloca e não é `Send`) |
+| Onde roda | thread de áudio | thread própria `voicerune-ia` (aloca e não é `Send`) |
 
 **Armadilha resolvida: limiares do DFN.** O `RuntimeParams::default_with_ch` da libDF (padrão
 do plugin LADSPA) usa limiares de SNR local −10 / 30 / 20 dB: pula o 2º estágio (deep filtering)

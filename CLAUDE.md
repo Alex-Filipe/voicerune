@@ -1,4 +1,4 @@
-# mic-limpo (nome provisório)
+# VoiceRune
 
 App open source em Rust para **cancelamento de ruído do microfone com IA**, inspirado no
 Voicemeeter Banana, mas **simples, leve, bonito e multiplataforma (Windows + macOS)**.
@@ -11,7 +11,7 @@ Voicemeeter Banana, mas **simples, leve, bonito e multiplataforma (Windows + mac
 - Separar sempre **decidido** de **hipótese a medir**. Nada é "testado" sem medição registrada.
 - Leveza é requisito: medir CPU/RAM/latência antes de aceitar uma dependência pesada.
 - Privacidade: **zero rede e zero telemetria** no app. Nenhuma dependência que faça rede.
-- `target/` fica **fora do OneDrive** (`C:\dev\cargo-target\mic-limpo`, ver `.cargo/config.toml`).
+- `target/` fica **fora do OneDrive** (`C:\dev\cargo-target\mic-limpo`, ver `.cargo/config.toml`; a pasta manteve o nome antigo).
 - Commits pequenos e frequentes; mensagens em português.
 - Sem engenharia reversa do binário do Voicemeeter (EULA): estudar só comportamento,
   manual e API pública (clean-room).

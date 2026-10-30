@@ -72,3 +72,7 @@
 | 2026-10-30 | Nome do app: **VoiceRune** (substitui o provisório `mic-limpo`) | Escolha do Alex: gosta de RPG (Diablo, PoE); a renomeação no código fica para uma tarefa própria |
 | 2026-10-30 | Ícone: microfone rúnico (traços retos) lilás `#c4b5ff` dentro de hexágono laranja `#ff8a3d`, fundo `#1b1530` | Escolha do Alex entre 12 esboços; um SVG só (`crates/ui/ui/icone.svg`) é a fonte, `.ico`/`.icns`/PNG saem dele |
 | 2026-10-30 | Ícone trocado: runa Wunjo (ᚹ, som de "V") dourada `#f0c86a` soltando ondas de voz, em hexágono `#d4a64a`, fundo `#2a0d0d` | Escolha do Alex (esboço 4, centralizado), no lugar do microfone rúnico; lê melhor em 16–32 px |
+| 2026-10-30 | Renome: crates e binários `voicerune*` (minúsculo, padrão do Cargo); nos textos, pasta da config, valor do `Run` e evento, "VoiceRune" | Escopo aprovado pelo Alex |
+| 2026-10-30 | Config antiga (`%APPDATA%\mic-limpo`) é **lida** se a nova não existe, nunca movida nem apagada | Quem já usa não perde nada e a versão antiga continua funcionando; a próxima gravação cria a nova |
+| 2026-10-30 | Valor `mic-limpo` do `Run` é **migrado** (regravado como `VoiceRune` com o exe atual, mesmo `--bandeja` e marca do Gerenciador) e apagado | Duas entradas abririam duas cópias; o antigo aponta para um exe que não é mais compilado |
+| 2026-10-30 | `target-dir` (`C:\dev\cargo-target\mic-limpo`) e pasta do repositório mantêm o nome antigo | Mudar o target recompila todas as dependências; a pasta do repo mexe com worktrees e sessões |

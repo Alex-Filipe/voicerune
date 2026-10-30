@@ -10,13 +10,13 @@ crates/
   audio/        → backends de áudio atrás de callbacks simples: cpal (padrão; WASAPI compartilhado
                   no Windows, CoreAudio no macOS) e `wasapi` (baixa latência, só Windows).
                   Único crate do produto que fala com API de áudio. `Pedido.backend` escolhe.
-  app/          → `mic-limpo`, o programa do usuário: lib `controlador` (ajustes do usuário →
+  app/          → `voicerune`, o programa do usuário: lib `controlador` (ajustes do usuário →
                   motor + fluxos, troca sem corte) e `salvo` (última configuração em
                   `config.ini`) + binário com a janela e a bandeja (Slint).
-  ferramentas/  → `mic-limpo-dev`, só para desenvolvimento: rodar/listar (o app sem janela),
+  ferramentas/  → `voicerune-dev`, só para desenvolvimento: rodar/listar (o app sem janela),
                   bench, latencia, comparar, sondar. Não vai para o usuário final.
-  ui/           → `mic-limpo-ui`: telas em Slint (janela principal + flyout), compiladas no build;
-                  dados pelo global `Dados`. Binário `mic-limpo-ui-previa` com dados estáticos.
+  ui/           → `voicerune-ui`: telas em Slint (janela principal + flyout), compiladas no build;
+                  dados pelo global `Dados`. Binário `voicerune-ui-previa` com dados estáticos.
                   O app liga ao motor.
 ```
 Dependências: `app` → `core` + `audio` + `ui`; `ferramentas` → `app` (lib) + `core` + `audio`
@@ -33,7 +33,7 @@ Dependências: `app` → `core` + `audio` + `ui`; `ferramentas` → `app` (lib) 
 - `Config.modelo` (`rnnoise` | `dfn`) e `Config.limite_db` escolhem a IA. `criar` devolve
   `Result` (carregar o DFN leva ~0,2 s e pode falhar).
 - Modelo que aloca ou não é `Send` (DFN: tract usa `Rc`) roda na thread própria
-  `mic-limpo-ia`, criada por `criar`, que carrega o modelo nela: `processar` só empurra as
+  `voicerune-ia`, criada por `criar`, que carrega o modelo nela: `processar` só empurra as
   amostras num `rtrb` e chama `unpark` (sem lock nem alocação); a thread processa e empurra
   direto no ring buffer da saída. RNNoise continua na thread de áudio. O contrato não muda.
 - Ferramentas que precisam mexer no sinal (ex.: injetar cliques) fazem isso **antes** de chamar
@@ -66,10 +66,10 @@ Dependências: `app` → `core` + `audio` + `ui`; `ferramentas` → `app` (lib) 
   atraso/CPU/falhas. Só com a bandeja, a thread fica parada (0 ciclos em 10 s).
 - **Bandeja**: `SystemTrayIcon` do Slint (`Shell_NotifyIconW`, janela oculta na mesma thread);
   enquanto visível, mantém o laço de eventos vivo sem janela.
-- **Controle** (`mic-limpo-controle`): dona do `Controlador`; dorme no `recv`. Junta o que chegou
+- **Controle** (`voicerune-controle`): dona do `Controlador`; dorme no `recv`. Junta o que chegou
   de uma vez (arrastar o ganho = um `aplicar`), reage a aviso fatal (reabre uma vez) e devolve o
   `Estado` com `slint::invoke_from_event_loop`.
-- **Avisos** (`mic-limpo-avisos`): repassa `audio::Aviso` para o canal da de controle.
+- **Avisos** (`voicerune-avisos`): repassa `audio::Aviso` para o canal da de controle.
 - Fechar a janela ("X"): destrói o componente e o app fica na bandeja. **Sair** (menu do ícone):
   `Sair` para a de controle, que solta motor e fluxos (medido em debug: 48 ms até o processo acabar).
 

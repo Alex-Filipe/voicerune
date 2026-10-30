@@ -14,7 +14,7 @@
 - `cargo build` do workspace passa ✅
 
 ## Build
-- `target/` fora do OneDrive: `C:\dev\cargo-target\mic-limpo` (configurado em `.cargo/config.toml`).
+- `target/` fora do OneDrive: `C:\dev\cargo-target\mic-limpo` (configurado em `.cargo/config.toml`; ficou com o nome antigo para não recompilar as dependências).
 - `cargo build` na raiz.
 
 ## macOS
@@ -22,17 +22,18 @@
 
 ## Rodar
 - `cargo build --release`; binários em `C:\dev\cargo-target\mic-limpo\release\`:
-  `mic-limpo.exe` (app) e `mic-limpo-dev.exe` (ferramentas). `cargo test --workspace` roda os testes; o teste de tempo real do DFN só roda em
+  `voicerune.exe` (app) e `voicerune-dev.exe` (ferramentas; até 2026-10-30 `mic-limpo*.exe`, que ficaram velhos na pasta). `cargo test --workspace` roda os testes; o teste de tempo real do DFN só roda em
   `cargo test --workspace --release` (em debug o modelo é lento demais e fica ignorado).
-- Atalho na área de trabalho (`mic-limpo.lnk`, criado em 2026-10-20) aponta direto para o
-  `release\mic-limpo.exe`: sempre a versão compilada mais nova. **Fechar o app (Sair na bandeja)
+- Atalho na área de trabalho (`mic-limpo.lnk`, criado em 2026-10-20) aponta para o
+  `release\mic-limpo.exe`, que **não é mais recompilado** desde o renome (2026-10-30): precisa apontar
+  para `releaseoicerune.exe`. **Fechar o app (Sair na bandeja)
   antes de `cargo build --release`**, senão o build falha (exe em uso). Exe ainda sem ícone embutido.
-- Configuração do app: `%APPDATA%\mic-limpo\config.ini` (texto; apagar volta aos padrões).
-- App: `mic-limpo` abre a janela (em release, sem console). Sem janela, pelas ferramentas:
-  `mic-limpo-dev listar` · `mic-limpo-dev rodar --entrada Microphone` (Enter liga/desliga a IA;
+- Configuração do app: `%APPDATA%\VoiceRune\config.ini` (texto; apagar volta aos padrões; sem ele o app lê o antigo `%APPDATA%\mic-limpo\config.ini`).
+- App: `voicerune` abre a janela (em release, sem console). Sem janela, pelas ferramentas:
+  `voicerune-dev listar` · `voicerune-dev rodar --entrada Microphone` (Enter liga/desliga a IA;
   `l`/`f` Leve/Forte, `b` baixa latência, `g N` ganho, `p` pausa, `q` encerra).
   Modo baixa latência: acrescentar `--baixa-latencia` (Windows).
-- Ferramentas (`mic-limpo-dev --ajuda`):
+- Ferramentas (`voicerune-dev --ajuda`):
   - `bench` — custo do RNNoise, offline.
   - `latencia` — cliques → CABLE Output; **escreve no CABLE Input: conferir que o Discord não
     está usando o CABLE Output numa call**.

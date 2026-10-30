@@ -4,7 +4,7 @@
 - Crate `cpal` (WASAPI no Windows, CoreAudio no macOS). Alternativa no Windows: crate `wasapi`.
 - Processar só o necessário: mic mono, 48 kHz.
 
-## Dispositivo virtual (saída "mic limpo" que outros apps enxergam)
+## Dispositivo virtual (saída "VoiceRune" que outros apps enxergam)
 
 | | Windows | macOS |
 |---|---|---|
@@ -37,7 +37,7 @@
   (−37,7 dBFS médio falando) e hoje o app não tem controle de volume.
 - Limites do `cpal` 0.18 no WASAPI: só modo compartilhado; `BufferSize::Fixed` abaixo de 10 ms é
   ignorado (o período continua 480 quadros); não usa IAudioClient3 nem modo exclusivo.
-- Ferramentas (binário `mic-limpo-dev`; antes eram opções do `mic-limpo`):
+- Ferramentas (binário `voicerune-dev`; antes eram opções do app):
   `latencia` (troca o mic por cliques a cada 500 ms, IA desligada, e detecta no `CABLE Output`
   comparando timestamps de captura no mesmo relógio QPC) e `sondar` (consulta o WASAPI direto:
   períodos, buffers, IAudioClient3, exclusivo).

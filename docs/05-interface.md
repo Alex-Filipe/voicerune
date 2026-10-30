@@ -58,7 +58,7 @@ ocupa esse lugar.
 - Leveza: `.slint` compilado para Rust no build; sem features padrão do Slint (só `backend-winit`
   + `renderer-software`: sem OpenGL; desde o bloco 3 da Fase 4 também `system-tray` e
   `unstable-winit-030`, sem crate novo no Windows); só a página visível é instanciada (`if`).
-- Prévia: `mic-limpo-ui-previa [--flyout] [--pagina N] [--claro|--escuro] [--medidor-parado]
+- Prévia: `voicerune-ui-previa [--flyout] [--pagina N] [--claro|--escuro] [--medidor-parado]
   [--medir] [--sair-apos-ms N]` (`--pagina` 0 Início, 1 Configurações, 2 Sobre, 3 Teste; anima
   medidor e onda com fala fictícia). Capturas em `docs/mockups/capturas/` (as do vidro: `vidro-*`).
 
@@ -77,7 +77,7 @@ ocupa esse lugar.
   build; `scoped-tls-hkt` é thread-local). O binário não importa `ws2_32`/`winhttp`/`wininet`.
 
 ### App ligado ao motor (Fase 4, bloco 2)
-- `mic-limpo` abre a `JanelaPrincipal` com dados reais: listas de dispositivos de `audio::listar`
+- `voicerune` abre a `JanelaPrincipal` com dados reais: listas de dispositivos de `audio::listar`
   (na partida; ainda não atualizam ao plugar/desplugar), modo, ganho, baixa latência, status,
   atraso, CPU, falhas e modelo. Cada controle chama um callback próprio no `Dados`
   (`modo-escolhido`, `ganho-mudou`, ...): o mic continua "o padrão do sistema" até ser escolhido.
@@ -111,7 +111,7 @@ Input; 10 s cada pelo `TotalProcessorTime` do processo):**
 - **Não testado:** reabrir depois de um aviso fatal (precisa desconectar um dispositivo).
 
 ### Bandeja e flyout (Fase 4, bloco 3)
-- Ícone: componente `Bandeja` (`SystemTrayIcon` do Slint com `icone.svg`, dica "mic-limpo").
+- Ícone: componente `Bandeja` (`SystemTrayIcon` do Slint com `icone.svg`, dica "VoiceRune").
   Clique abre ou fecha o flyout; botão direito abre o menu **Abrir / Sair**. No Windows 11 ele
   nasce no grupo de ícones ocultos ("^"); o Alex pode arrastá-lo para a barra.
 - Flyout: criado a cada clique e destruído ao perder o foco. A altura do layout é lida antes de
@@ -164,7 +164,7 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   de 64 px reduzido pelo shell.
 
 ### Configuração salva (Fase 4, bloco 4)
-- `%APPDATA%\mic-limpo\config.ini` (módulo `salvo` na lib do app): cancelamento, modo, volume, mic,
+- `%APPDATA%\VoiceRune\config.ini` (módulo `salvo` na lib do app): cancelamento, modo, volume, mic,
   saída, baixa latência, tema e posição/tamanho da janela. Lido na partida; gravado 0,5 s depois da
   última mudança, ao fechar a janela e no Sair (temporário + troca de nome). Apagar o arquivo
   volta aos padrões.
@@ -236,7 +236,7 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   Personalizado; clicar em qualquer lugar fecha. Sem rótulo extra na chave: o título já diz o quê.
 - **Flyout:** a chave do topo agora é a do cancelamento (antes **pausava o áudio todo**, e o Discord
   ficava sem mic). A pausa saiu da janela; parar tudo = "Sair" da bandeja. `ligado` continua no
-  `Controlador` (o `mic-limpo-dev rodar` usa no `p`), o app sempre abre ligado.
+  `Controlador` (o `voicerune-dev rodar` usa no `p`), o app sempre abre ligado.
 - `config.ini`: `cancelamento = sim/nao` + `modo = leve/forte`. Arquivo antigo: `modo = desligado`
   vira a chave desligada e `ligado` é ignorado (+1 teste). Com a chave desligada o modelo do modo
   fica carregado (o Forte ocupa a RAM do DFN), para religar sem espera.
@@ -246,7 +246,7 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   conferido pelo Alex: "ficou bom".
 
 ### Instância única (Fase 4, bloco 4, 2026-10-21)
-- A 1ª cópia cria o evento nomeado `Local\mic-limpo-abrir` (por sessão do Windows) e uma thread
+- A 1ª cópia cria o evento nomeado `Local\VoiceRune-abrir` (por sessão do Windows) e uma thread
   dorme nele. Abrir o app de novo (atalho, exe) acha o evento, chama `AllowSetForegroundWindow` +
   `SetEvent` e sai antes do backend do Slint e do áudio; a 1ª abre a janela (ou restaura e foca a
   aberta). Sem crate novo (só a feature `Win32_Security` do `windows`). Fora do Windows: nada (o
@@ -267,14 +267,14 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
 ### Iniciar com o sistema (Fase 4, bloco 4, 2026-10-22)
 - Configurações, cartão "Iniciar com o sistema" (chave) + "Só na bandeja" (chave, desabilitada com a
   1ª desligada). Fora do Windows o cartão some (`iniciar-disponivel`; macOS na Fase 5).
-- Módulo `partida` (crate `app`): valor `mic-limpo` em `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+- Módulo `partida` (crate `app`): valor `VoiceRune` em `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
   = `"<exe atual>"` + ` --bandeja` se marcado; desligar apaga o valor. Sem administrador, sem crate
   novo (feature `Win32_System_Registry` do `windows`).
 - **O registro é a fonte da verdade:** a tela lê dele ao abrir a janela (e depois de cada mudança).
   Desativado no Gerenciador de Tarefas (`Explorer\StartupApproved\Run`, 1º byte ímpar) conta como
   desligado; religar pelo app apaga essa marca. O `config.ini` guarda só a preferência
   `so_bandeja` (padrão `sim`), para desligar e religar sem perdê-la.
-- `mic-limpo --bandeja`: só o ícone, sem janela. A cópia da partida é a 1ª; o atalho depois só traz
+- `voicerune --bandeja`: só o ícone, sem janela. A cópia da partida é a 1ª; o atalho depois só traz
   a janela (instância única).
 - Limitação: o caminho do exe é o de quem mexeu na chave por último (ex.: o de debug); a chave
   aparece ligada mesmo se o registro apontar para outro exe. Mexer na chave regrava com o atual.
@@ -284,6 +284,23 @@ CABLE Input; Discord fechado; 10 s cada pelo `TotalProcessorTime` do processo; 2
   `config.ini`. Release, linha registrada (`"…\release\mic-limpo.exe" --bandeja`): só o ícone,
   nenhuma janela; abrir o exe de novo trouxe a janela no mesmo processo. +2 testes (24 passam).
   **Pendente (Alex):** ligar no app de release e reiniciar o PC de verdade.
+
+### Renome para VoiceRune (2026-10-30)
+- Binários `voicerune` / `voicerune-dev` / `voicerune-ui-previa`, crates `voicerune*`; título, cabeçalho,
+  Sobre e dica da bandeja dizem "VoiceRune"; evento `Local\VoiceRune-abrir`. A pasta de build
+  (`C:\dev\cargo-target\mic-limpo`) e a do repositório mantêm o nome antigo.
+- **Config:** lê `%APPDATA%\VoiceRune\config.ini`; sem ele, o antigo `%APPDATA%\mic-limpo\config.ini`.
+  O antigo nunca é apagado nem movido; a 1ª gravação (mudança, fechar a janela ou Sair) cria o novo.
+  +1 teste (`pasta_antiga_so_sem_a_nova`).
+- **Partida:** ao abrir, se existe o valor `mic-limpo` no `Run`, grava `VoiceRune` com o exe atual, o
+  mesmo `--bandeja` e a mesma marca do Gerenciador de Tarefas, e apaga o antigo (se `VoiceRune` já
+  existe, ele vale e o antigo só é apagado). Evita perder a partida ou abrir duas cópias.
+- Conferido (release, 2026-10-30): sem pasta `VoiceRune`, o app abriu com a config antiga (Forte, +5 dB,
+  mic e CABLE Input, tema claro, mesma posição). Captura `voicerune-config-migrada.png`.
+  **Não testado:** a migração do registro de verdade (não havia valor `mic-limpo` no PC e não
+  criei um falso); só compila e segue a lógica do `gravar`.
+- A antiga e a nova não se veem como a mesma instância (eventos diferentes): não deixar as duas
+  abertas, senão as duas mandam áudio para o cabo.
 
 ### Visual vidro, fundo sólido (2026-10-23)
 - `telas.slint` reescrito no layout do `b-vidro.html` (tabela acima). Tudo ligado ao motor como

@@ -3,10 +3,11 @@
 **Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos;
 bloco 4 começado (última configuração salva, instância única, iniciar com o sistema). Página **Teste** (gravar e ouvir A/B) feita.
 Visual **vidro** com fundo sólido feito e **aprovado pelo Alex** (2026-10-23).
-- Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `mic-limpo` abre a janela
+- Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `voicerune` abre a janela
   Slint ligada ao motor e põe um ícone na bandeja (clique = flyout; menu Abrir/Sair); fechar a
   janela deixa o app só na bandeja. A última configuração volta ao abrir
-  (`%APPDATA%\mic-limpo\config.ini`). Sem janela nem bandeja: `mic-limpo-dev rodar`.
+  (`%APPDATA%\VoiceRune\config.ini`, ou o antigo `mic-limpo`). Sem janela nem bandeja: `voicerune-dev rodar`.
+- Nome **VoiceRune** no código e nos textos desde 2026-10-30 (config e partida antigas migram sozinhas).
 - Latência com a IA ligada: Leve ~98 ms / Forte ~115 ms com `--baixa-latencia` (padrão ~130 /
   ~149 ms); Voicemeeter atual ~128 ms. Nova meta pendente (Alex decide).
 
@@ -15,9 +16,9 @@ Visual **vidro** com fundo sólido feito e **aprovado pelo Alex** (2026-10-23).
 | Bloco | O quê | Status |
 |---|---|---|
 | 1. Motor controlável | ganho e medidor no `core`; `Controlador` no app troca modo/dispositivo/backend sem reiniciar; avisos por canal | concluído |
-| 2. UI ligada | `mic-limpo` abre a janela Slint com dados reais; `aplicar` fora da thread da janela; medidor só com a janela visível; reagir a aviso fatal | concluído |
+| 2. UI ligada | `voicerune` abre a janela Slint com dados reais; `aplicar` fora da thread da janela; medidor só com a janela visível; reagir a aviso fatal | concluído |
 | 3. Bandeja + flyout | `SystemTrayIcon` do Slint 1.18 (`Shell_NotifyIconW`, sem crate extra); fechar destrói o componente; flyout junto da bandeja | concluído |
-| 4. Config + presets | arquivo em `%APPDATA%\mic-limpo`, presets, iniciar com o sistema | em andamento: config salva, instância única e iniciar com o sistema feitos; falta presets |
+| 4. Config + presets | arquivo em `%APPDATA%\VoiceRune`, presets, iniciar com o sistema | em andamento: config salva, instância única e iniciar com o sistema feitos; falta presets |
 | 5. Uso diário | Alex usa alguns dias | — |
 
 **Próximo passo:** Alex quer melhorias antes de seguir. A primeira (página Teste) está feita; no
@@ -28,12 +29,13 @@ IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou c
 (desabilitado) com "?" feito e aprovado. Alex: Personalizado fica bloqueado por enquanto. Instância única
 feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Iniciar com o
 sistema (+ "Só na bandeja") feito; falta o Alex ligar no app de release e reiniciar o PC de verdade. Se o Forte
-voltar a picotar, medir underruns ao vivo (`mic-limpo-dev rodar --modelo dfn`). Visual "vidro" com fundo sólido
+voltar a picotar, medir underruns ao vivo (`voicerune-dev rodar --modelo dfn`). Visual "vidro" com fundo sólido
 feito e aprovado pelo Alex (ver `05-interface.md`, Visual vidro). Alex decidiu: **sem desfoque no Windows** (fica o
 fundo sólido); desfoque só no Mac (Fase 5). **Próximo:** **presets** (fim do bloco 4). A onda custa ~+1,5 ponto de 1 núcleo (fica a 30 Hz
 salvo pedido do Alex). Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
-dispositivos não atualizam ao plugar; teste com jogo aberto; underrun na partida do DFN; gate do
+dispositivos não atualizam ao plugar; atalho `mic-limpo.lnk` da área de trabalho ainda abre o exe
+velho (`mic-limpo.exe`); migração do registro não testada de verdade; teste com jogo aberto; underrun na partida do DFN; gate do
 mic antes do app; corte audível da troca não medido ponta a ponta (hipótese ~0); timer do
 medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 20:08 de 2026-10-21 mostrou
 Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
@@ -199,3 +201,9 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
   `voicerune.ico` (16–256) e `voicerune.icns` (16–1024), gerados com resvg + Pillow fora do projeto.
   **Não visto no app** (janela/bandeja) nem embutido no `.exe`. No mesmo dia o Alex trocou pelo esboço 4:
   runa Wunjo dourada com ondas de voz, em hexágono, fundo `#2a0d0d` (centralizada); arquivos regerados.
+- 2026-10-30 — **Renome para VoiceRune** feito: crates e binários `voicerune*`, título/cabeçalho/Sobre/dica
+  da bandeja, evento de instância única. Config em `%APPDATA%\VoiceRune` lendo a antiga `mic-limpo` se a
+  nova não existe (sem apagar a antiga); valor `VoiceRune` no `Run`, migrando o `mic-limpo` ao abrir.
+  `target-dir` e pasta do repositório mantêm o nome antigo. Conferido no app de release: a config antiga
+  voltou (captura `voicerune-config-migrada.png`). Migração do registro **não testada** de verdade (não
+  havia valor antigo). +1 teste (25 passam). Atalho da área de trabalho ainda aponta para `mic-limpo.exe`.

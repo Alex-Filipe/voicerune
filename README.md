@@ -1,4 +1,4 @@
-# mic-limpo (nome provisório)
+# VoiceRune
 
 Cancelamento de ruído do microfone com IA — simples, leve e privado. Windows e macOS.
 
