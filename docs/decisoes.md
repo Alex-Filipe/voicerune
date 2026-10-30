@@ -71,3 +71,4 @@
 | 2026-10-23 | Sem desfoque (Mica/Acrylic) no Windows: fica o vidro com fundo sólido; desfoque só no Mac (Fase 5) | Escolha do Alex depois de ver o Mica funcionando; menos código e nada a medir no Windows |
 | 2026-10-30 | Nome do app: **VoiceRune** (substitui o provisório `mic-limpo`) | Escolha do Alex: gosta de RPG (Diablo, PoE); a renomeação no código fica para uma tarefa própria |
 | 2026-10-30 | Ícone: microfone rúnico (traços retos) lilás `#c4b5ff` dentro de hexágono laranja `#ff8a3d`, fundo `#1b1530` | Escolha do Alex entre 12 esboços; um SVG só (`crates/ui/ui/icone.svg`) é a fonte, `.ico`/`.icns`/PNG saem dele |
+| 2026-10-30 | Ícone trocado: runa Wunjo (ᚹ, som de "V") dourada `#f0c86a` soltando ondas de voz, em hexágono `#d4a64a`, fundo `#2a0d0d` | Escolha do Alex (esboço 4, centralizado), no lugar do microfone rúnico; lê melhor em 16–32 px |

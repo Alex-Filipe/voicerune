@@ -330,11 +330,11 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
 - Pendências visuais: desfoque só no Mac (Fase 5). A barra de
   título acompanhou o tema forçado pela lua em 2026-10-23 (antes anotada como não seguindo; não
   revisto pelo Configurações). A lista aberta dos dispositivos é a do Fluent (cinza, marca na cor
-  do Windows), fora do estilo vidro. Ícone próprio da janela e da bandeja: `crates/ui/ui/icone.svg` (VoiceRune, 2026-10-30: microfone
-  rúnico em hexágono laranja). Derivados em `assets/icone/` (`voicerune.ico` 16–256, `voicerune.icns`
+  do Windows), fora do estilo vidro. Ícone próprio da janela e da bandeja: `crates/ui/ui/icone.svg` (VoiceRune, 2026-10-30: runa Wunjo
+  dourada com ondas de voz, em hexágono, fundo vermelho escuro). Derivados em `assets/icone/` (`voicerune.ico` 16–256, `voicerune.icns`
   16–1024, PNG 256/1024), gerados pelo `resvg` (CLI) + Pillow fora do projeto; o `.ico` ainda não está
-  embutido no `.exe` (precisaria de recurso Win32 no build). Em 16–24 px o desenho embola: se
-  incomodar na bandeja, fazer uma versão simplificada só para tamanhos pequenos.
+  embutido no `.exe` (precisaria de recurso Win32 no build). Em 16 px a runa ainda se lê; as
+  ondas e o hexágono interno somem.
 - Armadilha resolvida: **nunca** pôr `Palette.color-scheme = ColorScheme.unknown`. Os widgets do
   Fluent e as nossas cores passam a divergir (texto branco em fundo branco: caixas de seleção
   "somem"). "Do sistema" volta para o esquema que o sistema tinha antes do 1º ajuste.

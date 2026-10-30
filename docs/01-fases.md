@@ -197,4 +197,5 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
   tarefa própria). Ícone escolhido entre 12 esboços: microfone rúnico lilás em hexágono laranja sobre roxo
   escuro. `crates/ui/ui/icone.svg` (janela e bandeja) trocado; `assets/icone/` com PNG 256/1024,
   `voicerune.ico` (16–256) e `voicerune.icns` (16–1024), gerados com resvg + Pillow fora do projeto.
-  **Não visto no app** (janela/bandeja) nem embutido no `.exe`. Em 16–24 px o desenho fica embolado.
+  **Não visto no app** (janela/bandeja) nem embutido no `.exe`. No mesmo dia o Alex trocou pelo esboço 4:
+  runa Wunjo dourada com ondas de voz, em hexágono, fundo `#2a0d0d` (centralizada); arquivos regerados.
