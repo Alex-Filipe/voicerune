@@ -25,7 +25,7 @@
   `voicerune.exe` (app) e `voicerune-dev.exe` (ferramentas; até 2026-10-30 `mic-limpo*.exe`, que ficaram velhos na pasta). `cargo test --workspace` roda os testes; o teste de tempo real do DFN só roda em
   `cargo test --workspace --release` (em debug o modelo é lento demais e fica ignorado).
 - Atalho na área de trabalho (`VoiceRune.lnk`; era `mic-limpo.lnk`, criado em 2026-10-20, renomeado e
-  reapontado em 2026-10-30) aponta direto para o `releaseoicerune.exe`: sempre a versão compilada mais nova. **Fechar o app (Sair na bandeja)
+  reapontado em 2026-10-30) aponta direto para o `releaseoicerune.exe`: sempre a versão compilada mais nova. Ícone do atalho explícito (`voicerune.exe,0`): com `,0` o cache do Windows ficou no ícone genérico. **Fechar o app (Sair na bandeja)
   antes de `cargo build --release`**, senão o build falha (exe em uso). Ícone embutido desde 2026-10-30.
 - Configuração do app: `%APPDATA%\VoiceRune\config.ini` (texto; apagar volta aos padrões; sem ele o app lê o antigo `%APPDATA%\mic-limpo\config.ini`).
 - App: `voicerune` abre a janela (em release, sem console). Sem janela, pelas ferramentas:
