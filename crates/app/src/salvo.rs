@@ -1,9 +1,10 @@
-//! Última configuração do usuário: gravada em `%APPDATA%\mic-limpo\config.ini` a cada mudança e
-//! lida ao abrir. Texto simples `chave = valor` (sem dependência nova): chave ausente ou valor
-//! inválido fica no padrão, chave desconhecida é ignorada.
+//! Última configuração do usuário: gravada em `%APPDATA%\VoiceRune\config.ini` a cada mudança e
+//! lida ao abrir. Sem ela, vale a de antes do nome VoiceRune (`%APPDATA%\mic-limpo\config.ini`),
+//! que nunca é apagada: a próxima gravação já cria a nova. Texto simples `chave = valor` (sem
+//! dependência nova): chave ausente ou valor inválido fica no padrão, chave desconhecida é ignorada.
 
 use std::fmt::Write as _;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 use crate::controlador::{Ajustes, Modo};
@@ -12,6 +13,10 @@ use crate::controlador::{Ajustes, Modo};
 const GANHO: (f32, f32) = (-12.0, 24.0);
 const MODOS: [(Modo, &str); 2] = [(Modo::Leve, "leve"), (Modo::Forte, "forte")];
 const TEMAS: [&str; 3] = ["sistema", "claro", "escuro"];
+/// Pastas em `%APPDATA%`: a atual e a de antes do nome VoiceRune (até 2026-10-30).
+const PASTA: &str = "VoiceRune";
+const PASTA_ANTIGA: &str = "mic-limpo";
+const ARQUIVO: &str = "config.ini";
 
 /// O que fica de uma execução para a outra.
 #[derive(Clone, Debug, PartialEq)]
@@ -35,13 +40,17 @@ impl Default for Salvo {
 }
 
 impl Salvo {
-    pub fn caminho() -> Option<PathBuf> {
-        Some(PathBuf::from(std::env::var_os("APPDATA")?).join("mic-limpo").join("config.ini"))
+    fn appdata() -> Option<PathBuf> {
+        std::env::var_os("APPDATA").map(PathBuf::from)
     }
 
-    /// Lê o arquivo; sem arquivo (1ª vez) ou ilegível, os padrões.
+    pub fn caminho() -> Option<PathBuf> {
+        Some(Self::appdata()?.join(PASTA).join(ARQUIVO))
+    }
+
+    /// Lê o arquivo (o novo ou, sem ele, o antigo); sem nenhum (1ª vez) ou ilegível, os padrões.
     pub fn carregar() -> Self {
-        Self::caminho().and_then(|c| fs::read_to_string(c).ok()).map_or_else(Self::default, |t| Self::de_texto(&t))
+        Self::appdata().and_then(|b| ler(&b)).map_or_else(Self::default, |t| Self::de_texto(&t))
     }
 
     /// Grava num temporário e troca: um arquivo pela metade nunca fica no lugar.
@@ -60,7 +69,7 @@ impl Salvo {
         let sim = |b: bool| if b { "sim" } else { "nao" };
         let nome = |n: &Option<String>| n.clone().unwrap_or_default();
         let modo = MODOS.iter().find(|(m, _)| *m == a.modo).map_or("leve", |(_, n)| *n);
-        let mut t = String::from("# mic-limpo: última configuração (o app regrava a cada mudança)\n");
+        let mut t = String::from("# VoiceRune: última configuração (o app regrava a cada mudança)\n");
         t += "# entrada/saida vazias = o padrão do Windows\n";
         let _ = writeln!(t, "cancelamento = {}", sim(a.ia));
         let _ = writeln!(t, "modo = {modo}");
@@ -112,6 +121,11 @@ impl Salvo {
     }
 }
 
+/// Texto da config em `base` (o `%APPDATA%`): a pasta nova primeiro, depois a antiga.
+fn ler(base: &Path) -> Option<String> {
+    [PASTA, PASTA_ANTIGA].iter().find_map(|p| fs::read_to_string(base.join(p).join(ARQUIVO)).ok())
+}
+
 fn janela(v: &str) -> Option<(i32, i32, u32, u32)> {
     let n: Vec<i64> = v.split_whitespace().map(str::parse).collect::<Result<_, _>>().ok()?;
     let [x, y, l, h] = n[..] else { return None };
@@ -159,5 +173,23 @@ modo = desligado
 ");
         assert!(s.ajustes.ligado && !s.ajustes.ia);
         assert_eq!(s.ajustes.modo, Modo::Leve);
+    }
+
+    #[test]
+    fn pasta_antiga_so_sem_a_nova() {
+        let base = std::env::temp_dir().join(format!("voicerune-teste-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        assert_eq!(ler(&base), None);
+        fs::create_dir_all(base.join(PASTA_ANTIGA)).unwrap();
+        fs::write(base.join(PASTA_ANTIGA).join(ARQUIVO), "tema = claro
+").unwrap();
+        assert_eq!(ler(&base).as_deref(), Some("tema = claro
+"));
+        fs::create_dir_all(base.join(PASTA)).unwrap();
+        fs::write(base.join(PASTA).join(ARQUIVO), "tema = escuro
+").unwrap();
+        assert_eq!(ler(&base).as_deref(), Some("tema = escuro
+"));
+        fs::remove_dir_all(&base).unwrap();
     }
 }
