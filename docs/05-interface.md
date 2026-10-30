@@ -347,11 +347,15 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
 - Pendências visuais: desfoque só no Mac (Fase 5). A barra de
   título acompanhou o tema forçado pela lua em 2026-10-23 (antes anotada como não seguindo; não
   revisto pelo Configurações). A lista aberta dos dispositivos é a do Fluent (cinza, marca na cor
-  do Windows), fora do estilo vidro. Ícone próprio da janela e da bandeja: `crates/ui/ui/icone.svg` (VoiceRune, 2026-10-30: runa Wunjo
-  dourada com ondas de voz, em hexágono, fundo vermelho escuro). Derivados em `assets/icone/` (`voicerune.ico` 16–256, `voicerune.icns`
-  16–1024, PNG 256/1024), gerados pelo `resvg` (CLI) + Pillow fora do projeto; o `.ico` ainda não está
-  embutido no `.exe` (precisaria de recurso Win32 no build). Em 16 px a runa ainda se lê; as
-  ondas e o hexágono interno somem.
+  do Windows), fora do estilo vidro. Ícone (VoiceRune, 2026-10-30: runa Wunjo dourada com ondas de voz)
+  em duas versões: **grande**, `assets/icone/voicerune.svg` (em hexágono, fundo vermelho escuro), fonte
+  dos derivados em `assets/icone/` (`voicerune.ico` 16–256, `voicerune.icns` 16–1024, PNG 256/1024,
+  gerados pelo `resvg` (CLI) + Pillow fora do projeto; o `.ico` ainda não está embutido no `.exe`);
+  **pequena**, `crates/ui/ui/icone.svg` (janela e bandeja): **sem fundo**, só a runa e as ondas com
+  traços grossos. A grande sumia em 16–32 px (hexágono < 1 px, runa virava um borrão); o Alex notou
+  na barra e pediu sem fundo, como os outros ícones da bandeja. Conferido na prévia (barra de título e
+  de tarefas, Windows escuro): legível. Capturas `voicerune-icone-titulo.png` e `voicerune-icone-barra.png`.
+  **Não visto:** a bandeja do app de release e a barra clara (o dourado claro perde contraste nela).
 - Armadilha resolvida: **nunca** pôr `Palette.color-scheme = ColorScheme.unknown`. Os widgets do
   Fluent e as nossas cores passam a divergir (texto branco em fundo branco: caixas de seleção
   "somem"). "Do sistema" volta para o esquema que o sistema tinha antes do 1º ajuste.

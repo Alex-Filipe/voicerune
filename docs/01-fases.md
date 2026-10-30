@@ -206,3 +206,6 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
   `target-dir` e pasta do repositório mantêm o nome antigo. Conferido no app de release: a config antiga
   voltou (captura `voicerune-config-migrada.png`). Migração do registro **não testada** de verdade (não
   havia valor antigo). +1 teste (25 passam). Atalho da área de trabalho virou `VoiceRune.lnk` → `releaseoicerune.exe`.
+- 2026-10-30 — Ícone pequeno (janela e bandeja) **sem fundo**: só a runa e as ondas, traços grossos
+  (`crates/ui/ui/icone.svg`); o com fundo virou `assets/icone/voicerune.svg` e segue nos `.ico`/`.icns`/PNG.
+  Conferido na prévia (título e barra de tarefas); bandeja do release não vista (o app estava aberto).

@@ -76,3 +76,4 @@
 | 2026-10-30 | Config antiga (`%APPDATA%\mic-limpo`) é **lida** se a nova não existe, nunca movida nem apagada | Quem já usa não perde nada e a versão antiga continua funcionando; a próxima gravação cria a nova |
 | 2026-10-30 | Valor `mic-limpo` do `Run` é **migrado** (regravado como `VoiceRune` com o exe atual, mesmo `--bandeja` e marca do Gerenciador) e apagado | Duas entradas abririam duas cópias; o antigo aponta para um exe que não é mais compilado |
 | 2026-10-30 | `target-dir` (`C:\dev\cargo-target\mic-limpo`) e pasta do repositório mantêm o nome antigo | Mudar o target recompila todas as dependências; a pasta do repo mexe com worktrees e sessões |
+| 2026-10-30 | Ícone em duas versões: sem fundo (runa + ondas, traços grossos) na janela e bandeja; com fundo e hexágono nos `.ico`/`.icns`/PNG | Escolha do Alex: em 16–32 px o com fundo virava borrão e quase nenhum ícone da bandeja usa fundo |
