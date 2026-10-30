@@ -26,3 +26,5 @@ hound = "3.5"
 # (ksni só no Linux); `unstable-winit-030` dá o foco/HWND do flyout (o winit já vinha).
 slint = { version = "1.18.1", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software", "system-tray", "unstable-winit-030"] }
 slint-build = "1.18.1"
+# Só no `voicerune-dev icone` (gera o .ico); já vinha na árvore pelo Slint.
+resvg = { version = "0.48.1", default-features = false }

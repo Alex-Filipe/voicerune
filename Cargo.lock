@@ -5484,6 +5484,7 @@ name = "voicerune-ferramentas"
 version = "0.0.1"
 dependencies = [
  "hound",
+ "resvg",
  "voicerune",
  "voicerune-audio",
  "voicerune-core",

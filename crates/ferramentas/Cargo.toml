@@ -15,6 +15,7 @@ voicerune.workspace = true
 voicerune-core.workspace = true
 voicerune-audio.workspace = true
 hound.workspace = true
+resvg.workspace = true
 
 # Sonda do WASAPI: consulta o Windows direto (o crate já vem na árvore pelo cpal).
 [target.'cfg(windows)'.dependencies]

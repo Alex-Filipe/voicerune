@@ -2,6 +2,7 @@
 
 mod bench;
 mod comparar;
+mod icone;
 mod latencia;
 mod processar;
 mod rodar;
@@ -33,6 +34,8 @@ const AJUDA: &str = "  voicerune-dev bench [--modelo M] [--limite-db N] [--segun
       (padrão: Microphone × Voicemeeter Out B1, 10 s)
   voicerune-dev sondar
       períodos e latências que o WASAPI permite no mic e no VB-Cable (Windows)
+  voicerune-dev icone
+      regera assets/icone/voicerune.ico a partir dos SVGs (pequeno sem fundo, grande com fundo)
 
 T = parte do nome do dispositivo (veja listar). M = rnnoise ou dfn.";
 
@@ -52,6 +55,7 @@ fn executar() -> Res<()> {
     match comando.as_str() {
         "rodar" => return rodar::rodar(resto),
         "listar" => return rodar::mostrar_lista(),
+        "icone" => return icone::gerar(),
         _ => {}
     }
     let mut lat = latencia::Opcoes::default();
