@@ -1,11 +1,11 @@
 [package]
-name = "mic-limpo-ui"
+name = "voicerune-ui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 # Telas em Slint (compiladas para Rust no build). A Fase 4 liga ao motor; aqui só há
-# a prévia com dados estáticos (`mic-limpo-ui-previa`).
+# a prévia com dados estáticos (`voicerune-ui-previa`).
 [dependencies]
 slint.workspace = true
 
@@ -13,5 +13,5 @@ slint.workspace = true
 slint-build.workspace = true
 
 [[bin]]
-name = "mic-limpo-ui-previa"
+name = "voicerune-ui-previa"
 path = "src/bin/previa.rs"

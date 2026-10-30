@@ -9,10 +9,10 @@ license = "MIT"
 
 # Versões num lugar só; cada crate escolhe o que usa (e as features do `windows`).
 [workspace.dependencies]
-mic-limpo = { path = "crates/app", default-features = false }
-mic-limpo-core = { path = "crates/core" }
-mic-limpo-audio = { path = "crates/audio" }
-mic-limpo-ui = { path = "crates/ui" }
+voicerune = { path = "crates/app", default-features = false }
+voicerune-core = { path = "crates/core" }
+voicerune-audio = { path = "crates/audio" }
+voicerune-ui = { path = "crates/ui" }
 cpal = "0.18.2"
 nnnoiseless = { version = "0.5.2", default-features = false }
 rtrb = "0.4.0"

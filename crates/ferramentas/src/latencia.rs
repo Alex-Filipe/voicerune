@@ -8,10 +8,10 @@ use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use mic_limpo_audio::{self as audio, Backend, Pacote, Pedido};
-use mic_limpo_core::denoise::SAMPLE_RATE;
-use mic_limpo_core::metricas::{amostras_ms, Media};
-use mic_limpo_core::motor::{self, Config, Tempos};
+use voicerune_audio::{self as audio, Backend, Pacote, Pedido};
+use voicerune_core::denoise::SAMPLE_RATE;
+use voicerune_core::metricas::{amostras_ms, Media};
+use voicerune_core::motor::{self, Config, Tempos};
 
 use crate::Res;
 

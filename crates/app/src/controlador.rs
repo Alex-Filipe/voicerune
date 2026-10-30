@@ -8,10 +8,10 @@ use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use mic_limpo_audio::{self as audio, Aviso, Backend, Fluxo, Pacote, Pedido};
-use mic_limpo_core::denoise::SAMPLE_RATE;
-use mic_limpo_core::modelo::Tipo;
-use mic_limpo_core::motor::{self, Config, Controle, Tempos};
+use voicerune_audio::{self as audio, Aviso, Backend, Fluxo, Pacote, Pedido};
+use voicerune_core::denoise::SAMPLE_RATE;
+use voicerune_core::modelo::Tipo;
+use voicerune_core::motor::{self, Config, Controle, Tempos};
 
 pub type Res<T> = Result<T, Box<dyn Error>>;
 

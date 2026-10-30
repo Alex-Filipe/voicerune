@@ -1,18 +1,18 @@
 //! `rodar` e `listar`: o app pela linha de comando (sem janela), sobre o mesmo `Controlador` do
-//! `mic-limpo`. Para testar trocas e medir sem a UI.
+//! `voicerune`. Para testar trocas e medir sem a UI.
 
 use std::io::BufRead;
 use std::time::Duration;
 
-use mic_limpo::controlador::{Ajustes, Controlador, Modo, Troca};
-use mic_limpo_audio as audio;
-use mic_limpo_core::modelo::Tipo;
+use voicerune::controlador::{Ajustes, Controlador, Modo, Troca};
+use voicerune_audio as audio;
+use voicerune_core::modelo::Tipo;
 
 use crate::Res;
 
-pub const AJUDA: &str = "  mic-limpo-dev listar
+pub const AJUDA: &str = "  voicerune-dev listar
       lista dispositivos de áudio (* = padrão do sistema)
-  mic-limpo-dev rodar [--entrada T] [--saida T] [--sem-ia] [--modelo M] [--limite-db N]
+  voicerune-dev rodar [--entrada T] [--saida T] [--sem-ia] [--modelo M] [--limite-db N]
                       [--ganho-db N] [--folga-ms N] [--teto-ms N] [--baixa-latencia]
                       [--buffer N] [--segundos N]
       o app sem janela: microfone → IA → saída (padrão: mic do sistema → CABLE Input).
@@ -75,7 +75,7 @@ fn executar(aj: Ajustes, sem_ia: bool, segundos: Option<u64>) -> Res<()> {
         println!("Rodando por {seg} s...");
         std::thread::sleep(Duration::from_secs(seg));
     } else {
-        println!("Comandos: (vazio) IA, l, f, b, g N, p, q — veja mic-limpo-dev --ajuda");
+        println!("Comandos: (vazio) IA, l, f, b, g N, p, q — veja voicerune-dev --ajuda");
         for linha in std::io::stdin().lock().lines() {
             let linha = linha?;
             let mut partes = linha.split_whitespace();

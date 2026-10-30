@@ -5,8 +5,8 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use mic_limpo_audio::{self as audio, Pedido};
-use mic_limpo_core::denoise::SAMPLE_RATE;
+use voicerune_audio::{self as audio, Pedido};
+use voicerune_core::denoise::SAMPLE_RATE;
 
 use crate::Res;
 

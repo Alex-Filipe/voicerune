@@ -1,10 +1,10 @@
 //! mic-limpo: a janela (Slint) ligada ao motor pelo `Controlador`, com ícone na bandeja.
 //!
-//! Threads: a da janela só lê e mostra; a de controle (`mic-limpo-controle`) é dona do
+//! Threads: a da janela só lê e mostra; a de controle (`voicerune-controle`) é dona do
 //! `Controlador` e aplica os ajustes (abrir fluxos e carregar o DFN leva até ~0,3 s); a de avisos
 //! repassa os avisos dos fluxos para a de controle. Nenhuma acorda se nada mudar, fora o medidor
 //! (~30 Hz) com a janela ou o flyout abertos. Fechar a janela destrói o componente e o app fica
-//! só na bandeja; Sair (menu do ícone) encerra. Para usar sem janela: `mic-limpo-dev rodar`.
+//! só na bandeja; Sair (menu do ícone) encerra. Para usar sem janela: `voicerune-dev rodar`.
 //! Com `--bandeja` (a linha registrada por "iniciar com o sistema", ver `partida`) abre só o ícone.
 //!
 //! Página Teste: a janela liga a cópia do motor (`Controle::escutar`) e junta original e limpo a
@@ -21,17 +21,17 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use mic_limpo::controlador::{Ajustes, Controlador, Modo};
-use mic_limpo::partida;
-use mic_limpo::salvo::Salvo;
-use mic_limpo_audio::{self as audio, Aviso, Fluxo, Pedido};
-use mic_limpo_core::escuta::{self, Gravacao, Reproducao, Tocador};
-use mic_limpo_core::modelo::Tipo;
-use mic_limpo_core::motor::Controle;
-use mic_limpo_ui::{empurrar_onda, limpar_onda, onda_vazia, Bandeja, Barra, Dados, Flyout, JanelaPrincipal};
 use slint::winit_030::winit::{event::WindowEvent, window::WindowAttributes};
 use slint::winit_030::{EventResult, WinitWindowAccessor};
 use slint::{CloseRequestResponse, ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel};
+use voicerune::controlador::{Ajustes, Controlador, Modo};
+use voicerune::partida;
+use voicerune::salvo::Salvo;
+use voicerune_audio::{self as audio, Aviso, Fluxo, Pedido};
+use voicerune_core::escuta::{self, Gravacao, Reproducao, Tocador};
+use voicerune_core::modelo::Tipo;
+use voicerune_core::motor::Controle;
+use voicerune_ui::{empurrar_onda, limpar_onda, onda_vazia, Bandeja, Barra, Dados, Flyout, JanelaPrincipal};
 
 /// Intervalo do medidor; os números (atraso, CPU, falhas) mudam a cada `TICKS_NUMEROS` ticks.
 const MEDIDOR: Duration = Duration::from_millis(33);
@@ -196,7 +196,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (tx, rx) = mpsc::channel::<Msg>();
     let (tx_aviso, rx_aviso) = mpsc::channel::<Aviso>();
     let repasse = tx.clone();
-    std::thread::Builder::new().name("mic-limpo-avisos".into()).spawn(move || {
+    std::thread::Builder::new().name("voicerune-avisos".into()).spawn(move || {
         for a in rx_aviso {
             if repasse.send(Msg::Aviso(a)).is_err() {
                 break;
@@ -204,7 +204,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     })?;
     let controle = std::thread::Builder::new()
-        .name("mic-limpo-controle".into())
+        .name("voicerune-controle".into())
         .spawn(move || controlar(rx, tx_aviso))?;
     tx.send(Msg::Ajustes(inicial.clone()))?;
 
@@ -326,7 +326,7 @@ impl Instancia {
         }
         // O `HANDLE` não é `Send`; o número dele é.
         let h = self.0 .0 as usize;
-        let r = std::thread::Builder::new().name("mic-limpo-instancia".into()).spawn(move || {
+        let r = std::thread::Builder::new().name("voicerune-instancia".into()).spawn(move || {
             // SAFETY: o evento nunca é fechado (vive com o processo).
             while unsafe { WaitForSingleObject(HANDLE(h as *mut _), INFINITE) } == WAIT_OBJECT_0 {
                 if slint::invoke_from_event_loop(abrir_janela).is_err() {

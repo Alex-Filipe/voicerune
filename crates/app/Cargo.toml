@@ -1,16 +1,16 @@
 [package]
-name = "mic-limpo"
+name = "voicerune"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 # Programa do usuário: a janela (`crates/ui`) ligada ao motor (core) e aos backends (audio) pelo
-# `Controlador` (lib, também usado por `mic-limpo-dev rodar`). Ferramentas de medição ficam em
+# `Controlador` (lib, também usado por `voicerune-dev rodar`). Ferramentas de medição ficam em
 # `crates/ferramentas`, fora deste binário.
 [dependencies]
-mic-limpo-core.workspace = true
-mic-limpo-audio.workspace = true
-mic-limpo-ui.workspace = true
+voicerune-core.workspace = true
+voicerune-audio.workspace = true
+voicerune-ui.workspace = true
 slint.workspace = true
 
 # Encostar o flyout na barra de tarefas (cursor, área útil e DPI do monitor), CPU do processo e
@@ -28,5 +28,5 @@ windows = { workspace = true, features = [
 
 [features]
 default = ["dfn"]
-dfn = ["mic-limpo-core/dfn"]
-realtime = ["mic-limpo-audio/realtime"]
+dfn = ["voicerune-core/dfn"]
+realtime = ["voicerune-audio/realtime"]

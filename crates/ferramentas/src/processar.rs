@@ -12,9 +12,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use mic_limpo_audio::{self as audio, Pedido};
-use mic_limpo_core::denoise::{FRAME, SAMPLE_RATE};
-use mic_limpo_core::modelo::{self, Tipo};
+use voicerune_audio::{self as audio, Pedido};
+use voicerune_core::denoise::{FRAME, SAMPLE_RATE};
+use voicerune_core::modelo::{self, Tipo};
 
 use crate::Res;
 

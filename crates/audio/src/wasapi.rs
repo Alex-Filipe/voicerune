@@ -70,7 +70,7 @@ pub(crate) fn abrir(trecho: Option<String>, taxa: u32, cb: Callback, avisos: Opt
     let parar = Arc::new(AtomicBool::new(false));
     let p = parar.clone();
     let thread = std::thread::Builder::new()
-        .name("mic-limpo-wasapi".into())
+        .name("voicerune-wasapi".into())
         .spawn(move || unsafe { thread_fluxo(trecho, taxa, cb, tx_pronto, rx_iniciar, p, avisos) })?;
     match rx_pronto.recv() {
         Ok(Ok(aberto)) => {

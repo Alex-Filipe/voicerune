@@ -1,4 +1,4 @@
-//! mic-limpo-dev: ferramentas de medição do mic-limpo (fora do app do usuário).
+//! voicerune-dev: ferramentas de medição do mic-limpo (fora do app do usuário).
 
 mod bench;
 mod comparar;
@@ -11,27 +11,27 @@ mod sonda;
 use std::error::Error;
 use std::path::PathBuf;
 
-use mic_limpo_core::modelo::Tipo;
+use voicerune_core::modelo::Tipo;
 
 type Res<T> = Result<T, Box<dyn Error>>;
 
-const TITULO: &str = "mic-limpo-dev (ferramentas de desenvolvimento e medição)\n";
+const TITULO: &str = "voicerune-dev (ferramentas de desenvolvimento e medição)\n";
 
-const AJUDA: &str = "  mic-limpo-dev bench [--modelo M] [--limite-db N] [--segundos N]
+const AJUDA: &str = "  voicerune-dev bench [--modelo M] [--limite-db N] [--segundos N]
       custo e atraso algorítmico dos modelos, sem dispositivos (padrão: todos, 20 s)
-  mic-limpo-dev latencia [--entrada T] [--saida T] [--retorno T] [--folga-ms N] [--teto-ms N]
+  voicerune-dev latencia [--entrada T] [--saida T] [--retorno T] [--folga-ms N] [--teto-ms N]
                          [--buffer N] [--baixa-latencia] [--modelo M] [--segundos N]
       troca o mic por cliques e mede quando chegam no retorno; escreve na saída, então feche
       o Discord antes (padrão: CABLE Input → CABLE Output, 8 s)
-  mic-limpo-dev gravar ARQ.wav [--entrada T] [--segundos N]
+  voicerune-dev gravar ARQ.wav [--entrada T] [--segundos N]
       grava o mic cru (sem IA), mono 48 kHz (padrão: Microphone, 20 s)
-  mic-limpo-dev processar ARQ.wav [--ruido R.wav] [--snr N] [--limite-db N]
+  voicerune-dev processar ARQ.wav [--ruido R.wav] [--snr N] [--limite-db N]
       um WAV por modelo (sem e com limite; padrão: 20 dB), alinhados, para escuta A/B, com
       nível da voz e piso de ruído; com --ruido, mistura no SNR N (padrão: 5) e mede o SI-SDR
-  mic-limpo-dev comparar [--ref T] [--alvo T1,T2] [--segundos N]
+  voicerune-dev comparar [--ref T] [--alvo T1,T2] [--segundos N]
       atraso de cada alvo em relação ao mic pelo mesmo som; só lê, mas precisa de som (fale)
       (padrão: Microphone × Voicemeeter Out B1, 10 s)
-  mic-limpo-dev sondar
+  voicerune-dev sondar
       períodos e latências que o WASAPI permite no mic e no VB-Cable (Windows)
 
 T = parte do nome do dispositivo (veja listar). M = rnnoise ou dfn.";
@@ -71,7 +71,7 @@ fn executar() -> Res<()> {
             "--folga-ms" => lat.motor.folga_ms = valor()?.parse()?,
             "--teto-ms" => lat.motor.teto_ms = valor()?.parse()?,
             "--buffer" => lat.buffer = Some(valor()?.parse()?),
-            "--baixa-latencia" => lat.backend = mic_limpo_audio::Backend::BaixaLatencia,
+            "--baixa-latencia" => lat.backend = voicerune_audio::Backend::BaixaLatencia,
             "--ref" => referencia = valor()?,
             "--alvo" => alvo = valor()?,
             "--modelo" => modelo = Some(valor()?.parse()?),

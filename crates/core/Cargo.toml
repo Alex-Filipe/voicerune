@@ -1,5 +1,5 @@
 [package]
-name = "mic-limpo-core"
+name = "voicerune-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

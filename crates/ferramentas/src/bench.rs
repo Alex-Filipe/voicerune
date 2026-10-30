@@ -4,9 +4,9 @@
 use std::f32::consts::TAU;
 use std::time::{Duration, Instant};
 
-use mic_limpo_core::denoise::{FRAME, SAMPLE_RATE};
-use mic_limpo_core::metricas::amostras_ms;
-use mic_limpo_core::modelo::{self, Tipo};
+use voicerune_core::denoise::{FRAME, SAMPLE_RATE};
+use voicerune_core::metricas::amostras_ms;
+use voicerune_core::modelo::{self, Tipo};
 
 use crate::Res;
 

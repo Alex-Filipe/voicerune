@@ -2799,54 +2799,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mic-limpo"
-version = "0.0.1"
-dependencies = [
- "mic-limpo-audio",
- "mic-limpo-core",
- "mic-limpo-ui",
- "slint",
- "windows",
-]
-
-[[package]]
-name = "mic-limpo-audio"
-version = "0.0.1"
-dependencies = [
- "cpal",
- "windows",
-]
-
-[[package]]
-name = "mic-limpo-core"
-version = "0.0.1"
-dependencies = [
- "deep_filter",
- "ndarray",
- "nnnoiseless",
- "rtrb",
-]
-
-[[package]]
-name = "mic-limpo-ferramentas"
-version = "0.0.1"
-dependencies = [
- "hound",
- "mic-limpo",
- "mic-limpo-audio",
- "mic-limpo-core",
- "windows",
-]
-
-[[package]]
-name = "mic-limpo-ui"
-version = "0.0.1"
-dependencies = [
- "slint",
- "slint-build",
-]
-
-[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5497,6 +5449,54 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "voicerune"
+version = "0.0.1"
+dependencies = [
+ "slint",
+ "voicerune-audio",
+ "voicerune-core",
+ "voicerune-ui",
+ "windows",
+]
+
+[[package]]
+name = "voicerune-audio"
+version = "0.0.1"
+dependencies = [
+ "cpal",
+ "windows",
+]
+
+[[package]]
+name = "voicerune-core"
+version = "0.0.1"
+dependencies = [
+ "deep_filter",
+ "ndarray",
+ "nnnoiseless",
+ "rtrb",
+]
+
+[[package]]
+name = "voicerune-ferramentas"
+version = "0.0.1"
+dependencies = [
+ "hound",
+ "voicerune",
+ "voicerune-audio",
+ "voicerune-core",
+ "windows",
+]
+
+[[package]]
+name = "voicerune-ui"
+version = "0.0.1"
+dependencies = [
+ "slint",
+ "slint-build",
+]
 
 [[package]]
 name = "vtable"

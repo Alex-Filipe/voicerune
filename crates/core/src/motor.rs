@@ -218,7 +218,7 @@ impl Trabalhador {
         let parar = Arc::new(AtomicBool::new(false));
         let p = parar.clone();
         let (pronto_tx, pronto_rx) = std::sync::mpsc::channel::<Result<(), String>>();
-        let h = thread::Builder::new().name("mic-limpo-ia".into()).spawn(move || {
+        let h = thread::Builder::new().name("voicerune-ia".into()).spawn(move || {
             let mut den = match modelo::criar(cfg.modelo, cfg.limite_db) {
                 Ok(m) => {
                     let _ = pronto_tx.send(Ok(()));

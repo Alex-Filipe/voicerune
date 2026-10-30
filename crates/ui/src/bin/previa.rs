@@ -3,11 +3,11 @@
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use mic_limpo_ui::{empurrar_onda, onda_vazia, Barra, Dados, Flyout, JanelaPrincipal};
 use slint::{ComponentHandle, ModelRc, Timer, TimerMode};
+use voicerune_ui::{empurrar_onda, onda_vazia, Barra, Dados, Flyout, JanelaPrincipal};
 
 const AJUDA: &str = "\
-mic-limpo-ui-previa [opções]
+voicerune-ui-previa [opções]
 
   --flyout           mostra o flyout da bandeja em vez da janela principal
   --pagina N         0 Início, 1 Configurações, 2 Sobre, 3 Teste

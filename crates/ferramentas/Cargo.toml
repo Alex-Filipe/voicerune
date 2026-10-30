@@ -1,5 +1,5 @@
 [package]
-name = "mic-limpo-ferramentas"
+name = "voicerune-ferramentas"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -7,13 +7,13 @@ publish = false
 
 # Ferramentas de desenvolvimento (medição); não vão para o usuário final.
 [[bin]]
-name = "mic-limpo-dev"
+name = "voicerune-dev"
 path = "src/main.rs"
 
 [dependencies]
-mic-limpo.workspace = true
-mic-limpo-core.workspace = true
-mic-limpo-audio.workspace = true
+voicerune.workspace = true
+voicerune-core.workspace = true
+voicerune-audio.workspace = true
 hound.workspace = true
 
 # Sonda do WASAPI: consulta o Windows direto (o crate já vem na árvore pelo cpal).
@@ -29,5 +29,5 @@ windows = { workspace = true, features = [
 
 [features]
 default = ["dfn"]
-dfn = ["mic-limpo-core/dfn", "mic-limpo/dfn"]
-realtime = ["mic-limpo-audio/realtime"]
+dfn = ["voicerune-core/dfn", "voicerune/dfn"]
+realtime = ["voicerune-audio/realtime"]

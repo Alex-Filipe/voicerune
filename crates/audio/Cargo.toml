@@ -1,5 +1,5 @@
 [package]
-name = "mic-limpo-audio"
+name = "voicerune-audio"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
