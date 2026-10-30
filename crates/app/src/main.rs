@@ -209,6 +209,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     tx.send(Msg::Ajustes(inicial.clone()))?;
 
     let saida_teste = disp.padrao_saida.unwrap_or(0) as i32;
+    if let Err(e) = partida::migrar() {
+        eprintln!("iniciar com o sistema (nome antigo): {e}");
+    }
     let registrado = partida::ler();
     UI.set(Some(Ui {
         janela: None,

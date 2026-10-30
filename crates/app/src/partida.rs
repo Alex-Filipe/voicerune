@@ -1,8 +1,9 @@
-//! Iniciar com o sistema. No Windows é o valor `mic-limpo` em
+//! Iniciar com o sistema. No Windows é o valor `VoiceRune` em
 //! `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (sem administrador), com o caminho do exe
 //! atual e `--bandeja` se for para abrir só o ícone. O registro é a fonte da verdade: a tela lê dele
 //! ao abrir, e o Gerenciador de Tarefas pode desativar a entrada (`StartupApproved\Run`), o que conta
-//! como desligado. O macOS fica para a Fase 5.
+//! como desligado. Até 2026-10-30 o valor se chamava `mic-limpo` (ver `migrar`). O macOS fica para a
+//! Fase 5.
 
 use std::io;
 use std::path::Path;
@@ -50,6 +51,28 @@ pub fn gravar(ligado: bool, bandeja: bool) -> io::Result<()> {
     registro::gravar_texto(registro::RUN, registro::NOME, &linha(&std::env::current_exe()?, bandeja))
 }
 
+/// Troca o valor de antes do nome VoiceRune (`mic-limpo`) pelo atual, com o exe atual (o antigo
+/// aponta para `voicerune.exe`), o mesmo `--bandeja` e a mesma desativação do Gerenciador de
+/// Tarefas, e apaga o antigo: sem isso o "iniciar com o sistema" se perderia ou abriria duas cópias.
+/// Se o atual já existe, ele vale e o antigo só é apagado.
+#[cfg(windows)]
+pub fn migrar() -> io::Result<()> {
+    use registro::{ANTIGO, APROVADO, NOME, RUN};
+    let Some(antiga) = registro::ler_texto(RUN, ANTIGO) else {
+        return Ok(());
+    };
+    if registro::ler_texto(RUN, NOME).is_none() {
+        let aprovado = registro::ler_binario(APROVADO, ANTIGO);
+        registro::apagar(APROVADO, NOME)?;
+        registro::gravar_texto(RUN, NOME, &linha(&std::env::current_exe()?, so_bandeja(&antiga)))?;
+        if let Some(b) = aprovado {
+            registro::gravar_binario(APROVADO, NOME, &b)?;
+        }
+    }
+    registro::apagar(APROVADO, ANTIGO)?;
+    registro::apagar(RUN, ANTIGO)
+}
+
 #[cfg(not(windows))]
 pub fn ler() -> Option<bool> {
     None
@@ -60,6 +83,11 @@ pub fn gravar(_ligado: bool, _bandeja: bool) -> io::Result<()> {
     Err(io::Error::from(io::ErrorKind::Unsupported))
 }
 
+#[cfg(not(windows))]
+pub fn migrar() -> io::Result<()> {
+    Ok(())
+}
+
 #[cfg(windows)]
 mod registro {
     use std::io;
@@ -67,13 +95,15 @@ mod registro {
     use windows::core::{w, PCWSTR};
     use windows::Win32::Foundation::{ERROR_FILE_NOT_FOUND, WIN32_ERROR};
     use windows::Win32::System::Registry::{
-        RegDeleteKeyValueW, RegGetValueW, RegSetKeyValueW, HKEY_CURRENT_USER, REG_ROUTINE_FLAGS, REG_SZ, RRF_RT_REG_BINARY,
-        RRF_RT_REG_SZ,
+        RegDeleteKeyValueW, RegGetValueW, RegSetKeyValueW, HKEY_CURRENT_USER, REG_BINARY, REG_ROUTINE_FLAGS, REG_SZ,
+        RRF_RT_REG_BINARY, RRF_RT_REG_SZ,
     };
 
     pub const RUN: PCWSTR = w!("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
     pub const APROVADO: PCWSTR = w!("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run");
-    pub const NOME: PCWSTR = w!("mic-limpo");
+    pub const NOME: PCWSTR = w!("VoiceRune");
+    /// O nome de antes (até 2026-10-30), só para `migrar`.
+    pub const ANTIGO: PCWSTR = w!("mic-limpo");
 
     fn erro(e: WIN32_ERROR) -> io::Error {
         io::Error::from_raw_os_error(e.0 as i32)
@@ -113,6 +143,15 @@ mod registro {
         r.ok().map_err(|_| erro(r))
     }
 
+    pub fn gravar_binario(chave: PCWSTR, nome: PCWSTR, dados: &[u8]) -> io::Result<()> {
+        let tam = dados.len() as u32;
+        // SAFETY: `dados` vive até o fim da chamada e tem `tam` bytes.
+        let r = unsafe {
+            RegSetKeyValueW(HKEY_CURRENT_USER, chave, nome, REG_BINARY.0, Some(dados.as_ptr().cast()), tam)
+        };
+        r.ok().map_err(|_| erro(r))
+    }
+
     /// Apaga o valor; não existir já é o resultado pedido.
     pub fn apagar(chave: PCWSTR, nome: PCWSTR) -> io::Result<()> {
         // SAFETY: só strings constantes.
@@ -129,13 +168,13 @@ mod tests {
 
     #[test]
     fn linha_ida_e_volta() {
-        let exe = Path::new(r"C:\Program Files\mic limpo\mic-limpo.exe");
-        assert_eq!(linha(exe, true), r#""C:\Program Files\mic limpo\mic-limpo.exe" --bandeja"#);
+        let exe = Path::new(r"C:\Program Files\VoiceRune\voicerune.exe");
+        assert_eq!(linha(exe, true), r#""C:\Program Files\VoiceRune\voicerune.exe" --bandeja"#);
         assert!(so_bandeja(&linha(exe, true)));
         assert!(!so_bandeja(&linha(exe, false)));
         // Um caminho com "--bandeja" no nome não conta; sem aspas também é lido.
-        assert!(!so_bandeja(r#""C:\--bandeja\mic-limpo.exe""#));
-        assert!(so_bandeja(r"C:\app\mic-limpo.exe --bandeja"));
+        assert!(!so_bandeja(r#""C:\--bandeja\voicerune.exe""#));
+        assert!(so_bandeja(r"C:\app\voicerune.exe --bandeja"));
         assert!(!so_bandeja(""));
     }
 }
