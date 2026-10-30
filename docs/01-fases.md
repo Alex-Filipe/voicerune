@@ -209,3 +209,6 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
 - 2026-10-30 — Ícone pequeno (janela e bandeja) **sem fundo**: só a runa e as ondas, traços grossos
   (`crates/ui/ui/icone.svg`); o com fundo virou `assets/icone/voicerune.svg` e segue nos `.ico`/`.icns`/PNG.
   Conferido na prévia (título e barra de tarefas); bandeja do release não vista (o app estava aberto).
+- 2026-10-30 — **Ícone embutido no exe**: `voicerune-dev icone` gera o `.ico` (16–48 sem fundo, 64–256 com
+  fundo) e o `build.rs` do app o embute (sem `rc.exe` nem crate). A barra de tarefas do release mostra a runa.
+  `.icns` e PNG seguem gerados fora do projeto.

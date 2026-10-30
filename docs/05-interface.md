@@ -349,17 +349,19 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
   revisto pelo Configurações). A lista aberta dos dispositivos é a do Fluent (cinza, marca na cor
   do Windows), fora do estilo vidro. Ícone (VoiceRune, 2026-10-30: runa Wunjo dourada com ondas de voz)
   em duas versões: **grande**, `assets/icone/voicerune.svg` (em hexágono, fundo vermelho escuro), fonte
-  dos derivados em `assets/icone/` (`voicerune.ico` 16–256, `voicerune.icns` 16–1024, PNG 256/1024,
-  gerados pelo `resvg` (CLI) + Pillow fora do projeto; o `.ico` ainda não está embutido no `.exe`);
+  dos PNG 256/1024 e do `voicerune.icns` (16–1024), gerados pelo `resvg` (CLI) + Pillow fora do projeto;
   **pequena**, `crates/ui/ui/icone.svg` (janela e bandeja): **sem fundo**, só a runa e as ondas com
   traços grossos. A grande sumia em 16–32 px (hexágono < 1 px, runa virava um borrão); o Alex notou
   na barra e pediu sem fundo, como os outros ícones da bandeja. Conferido na prévia (barra de título e
   de tarefas, Windows escuro): legível. Capturas `voicerune-icone-titulo.png` e `voicerune-icone-barra.png`.
   **Não visto:** a bandeja do app de release (fica no "^") e a barra clara (o dourado claro perde contraste nela).
-- **Barra de tarefas no release (2026-10-30):** o título mostra a runa, mas o botão da barra mostra o
-  ícone genérico. A janela só tem `ICON_SMALL` (Slint/winit; `ICON_BIG` e o da classe são 0, igual na
-  prévia, que aparece certa na barra). Hipótese, não medida: o shell associa o `voicerune.exe` ao
-  `VoiceRune.lnk` e usa o ícone dele (`,0` = o do exe, que não tem ícone embutido).
+- **Ícone do exe (2026-10-30):** `voicerune-dev icone` gera `assets/icone/voicerune.ico` com o `resvg`
+  que já vinha pelo Slint: 16, 20, 24, 32, 40, 48 px da versão pequena (sem fundo) e 64, 128, 256 px da
+  grande (com fundo), em PNG. O `build.rs` do app monta o `.res` (RT_ICON + RT_GROUP_ICON) e passa ao
+  linker do MSVC: sem `rc.exe`, sem crate, nada novo no app. Rodar `voicerune-dev icone` depois de mudar
+  um dos SVGs. Antes, o botão da barra de tarefas mostrava o ícone genérico: a janela só tem `ICON_SMALL`
+  (Slint/winit) e a barra usava o do exe/atalho, que não existia. Conferido no release: a barra mostra a
+  runa (captura `voicerune-icone-barra-release.png`); o exe extraído em 32 px também.
 - Armadilha resolvida: **nunca** pôr `Palette.color-scheme = ColorScheme.unknown`. Os widgets do
   Fluent e as nossas cores passam a divergir (texto branco em fundo branco: caixas de seleção
   "somem"). "Do sistema" volta para o esquema que o sistema tinha antes do 1º ajuste.

@@ -26,7 +26,7 @@
   `cargo test --workspace --release` (em debug o modelo é lento demais e fica ignorado).
 - Atalho na área de trabalho (`VoiceRune.lnk`; era `mic-limpo.lnk`, criado em 2026-10-20, renomeado e
   reapontado em 2026-10-30) aponta direto para o `releaseoicerune.exe`: sempre a versão compilada mais nova. **Fechar o app (Sair na bandeja)
-  antes de `cargo build --release`**, senão o build falha (exe em uso). Exe ainda sem ícone embutido.
+  antes de `cargo build --release`**, senão o build falha (exe em uso). Ícone embutido desde 2026-10-30.
 - Configuração do app: `%APPDATA%\VoiceRune\config.ini` (texto; apagar volta aos padrões; sem ele o app lê o antigo `%APPDATA%\mic-limpo\config.ini`).
 - App: `voicerune` abre a janela (em release, sem console). Sem janela, pelas ferramentas:
   `voicerune-dev listar` · `voicerune-dev rodar --entrada Microphone` (Enter liga/desliga a IA;
@@ -38,6 +38,7 @@
     está usando o CABLE Output numa call**.
   - `comparar --alvo "Voicemeeter Out B1,CABLE Output"` — só lê, mas precisa de voz.
   - `sondar` — capacidades do WASAPI.
+  - `icone` — regera `assets/icone/voicerune.ico` dos SVGs (embutido no exe pelo `build.rs` do app).
 - MMCSS: `cargo build --release --features realtime`.
 - **Atenção:** a entrada padrão do Windows hoje é `Voicemeeter Out B1`, então passar `--entrada Microphone`.
 - No Discord: microfone = `CABLE Output (VB-Audio Virtual Cable)`.
