@@ -355,7 +355,11 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
   traços grossos. A grande sumia em 16–32 px (hexágono < 1 px, runa virava um borrão); o Alex notou
   na barra e pediu sem fundo, como os outros ícones da bandeja. Conferido na prévia (barra de título e
   de tarefas, Windows escuro): legível. Capturas `voicerune-icone-titulo.png` e `voicerune-icone-barra.png`.
-  **Não visto:** a bandeja do app de release e a barra clara (o dourado claro perde contraste nela).
+  **Não visto:** a bandeja do app de release (fica no "^") e a barra clara (o dourado claro perde contraste nela).
+- **Barra de tarefas no release (2026-10-30):** o título mostra a runa, mas o botão da barra mostra o
+  ícone genérico. A janela só tem `ICON_SMALL` (Slint/winit; `ICON_BIG` e o da classe são 0, igual na
+  prévia, que aparece certa na barra). Hipótese, não medida: o shell associa o `voicerune.exe` ao
+  `VoiceRune.lnk` e usa o ícone dele (`,0` = o do exe, que não tem ícone embutido).
 - Armadilha resolvida: **nunca** pôr `Palette.color-scheme = ColorScheme.unknown`. Os widgets do
   Fluent e as nossas cores passam a divergir (texto branco em fundo branco: caixas de seleção
   "somem"). "Do sistema" volta para o esquema que o sistema tinha antes do 1º ajuste.
