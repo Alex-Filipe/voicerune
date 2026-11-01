@@ -363,7 +363,7 @@ impl Instancia {
 }
 
 /// Gancho do winit antes de criar cada janela: com vidro, janela transparente sobre o desfoque do
-/// sistema (Mica na janela, Acrylic no flyout); o flyout sai da barra de tarefas e ganha os cantos
+/// sistema (Acrylic); o flyout sai da barra de tarefas e ganha os cantos
 /// arredondados do Windows 11 (DWM).
 fn atributos(a: WindowAttributes) -> WindowAttributes {
     let a = a.with_theme(tema_winit(TEMA_NOVA.get()));
@@ -371,9 +371,10 @@ fn atributos(a: WindowAttributes) -> WindowAttributes {
     {
         use slint::winit_030::winit::platform::windows::{BackdropType, CornerPreference, WindowAttributesExtWindows};
         let flyout = CRIANDO_FLYOUT.get();
+        // Acrylic nas duas: desfoca o que está atrás (o Mica só tinge com o papel de parede e quase
+        // não se nota; o Alex não viu diferença do fundo sólido).
         let a = if vidro() {
-            let fundo = if flyout { BackdropType::TransientWindow } else { BackdropType::MainWindow };
-            a.with_transparent(true).with_system_backdrop(fundo)
+            a.with_transparent(true).with_system_backdrop(BackdropType::TransientWindow)
         } else {
             a
         };

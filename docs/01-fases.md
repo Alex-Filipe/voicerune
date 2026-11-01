@@ -2,7 +2,7 @@
 
 **Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos;
 bloco 4 começado (última configuração salva, instância única, iniciar com o sistema). Página **Teste** (gravar e ouvir A/B) feita.
-Visual **vidro** aprovado pelo Alex (2026-10-23); desde 2026-11-01 com **desfoque real no Windows 11** (Mica/Acrylic).
+Visual **vidro** aprovado pelo Alex (2026-10-23); desde 2026-11-01 com **desfoque real no Windows 11** (Acrylic).
 - Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `voicerune` abre a janela
   Slint ligada ao motor e põe um ícone na bandeja (clique = flyout; menu Abrir/Sair); fechar a
   janela deixa o app só na bandeja. A última configuração volta ao abrir
@@ -30,7 +30,7 @@ IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou c
 feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Iniciar com o
 sistema (+ "Só na bandeja") feito; falta o Alex ligar no app de release e reiniciar o PC de verdade. Se o Forte
 voltar a picotar, medir underruns ao vivo (`voicerune-dev rodar --modelo dfn`). Visual "vidro" com fundo sólido
-feito e aprovado pelo Alex (ver `05-interface.md`, Visual vidro). Desfoque no Windows (Mica na janela, Acrylic no
+feito e aprovado pelo Alex (ver `05-interface.md`, Visual vidro). Desfoque no Windows (Acrylic na janela e no
 flyout) feito em 2026-11-01 a pedido do Alex; **falta o Alex ver e aprovar** no app de release. **Próximo:** **presets** (fim do bloco 4). A onda custa ~+1,5 ponto de 1 núcleo (fica a 30 Hz
 salvo pedido do Alex). Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
@@ -217,3 +217,6 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
   ficava sobre Mica escuro). Conferido no release (claro, escuro, lua ao vivo, flyout escuro); RAM e CPU iguais
   ao sólido (24,8 / 5,9 MB, 1,9–3,4 % de 1 núcleo); custo no `dwm.exe` não medido. Capturas `vidro-mica-*` e
   `vidro-acrylic-flyout.png`. Falta o Alex aprovar. Ver `05-interface.md`, "Desfoque no Windows".
+- 2026-11-01 — Alex abriu e não viu diferença (o Mica só tinge com o papel de parede): janela passou para
+  **Acrylic** (desfoca o que está atrás) e o véu afinou (`#faf7f426` / `#28201c40`). Conferido no release, claro e
+  escuro legíveis (capturas `vidro-acrylic-claro/escuro.png`). Sem foco, o Windows apaga o vidro (cor lisa).

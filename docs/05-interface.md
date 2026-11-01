@@ -34,7 +34,7 @@ cancelamento, onda ao vivo (cinza = mic, acento = limpo), volume em número gran
 Leve/Forte/Personalizado, dispositivos em lista agrupada, pílulas de recursos. Fundo sólido primeiro;
 desfoque real só depois de medir o `window-vibrancy`. **Feito com fundo sólido em 2026-10-23** (ver
 "Visual vidro" abaixo); a onda a 30 Hz foi medida. **Desfoque real no Windows desde 2026-11-01** (Alex
-voltou atrás da decisão de 2026-10-23): Mica na janela, Acrylic no flyout; ver "Desfoque no Windows" abaixo.
+voltou atrás da decisão de 2026-10-23): Acrylic na janela e no flyout; ver "Desfoque no Windows" abaixo.
 
 | Painel | Conteúdo |
 |---|---|
@@ -350,6 +350,14 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
 - Medido (release, Leve, mic em silêncio, Início com onda, 3 janelas de 20 s): 24,8 MB / 5,9 MB privada,
   1,9–3,4 % de 1 núcleo — igual ao fundo sólido (25,0 / 6,2 MB, 2,7–3,1 %). O custo do desfoque fica no
   `dwm.exe`: **não medido** (sem admin o tempo de CPU dele não é lido).
+- **Mica → Acrylic na janela (mesmo dia):** com o Mica o Alex "não viu nenhuma diferença" — o Mica só tinge
+  com o papel de parede e, sob o véu, fica quase igual ao sólido. A janela passou para `TransientWindow`
+  (Acrylic, desfoca o que está atrás, como o flyout) e o véu afinou para `#faf7f426` / `#28201c40`.
+  Conferido no release: atributo 38 = 3, claro e escuro legíveis (capturas `vidro-acrylic-claro.png` /
+  `-escuro.png`; as `vidro-mica-*` ficam como registro). CPU/RAM do app não mudam (o desfoque é do DWM);
+  custo no `dwm.exe` com coisa se mexendo atrás **não medido**.
+- Limite do Windows: sem foco, o DWM troca Mica/Acrylic por cor lisa (a janela "apaga" o vidro ao clicar
+  em outro app). Contornar exigiria a API não documentada `SetWindowCompositionAttribute`; não feito.
 - Não visto: flyout no tema claro; "Do sistema" depois de forçar um tema (o winit volta ao do sistema,
   mas o `preferred_theme` interno dele fica o forçado); janela inativa (o Mica fica liso, comportamento do Windows).
 - Achados do teste de 2026-10-23 (antes de descartar):
