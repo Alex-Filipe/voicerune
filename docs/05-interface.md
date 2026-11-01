@@ -33,8 +33,8 @@ para crescer sem poluir a tela.
 cancelamento, onda ao vivo (cinza = mic, acento = limpo), volume em número grande com − / +, ladrilhos
 Leve/Forte/Personalizado, dispositivos em lista agrupada, pílulas de recursos. Fundo sólido primeiro;
 desfoque real só depois de medir o `window-vibrancy`. **Feito com fundo sólido em 2026-10-23** (ver
-"Visual vidro" abaixo); a onda a 30 Hz foi medida. **No Windows fica o fundo sólido** (Alex, 2026-10-23);
-desfoque só no Mac (Fase 5; ver "Desfoque: só no Mac" abaixo).
+"Visual vidro" abaixo); a onda a 30 Hz foi medida. **Desfoque real no Windows desde 2026-11-01** (Alex
+voltou atrás da decisão de 2026-10-23): Mica na janela, Acrylic no flyout; ver "Desfoque no Windows" abaixo.
 
 | Painel | Conteúdo |
 |---|---|
@@ -330,9 +330,29 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
   24,8 / 5,4 MB (bloco 3). Uma janela de 20 s da prévia nova deu 31,4 MB de working set e não se
   repetiu (privada igual). Se pesar: onda a 15 Hz ou menos barras (não medido).
 
-### Desfoque: só no Mac (decidido 2026-10-23)
-- Alex: no Windows o vidro não precisa de desfoque; fica o fundo sólido. Desfoque só no Mac (Fase 5).
-- Achados do teste no Windows (código desfeito, não commitado; nada medido de CPU/RAM):
+### Desfoque no Windows (2026-11-01)
+- Histórico: em 2026-10-23 o Alex descartou o desfoque no Windows depois de ver o Mica (achados abaixo);
+  em 2026-11-01 pediu de volta ("vou querer o liquid glass para o Windows também").
+- Feito sem crate novo: no gancho `atributos` (`crates/app/src/main.rs`) a janela sai transparente com
+  `with_system_backdrop(MainWindow)` (Mica) e o flyout com `TransientWindow` (Acrylic). `Dados.vidro`
+  troca o `Cores.fundo` sólido pelo véu `#faf7f466` (claro) / `#28201c80` (escuro). Na `JanelaPrincipal`
+  o fundo da janela fica `transparent` e o véu vem só do retângulo do `repintar` (com os dois, o véu dobra).
+- Só a partir do Windows 11 22H2 (build 22621, lida em `HKLM\...\Windows NT\CurrentVersion`); antes disso
+  fica o fundo sólido. Com "Efeitos de transparência" desligado o DWM põe uma cor lisa (não visto).
+- **Armadilha resolvida (tema):** o Mica/Acrylic e a barra de título seguem o tema da janela do sistema,
+  não o `Palette` do Slint, e o Slint 1.18 não repassa o tema no Windows. Sem isso, "Claro" com o sistema
+  escuro dava um véu claro sobre Mica escuro (cinza turvo). Correção: o tema vai no `with_theme` do gancho
+  (`TEMA_NOVA`, lido no `new`; a janela do winit só nasce depois, no laço de eventos, então
+  `with_winit_window` logo após o `show` não acha a janela) e na troca (`set_theme` em `tema-escolhido`).
+- Conferido no app de release (cliques simulados): janela com atributo 38 = 2 e flyout = 3; tema claro
+  abre com modo escuro do DWM = 0; a lua troca ao vivo (= 1); flyout pela bandeja no escuro legível.
+  Capturas `vidro-mica-claro.png`, `vidro-mica-escuro.png`, `vidro-acrylic-flyout.png`.
+- Medido (release, Leve, mic em silêncio, Início com onda, 3 janelas de 20 s): 24,8 MB / 5,9 MB privada,
+  1,9–3,4 % de 1 núcleo — igual ao fundo sólido (25,0 / 6,2 MB, 2,7–3,1 %). O custo do desfoque fica no
+  `dwm.exe`: **não medido** (sem admin o tempo de CPU dele não é lido).
+- Não visto: flyout no tema claro; "Do sistema" depois de forçar um tema (o winit volta ao do sistema,
+  mas o `preferred_theme` interno dele fica o forçado); janela inativa (o Mica fica liso, comportamento do Windows).
+- Achados do teste de 2026-10-23 (antes de descartar):
   - Não precisa de crate: o winit 0.30 do Slint tem `with_transparent(true)` +
     `with_system_backdrop(MainWindow/TransientWindow)` (= `DwmSetWindowAttribute(DWMWA_SYSTEMBACKDROP_TYPE)`),
     aplicáveis no gancho `atributos`. O `renderer-software` do Slint 1.18 escreve alfa pré-multiplicado no
@@ -344,7 +364,7 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
 
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
-- Pendências visuais: desfoque só no Mac (Fase 5). A barra de
+- Pendências visuais: desfoque no Mac (Fase 5). A barra de
   título acompanhou o tema forçado pela lua em 2026-10-23 (antes anotada como não seguindo; não
   revisto pelo Configurações). A lista aberta dos dispositivos é a do Fluent (cinza, marca na cor
   do Windows), fora do estilo vidro. Ícone (VoiceRune, 2026-10-30: runa Wunjo dourada com ondas de voz)
