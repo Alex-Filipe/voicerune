@@ -33,8 +33,9 @@ para crescer sem poluir a tela.
 cancelamento, onda ao vivo (cinza = mic, acento = limpo), volume em número grande com − / +, ladrilhos
 Leve/Forte/Personalizado, dispositivos em lista agrupada, pílulas de recursos. Fundo sólido primeiro;
 desfoque real só depois de medir o `window-vibrancy`. **Feito com fundo sólido em 2026-10-23** (ver
-"Visual vidro" abaixo); a onda a 30 Hz foi medida. **Desfoque real no Windows desde 2026-11-01** (Alex
-voltou atrás da decisão de 2026-10-23): Acrylic na janela e no flyout; ver "Desfoque no Windows" abaixo.
+"Visual vidro" abaixo); a onda a 30 Hz foi medida. **No Windows fica o fundo sólido** (Alex, 2026-10-23,
+confirmado em 2026-11-01 depois de ver Mica e Acrylic no app: "não combina com o Windows"); desfoque só no Mac
+(Fase 5). Ver "Desfoque no Windows: testado e descartado" abaixo.
 
 | Painel | Conteúdo |
 |---|---|
@@ -330,9 +331,11 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
   24,8 / 5,4 MB (bloco 3). Uma janela de 20 s da prévia nova deu 31,4 MB de working set e não se
   repetiu (privada igual). Se pesar: onda a 15 Hz ou menos barras (não medido).
 
-### Desfoque no Windows (2026-11-01)
-- Histórico: em 2026-10-23 o Alex descartou o desfoque no Windows depois de ver o Mica (achados abaixo);
-  em 2026-11-01 pediu de volta ("vou querer o liquid glass para o Windows também").
+### Desfoque no Windows: testado e descartado (2026-10-23 e 2026-11-01)
+- **Decidido:** no Windows fica o fundo sólido. Em 2026-11-01 o Alex pediu o desfoque de volta, viu Mica e
+  depois Acrylic no app de release e desistiu ("odiei, não combina com o Windows"). Código voltou ao
+  commit `55cf233` (o feito está nos commits `0115b3d` e `a917673`, para reaproveitar na Fase 5). Abaixo,
+  o que foi feito e aprendido.
 - Feito sem crate novo: no gancho `atributos` (`crates/app/src/main.rs`) a janela sai transparente com
   `with_system_backdrop(MainWindow)` (Mica) e o flyout com `TransientWindow` (Acrylic). `Dados.vidro`
   troca o `Cores.fundo` sólido pelo véu `#faf7f466` (claro) / `#28201c80` (escuro). Na `JanelaPrincipal`
@@ -372,7 +375,7 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
 
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
-- Pendências visuais: desfoque no Mac (Fase 5). A barra de
+- Pendências visuais: desfoque só no Mac (Fase 5). A barra de
   título acompanhou o tema forçado pela lua em 2026-10-23 (antes anotada como não seguindo; não
   revisto pelo Configurações). A lista aberta dos dispositivos é a do Fluent (cinza, marca na cor
   do Windows), fora do estilo vidro. Ícone (VoiceRune, 2026-10-30: runa Wunjo dourada com ondas de voz)

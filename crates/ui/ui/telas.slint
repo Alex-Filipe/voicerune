@@ -1,6 +1,6 @@
 // Telas do VoiceRune: janela principal (painel único), ícone e flyout da bandeja.
-// Visual "vidro" aprovado no mockup HTML (docs/mockups/b-vidro.html): no Windows 11 sobre o desfoque do
-// sistema (Mica/Acrylic, `Dados.vidro`); sem ele, com fundo sólido.
+// Visual "vidro" aprovado no mockup HTML (docs/mockups/b-vidro.html), por enquanto com fundo sólido
+// (o desfoque de verdade é uma etapa à parte).
 
 import { ComboBox, Palette, AboutSlint } from "std-widgets.slint";
 
@@ -31,8 +31,6 @@ export global Dados {
     in-out property <bool> iniciar-com-sistema: false;
     in-out property <bool> iniciar-so-bandeja: true;
     in-out property <int> tema: 0; // 0 sistema, 1 claro, 2 escuro
-    // Janela com desfoque do sistema por trás (Mica/Acrylic no Windows 11): o fundo vira um véu.
-    in property <bool> vidro: false;
     in property <string> atraso: "~85 ms";
     in property <string> cpu: "1,4 %";
     in property <int> falhas: 0;
@@ -63,11 +61,10 @@ export global Dados {
     callback iniciar-mudou();
 }
 
-// Cores do mockup: com desfoque do sistema o fundo é um véu quente por cima dele; sem, um fundo
-// sólido quente. Blocos e textos são translúcidos por cima.
+// Cores do mockup: o "vidro" vira um fundo sólido quente; blocos e textos são translúcidos por cima.
 global Cores {
     out property <bool> escuro: Palette.color-scheme == ColorScheme.dark;
-    out property <color> fundo: Dados.vidro ? (escuro ? #28201c40 : #faf7f426) : (escuro ? #322a25 : #f2ebe3);
+    out property <color> fundo: escuro ? #322a25 : #f2ebe3;
     // Janelinhas (ajuda, listas) precisam ser opacas.
     out property <color> popup: escuro ? #3d342e : #fbf8f5;
     out property <color> borda-janela: escuro ? #ffffff1f : #0000001a;
@@ -1491,9 +1488,7 @@ export component JanelaPrincipal inherits Window {
     icon: @image-url("icone.svg");
     preferred-width: 400px;
     min-width: 380px;
-    // Com vidro o véu vem só do retângulo abaixo (o fundo da janela limpa a área suja; dois véus
-    // dobrariam a cor).
-    background: Dados.vidro ? transparent : Cores.fundo;
+    background: Cores.fundo;
     default-font-size: 13px;
 
     // Nunca usar ColorScheme.unknown: os widgets e as nossas cores divergiriam (texto some).

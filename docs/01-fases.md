@@ -2,7 +2,7 @@
 
 **Status atual:** Fase 4 em andamento (branch `claude/fase4-app`), blocos 1 a 3 de 5 concluídos;
 bloco 4 começado (última configuração salva, instância única, iniciar com o sistema). Página **Teste** (gravar e ouvir A/B) feita.
-Visual **vidro** aprovado pelo Alex (2026-10-23); desde 2026-11-01 com **desfoque real no Windows 11** (Acrylic).
+Visual **vidro** com fundo sólido feito e **aprovado pelo Alex** (2026-10-23); desfoque no Windows testado e descartado.
 - Modos: **Leve** = RNNoise (padrão) · **Forte** = DeepFilterNet3. `voicerune` abre a janela
   Slint ligada ao motor e põe um ícone na bandeja (clique = flyout; menu Abrir/Sair); fechar a
   janela deixa o app só na bandeja. A última configuração volta ao abrir
@@ -30,8 +30,8 @@ IA) feito e aprovado; cartão "CPU do app" (% do PC) feito; cancelamento virou c
 feita, com o bug da janela vazia ao restaurar corrigido (falta o Alex conferir pelo atalho). Iniciar com o
 sistema (+ "Só na bandeja") feito; falta o Alex ligar no app de release e reiniciar o PC de verdade. Se o Forte
 voltar a picotar, medir underruns ao vivo (`voicerune-dev rodar --modelo dfn`). Visual "vidro" com fundo sólido
-feito e aprovado pelo Alex (ver `05-interface.md`, Visual vidro). Desfoque no Windows (Acrylic na janela e no
-flyout) feito em 2026-11-01 a pedido do Alex; **falta o Alex ver e aprovar** no app de release. **Próximo:** **presets** (fim do bloco 4). A onda custa ~+1,5 ponto de 1 núcleo (fica a 30 Hz
+feito e aprovado pelo Alex (ver `05-interface.md`, Visual vidro). Desfoque no Windows testado de novo em 2026-11-01
+(Mica, depois Acrylic) e **descartado pelo Alex**: fica o fundo sólido; desfoque só no Mac (Fase 5). **Próximo:** **presets** (fim do bloco 4). A onda custa ~+1,5 ponto de 1 núcleo (fica a 30 Hz
 salvo pedido do Alex). Pendências que não bloqueiam: CPU com medidor animado e
 Forte com voz (Discord fechado); reabrir após aviso fatal (desplugar um dispositivo); listas de
 dispositivos não atualizam ao plugar; migração do registro não testada de verdade; teste com jogo aberto; underrun na partida do DFN; gate do
@@ -220,3 +220,5 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
 - 2026-11-01 — Alex abriu e não viu diferença (o Mica só tinge com o papel de parede): janela passou para
   **Acrylic** (desfoca o que está atrás) e o véu afinou (`#faf7f426` / `#28201c40`). Conferido no release, claro e
   escuro legíveis (capturas `vidro-acrylic-claro/escuro.png`). Sem foco, o Windows apaga o vidro (cor lisa).
+- 2026-11-01 — Alex viu o Acrylic e **desistiu** ("não combina com o Windows"): código de volta ao fundo sólido
+  (`crates/` como no `55cf233`), release recompilado e conferido (sem desfoque do DWM). Capturas ficam como registro.

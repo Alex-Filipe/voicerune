@@ -21,10 +21,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use slint::winit_030::winit::{
-    event::WindowEvent,
-    window::{Theme, WindowAttributes},
-};
+use slint::winit_030::winit::{event::WindowEvent, window::WindowAttributes};
 use slint::winit_030::{EventResult, WinitWindowAccessor};
 use slint::{CloseRequestResponse, ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel};
 use voicerune::controlador::{Ajustes, Controlador, Modo};
@@ -158,8 +155,6 @@ thread_local! {
     static UI: RefCell<Option<Ui>> = const { RefCell::new(None) };
     /// Ligado só enquanto o flyout é criado: o gancho do winit (`atributos`) vale só para ele.
     static CRIANDO_FLYOUT: Cell<bool> = const { Cell::new(false) };
-    /// Tema da próxima janela: o winit a cria depois, no laço de eventos, mas lê os atributos no `new`.
-    static TEMA_NOVA: Cell<i32> = const { Cell::new(0) };
 }
 
 fn com_ui<R>(f: impl FnOnce(&mut Ui) -> R) -> Option<R> {
@@ -362,74 +357,15 @@ impl Instancia {
     fn esperar(self) {}
 }
 
-/// Gancho do winit antes de criar cada janela: com vidro, janela transparente sobre o desfoque do
-/// sistema (Acrylic); o flyout sai da barra de tarefas e ganha os cantos
+/// Gancho do winit antes de criar cada janela: o flyout sai da barra de tarefas e ganha os cantos
 /// arredondados do Windows 11 (DWM).
 fn atributos(a: WindowAttributes) -> WindowAttributes {
-    let a = a.with_theme(tema_winit(TEMA_NOVA.get()));
     #[cfg(windows)]
-    {
-        use slint::winit_030::winit::platform::windows::{BackdropType, CornerPreference, WindowAttributesExtWindows};
-        let flyout = CRIANDO_FLYOUT.get();
-        // Acrylic nas duas: desfoca o que está atrás (o Mica só tinge com o papel de parede e quase
-        // não se nota; o Alex não viu diferença do fundo sólido).
-        let a = if vidro() {
-            a.with_transparent(true).with_system_backdrop(BackdropType::TransientWindow)
-        } else {
-            a
-        };
-        if flyout {
-            return a.with_skip_taskbar(true).with_corner_preference(CornerPreference::Round);
-        }
-        a
+    if CRIANDO_FLYOUT.get() {
+        use slint::winit_030::winit::platform::windows::{CornerPreference, WindowAttributesExtWindows};
+        return a.with_skip_taskbar(true).with_corner_preference(CornerPreference::Round);
     }
-    #[cfg(not(windows))]
     a
-}
-
-/// Tema da janela do sistema (0 = do sistema, 1 claro, 2 escuro): a barra de título e o desfoque
-/// atrás dela (Mica/Acrylic) seguem este tema, não o `Palette` do Slint, que não o repassa.
-fn tema_winit(tema: i32) -> Option<Theme> {
-    match tema {
-        1 => Some(Theme::Light),
-        2 => Some(Theme::Dark),
-        _ => None,
-    }
-}
-
-/// Desfoque do sistema atrás das janelas: `DWMWA_SYSTEMBACKDROP_TYPE` existe a partir do Windows 11
-/// 22H2 (build 22621); antes disso a janela transparente ficaria sem nada atrás, então fica o fundo
-/// sólido. Com "Efeitos de transparência" desligado o próprio DWM troca o desfoque por uma cor lisa.
-#[cfg(windows)]
-fn vidro() -> bool {
-    use std::sync::OnceLock;
-    use windows::core::w;
-    use windows::Win32::System::Registry::{RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ};
-    static VIDRO: OnceLock<bool> = OnceLock::new();
-    *VIDRO.get_or_init(|| {
-        let mut buf = [0u16; 16];
-        let mut tam = size_of_val(&buf) as u32;
-        // SAFETY: escreve no máximo `tam` bytes no `buf` local.
-        let r = unsafe {
-            RegGetValueW(
-                HKEY_LOCAL_MACHINE,
-                w!("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"),
-                w!("CurrentBuildNumber"),
-                RRF_RT_REG_SZ,
-                None,
-                Some(buf.as_mut_ptr().cast()),
-                Some(&mut tam),
-            )
-        };
-        let texto = String::from_utf16_lossy(&buf[..tam as usize / 2]);
-        r.is_ok() && texto.trim_end_matches('\0').parse::<u32>().is_ok_and(|b| b >= 22621)
-    })
-}
-
-/// O desfoque do Mac é a Fase 5.
-#[cfg(not(windows))]
-fn vidro() -> bool {
-    false
 }
 
 impl Ui {
@@ -449,7 +385,6 @@ impl Ui {
         d.set_entradas(modelo_de(&self.disp.entradas));
         d.set_saidas(modelo_de(&self.disp.saidas));
         d.set_tema(self.tema_atual());
-        d.set_vidro(vidro());
         d.set_iniciar_disponivel(partida::DISPONIVEL);
         self.mostrar_partida(d);
         mostrar_ajustes(d, &self.pedido, &self.disp);
@@ -541,12 +476,7 @@ where
     d.on_saida_escolhida(ao_mudar(|a, d, disp| a.saida = disp.saidas.get(d.get_saida() as usize).cloned()));
     d.on_baixa_latencia_mudou(ao_mudar(|a, d, _| a.baixa_latencia = d.get_baixa_latencia()));
     d.on_cancelamento_mudou(ao_mudar(|a, d, _| a.ia = d.get_cancelamento()));
-    let w = c.as_weak();
-    d.on_tema_escolhido(move || {
-        if let Some(c) = w.upgrade() {
-            let t = c.global::<Dados>().get_tema();
-            c.window().with_winit_window(|w| w.set_theme(tema_winit(t)));
-        }
+    d.on_tema_escolhido(|| {
         com_ui(agendar_gravacao);
     });
     let w = c.as_weak();
@@ -617,7 +547,6 @@ fn abrir_janela() {
         j.window().with_winit_window(|w| w.focus_window());
         return;
     }
-    TEMA_NOVA.set(com_ui(|ui| ui.tema_atual()).unwrap_or(0));
     let j = match JanelaPrincipal::new() {
         Ok(j) => j,
         Err(e) => return eprintln!("janela: {e}"),
@@ -777,7 +706,6 @@ fn clicou_icone() {
 }
 
 fn abrir_flyout() {
-    TEMA_NOVA.set(com_ui(|ui| ui.tema_atual()).unwrap_or(0));
     CRIANDO_FLYOUT.set(true);
     let f = Flyout::new();
     CRIANDO_FLYOUT.set(false);
