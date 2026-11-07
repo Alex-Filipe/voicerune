@@ -166,3 +166,22 @@ atraso do buffer de saída dela. Se algo falhar, o antigo continua.
   1º pacote entregue.
 - Avisos dos fluxos (erro fatal = dispositivo sumiu; não fatal = ajuste) vão por canal
   (`Pedido.avisos`); sem canal, stderr.
+
+## macOS (Fase 5) — medições em 2026-11-07
+MacBook Air M4, BlackHole 2ch 0.7.1 (`brew install --cask blackhole-2ch`; depois `sudo killall coreaudiod`
+para o CoreAudio carregar o driver). Backend padrão (`cpal` → CoreAudio), 48 kHz, sem ajuste de buffer.
+`voicerune-dev latencia --entrada Microfone --saida "BlackHole 2ch" --retorno "BlackHole 2ch" --modelo M`:
+
+| Modelo | Cliques (mic → retorno) | + atraso algorítmico | Total | Windows (padrão / baixa latência) |
+|---|---|---|---|---|
+| Leve (RNNoise) | 46,9 ms | +10 ms | **~57 ms** | ~130 / ~98 ms |
+| Forte (DFN3) | 45,8 ms | +30 ms | **~76 ms** | ~149 / ~115 ms |
+
+- 0 underruns, 0 perdas; 16 de 17 cliques detectados. Divisão estimada: driver de entrada 11,7 ms, acúmulo de
+  quadro 4,7, fila 22,0, driver de saída 10,7. O BlackHole não soma atraso medível (mesmo relógio, ~0 ms) —
+  no Windows o VB-Cable somava ~55 ms.
+- **Proposta (Alex decide):** sem backend de baixa latência no Mac (o padrão já fica abaixo do Windows otimizado).
+- Ressalva: a medição para no retorno do BlackHole; o buffer do app que lê o BlackHole (Discord etc.) não entra,
+  como no Windows. O texto da ferramenta ainda diz "VB-Cable" na divisão.
+- CPU com a janela aberta, Forte (10 s): app 34 % de 1 núcleo = 3,4 % do PC; thread da janela ~23 %, IA ~12 %,
+  áudio < 1 %. A janela custa bem mais que no Windows (~2–3 %): hipótese = renderizador de software em Retina (2×).

@@ -33,7 +33,7 @@
 - Só no Windows (no Mac compila a versão vazia ou devolve erro claro): backend de baixa latência (WASAPI) e
   `sondar`, iniciar com o sistema (registro), instância única, posição do flyout.
 - Config no Mac: `~/Library/Application Support/VoiceRune/config.ini` (desde 2026-11-07).
-- App: `"$CARGO_TARGET_DIR/release/voicerune"`. Pelo terminal, a permissão do mic vai para o app que abriu o processo (Terminal/Claude). Saída padrão "BlackHole"; sem ele o motor não abre.
+- App: `"$CARGO_TARGET_DIR/release/voicerune"`. Pelo terminal, a permissão do mic vai para o app que abriu o processo (Terminal/Claude). Saída padrão "BlackHole"; sem ele o motor não abre. BlackHole: `brew install --cask blackhole-2ch` + `sudo killall coreaudiod` (pedem a senha do Mac).
 
 ## Rodar
 - `cargo build --release`; binários em `C:\dev\cargo-target\mic-limpo\release\`:
