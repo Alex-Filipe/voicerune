@@ -85,3 +85,4 @@
 | 2026-11-07 | **Fase 5 (macOS) antes dos presets** (fim do bloco 4 da Fase 4); plano em 5 blocos: rodar no Mac, BlackHole, visual do Mac, `.app`, uso diário | Escolha do Alex; o workspace já compila e passa nos testes no M4 |
 | 2026-11-07 | Config no Mac em `~/Library/Application Support/VoiceRune/config.ini` (mesmo formato do Windows) | Pasta padrão de dados de app no macOS; `%APPDATA%` não existe lá |
 | 2026-11-07 | "CPU do app" no Mac por `getrusage` (crate `libc`, já na árvore pelo `cpal`/Slint; nenhum crate novo baixado) | Mesma conta do Windows (`GetProcessTimes`): núcleo + usuário de todas as threads, em % do PC |
+| 2026-11-07 | Mac sem backend de baixa latência por ora: fica o `cpal` padrão (CoreAudio) | Escolha do Alex; medido Leve ~57 ms / Forte ~76 ms com BlackHole, abaixo do Windows com baixa latência (~98 / ~115 ms) |

@@ -180,7 +180,7 @@ para o CoreAudio carregar o driver). Backend padrão (`cpal` → CoreAudio), 48 
 - 0 underruns, 0 perdas; 16 de 17 cliques detectados. Divisão estimada: driver de entrada 11,7 ms, acúmulo de
   quadro 4,7, fila 22,0, driver de saída 10,7. O BlackHole não soma atraso medível (mesmo relógio, ~0 ms) —
   no Windows o VB-Cable somava ~55 ms.
-- **Proposta (Alex decide):** sem backend de baixa latência no Mac (o padrão já fica abaixo do Windows otimizado).
+- **Decidido (Alex, 2026-11-07):** sem backend de baixa latência no Mac por ora (o padrão já fica abaixo do Windows otimizado).
 - Ressalva: a medição para no retorno do BlackHole; o buffer do app que lê o BlackHole (Discord etc.) não entra,
   como no Windows. O texto da ferramenta ainda diz "VB-Cable" na divisão.
 - CPU com a janela aberta, Forte (10 s): app 34 % de 1 núcleo = 3,4 % do PC; thread da janela ~23 %, IA ~12 %,
