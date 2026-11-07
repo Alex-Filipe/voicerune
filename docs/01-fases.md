@@ -40,6 +40,8 @@ medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 2
 Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
 gravar conferem (ver `05-interface.md`, Configuração salva).
 **Repositório:** público em https://github.com/Alex-Filipe/voicerune desde 2026-11-07 (`main` = fase 4 até aqui).
+**Mac:** desde 2026-11-07 o workspace compila e os testes passam no M4 sem mudar código (ver `08-ambiente.md`,
+macOS); app ainda não aberto lá. Ordem entre presets (Windows) e Fase 5 (Mac): Alex decide.
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
@@ -223,3 +225,7 @@ gravar conferem (ver `05-interface.md`, Configuração salva).
   escuro legíveis (capturas `vidro-acrylic-claro/escuro.png`). Sem foco, o Windows apaga o vidro (cor lisa).
 - 2026-11-01 — Alex viu o Acrylic e **desistiu** ("não combina com o Windows"): código de volta ao fundo sólido
   (`crates/` como no `55cf233`), release recompilado e conferido (sem desfoque do DWM). Capturas ficam como registro.
+- 2026-11-07 — **Mac (M4):** repositório clonado em `~/dev/voicerune`, Rust 1.99.1 pelo rustup. `cargo build --workspace`
+  passa sem mudar código (~63 s; 1 aviso de constante sem uso) e `cargo test --workspace` dá 25 ok + 1 ignorado,
+  igual ao Windows. `target-dir` do `.cargo/config.toml` é caminho do Windows: no Mac usar `CARGO_TARGET_DIR`.
+  Achado: a config não é salva no Mac (`%APPDATA%`). App não aberto lá ainda. Ver `08-ambiente.md`, macOS.
