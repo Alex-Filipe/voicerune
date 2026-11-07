@@ -26,6 +26,10 @@ windows = { workspace = true, features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 
+# CPU do processo (`getrusage`) fora do Windows.
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
 [features]
 default = ["dfn"]
 dfn = ["voicerune-core/dfn"]

@@ -28,13 +28,12 @@
 - **`target-dir`:** o `.cargo/config.toml` fixa `C:/dev/cargo-target/mic-limpo`; no Mac isso criaria uma pasta
   `C:` dentro do repositório. Usar sempre `CARGO_TARGET_DIR` (tem prioridade sobre o arquivo):
   `export CARGO_TARGET_DIR="$HOME/dev/cargo-target/voicerune"` (pôr no `~/.zshrc` para não esquecer).
-- `cargo build --workspace` passa sem mudar código (~63 s no 1º build em debug; 1 aviso: `MARGEM_FLYOUT`
-  sem uso fora do Windows). `cargo test --workspace`: 25 passam, 1 ignorado (DFN em tempo real, só em `--release`).
+- `cargo build --workspace` passa sem mudar código (~63 s no 1º build em debug; o aviso de `MARGEM_FLYOUT`
+  foi corrigido em 2026-11-07). `cargo test --workspace`: 25 passam, 1 ignorado (DFN em tempo real, só em `--release`).
 - Só no Windows (no Mac compila a versão vazia ou devolve erro claro): backend de baixa latência (WASAPI) e
-  `sondar`, iniciar com o sistema (registro), instância única, posição do flyout, "CPU do app" (mostra "—").
-- **Config não é salva no Mac:** `salvo.rs` usa `%APPDATA%`, que não existe lá. A fazer na Fase 5
-  (`~/Library/Application Support/VoiceRune`).
-- App ainda **não aberto** no Mac (janela, bandeja, permissão de microfone): nada testado em tempo real.
+  `sondar`, iniciar com o sistema (registro), instância única, posição do flyout.
+- Config no Mac: `~/Library/Application Support/VoiceRune/config.ini` (desde 2026-11-07).
+- App: `"$CARGO_TARGET_DIR/release/voicerune"`. Pelo terminal, a permissão do mic vai para o app que abriu o processo (Terminal/Claude). Saída padrão "BlackHole"; sem ele o motor não abre.
 
 ## Rodar
 - `cargo build --release`; binários em `C:\dev\cargo-target\mic-limpo\release\`:

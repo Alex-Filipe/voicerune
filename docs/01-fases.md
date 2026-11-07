@@ -40,8 +40,8 @@ medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 2
 Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
 gravar conferem (ver `05-interface.md`, Configuração salva).
 **Repositório:** público em https://github.com/Alex-Filipe/voicerune desde 2026-11-07 (`main` = fase 4 até aqui).
-**Mac:** desde 2026-11-07 o workspace compila e os testes passam no M4 sem mudar código (ver `08-ambiente.md`,
-macOS); app ainda não aberto lá. Ordem entre presets (Windows) e Fase 5 (Mac): Alex decide.
+**Mac (Fase 5, decidida antes dos presets):** bloco 1 em andamento — app abre no Mac (janela + ícone na barra de menu); falta o BlackHole para o motor rodar. Ver `08-ambiente.md`,
+macOS, e o histórico abaixo.
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
@@ -229,3 +229,10 @@ macOS); app ainda não aberto lá. Ordem entre presets (Windows) e Fase 5 (Mac):
   passa sem mudar código (~63 s; 1 aviso de constante sem uso) e `cargo test --workspace` dá 25 ok + 1 ignorado,
   igual ao Windows. `target-dir` do `.cargo/config.toml` é caminho do Windows: no Mac usar `CARGO_TARGET_DIR`.
   Achado: a config não é salva no Mac (`%APPDATA%`). App não aberto lá ainda. Ver `08-ambiente.md`, macOS.
+- 2026-11-07 — **Fase 5, bloco 1 (parte 1):** config no Mac em `~/Library/Application Support/VoiceRune/config.ini`
+  (conferido: o app gravou lá); "CPU do app" por `getrusage` (`libc`, já na árvore); saída padrão "BlackHole" no
+  Mac. Testes 25 ok; release sem avisos (1 min 41 s; binário 44 MB). App aberto pelo terminal: janela abre;
+  ícone da runa aparece na barra de menu (`NSStatusItem` da Slint, conferido por captura); sem desfoque
+  (bloco 3); ícone do Dock genérico (sem `.app`, bloco 4). Mic capta (`voicerune-dev gravar`: voz −42 dBFS,
+  permissão concedida ao processo que abriu o app). Sem BlackHole o motor não abre (saída não encontrada),
+  então o app não processa nada. Medido parado: `phys_footprint` 39 MB, RSS 113 MB.

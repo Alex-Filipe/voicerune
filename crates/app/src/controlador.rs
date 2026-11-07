@@ -64,7 +64,8 @@ impl Default for Ajustes {
             modo: Modo::Leve,
             ganho_db: 0.0,
             entrada: None,
-            saida: Some("CABLE Input".into()),
+            // Cabo virtual de cada SO (instalado à parte): VB-Cable no Windows, BlackHole no macOS.
+            saida: Some(if cfg!(target_os = "macos") { "BlackHole" } else { "CABLE Input" }.into()),
             baixa_latencia: false,
             limite_db: None,
             folga_ms: m.folga_ms,

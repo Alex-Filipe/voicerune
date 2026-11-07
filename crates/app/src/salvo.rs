@@ -1,5 +1,6 @@
-//! Última configuração do usuário: gravada em `%APPDATA%\VoiceRune\config.ini` a cada mudança e
-//! lida ao abrir. Sem ela, vale a de antes do nome VoiceRune (`%APPDATA%\mic-limpo\config.ini`),
+//! Última configuração do usuário: gravada em `%APPDATA%\VoiceRune\config.ini` (no macOS,
+//! `~/Library/Application Support/VoiceRune/config.ini`) a cada mudança e lida ao abrir.
+//! Sem ela, vale a de antes do nome VoiceRune (`%APPDATA%\mic-limpo\config.ini`),
 //! que nunca é apagada: a próxima gravação já cria a nova. Texto simples `chave = valor` (sem
 //! dependência nova): chave ausente ou valor inválido fica no padrão, chave desconhecida é ignorada.
 
@@ -40,7 +41,11 @@ impl Default for Salvo {
 }
 
 impl Salvo {
+    /// Pasta de dados de apps do usuário: `%APPDATA%` no Windows, `~/Library/Application Support` no macOS.
     fn appdata() -> Option<PathBuf> {
+        #[cfg(target_os = "macos")]
+        return std::env::var_os("HOME").map(|h| PathBuf::from(h).join("Library/Application Support"));
+        #[cfg(not(target_os = "macos"))]
         std::env::var_os("APPDATA").map(PathBuf::from)
     }
 

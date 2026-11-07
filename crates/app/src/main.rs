@@ -45,6 +45,7 @@ const ESPERA_REABRIR: Duration = Duration::from_millis(300);
 /// cima: um clique logo depois de ele fechar assim é o mesmo clique e não o reabre.
 const CLIQUE_FECHOU: Duration = Duration::from_millis(400);
 /// Distância do flyout até a barra de tarefas e a borda da tela (px lógicos).
+#[cfg(windows)]
 const MARGEM_FLYOUT: f32 = 12.0;
 /// A configuração é gravada este tempo depois da última mudança (arrastar o volume = uma gravação).
 const GRAVAR_APOS: Duration = Duration::from_millis(500);
@@ -1032,10 +1033,16 @@ fn cpu_do_processo() -> Option<Duration> {
     Some(Duration::from_nanos((unidades(nucleo) + unidades(usuario)) * 100))
 }
 
-/// Fora do Windows o cartão mostra "—" (o macOS é a Fase 5).
-#[cfg(not(windows))]
+/// Mesma conta no macOS/Linux: `getrusage` do próprio processo (todas as threads).
+#[cfg(unix)]
 fn cpu_do_processo() -> Option<Duration> {
-    None
+    // SAFETY: `rusage` é só números (zerado é válido); `getrusage` só escreve na variável local.
+    let mut r: libc::rusage = unsafe { std::mem::zeroed() };
+    if unsafe { libc::getrusage(libc::RUSAGE_SELF, &mut r) } != 0 {
+        return None;
+    }
+    let t = |v: libc::timeval| Duration::from_secs(v.tv_sec as u64) + Duration::from_micros(v.tv_usec as u64);
+    Some(t(r.ru_utime) + t(r.ru_stime))
 }
 
 /// O que a IA está fazendo: `None` com o cancelamento desligado.

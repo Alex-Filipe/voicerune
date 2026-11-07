@@ -22,6 +22,8 @@ windows = "0.62"
 deep_filter = { git = "https://github.com/Rikorose/DeepFilterNet", rev = "978576aa8400552a4ce9730838c635aa30db5e61", default-features = false, features = ["tract", "default-model"] }
 ndarray = "0.15"
 hound = "3.5"
+# CPU do processo no macOS/Linux (`getrusage`); já vinha na árvore pelo cpal/Slint.
+libc = "0.2.191"
 # UI: sem features padrão (sem OpenGL/femtovg). `system-tray` usa Shell_NotifyIconW no Windows
 # (ksni só no Linux); `unstable-winit-030` dá o foco/HWND do flyout (o winit já vinha).
 slint = { version = "1.18.1", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software", "system-tray", "unstable-winit-030"] }

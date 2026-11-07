@@ -82,3 +82,6 @@
 | 2026-11-01 | Janela principal com **Acrylic** (não Mica) e véu mais fino | Com o Mica o Alex não viu diferença do fundo sólido; o Acrylic desfoca o que está atrás, como o "liquid glass" pedido |
 | 2026-11-01 | **Desfeito**: sem desfoque no Windows (volta a decisão de 2026-10-23); código do teste fica nos commits `0115b3d`/`a917673` | Alex viu Mica e Acrylic no app e não gostou ("não combina com o Windows") |
 | 2026-11-07 | Repositório **público** no GitHub (`Alex-Filipe/voicerune`); `main` avançado até a fase 4 e só ele enviado | Escolha do Alex; projeto é open source (MIT); histórico limpo numa branch só |
+| 2026-11-07 | **Fase 5 (macOS) antes dos presets** (fim do bloco 4 da Fase 4); plano em 5 blocos: rodar no Mac, BlackHole, visual do Mac, `.app`, uso diário | Escolha do Alex; o workspace já compila e passa nos testes no M4 |
+| 2026-11-07 | Config no Mac em `~/Library/Application Support/VoiceRune/config.ini` (mesmo formato do Windows) | Pasta padrão de dados de app no macOS; `%APPDATA%` não existe lá |
+| 2026-11-07 | "CPU do app" no Mac por `getrusage` (crate `libc`, já na árvore pelo `cpal`/Slint; nenhum crate novo baixado) | Mesma conta do Windows (`GetProcessTimes`): núcleo + usuário de todas as threads, em % do PC |
