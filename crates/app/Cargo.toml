@@ -30,6 +30,12 @@ windows = { workspace = true, features = [
 [target.'cfg(unix)'.dependencies]
 libc.workspace = true
 
+# Fase 5 (teste): no Mac a janela é desenhada na GPU (FemtoVG/OpenGL), que vira o renderizador padrão
+# do winit quando ligado. O de software não tem alfa no Mac (softbuffer opaco, sem vidro) e gasta a
+# thread da janela convertendo cor a cada quadro. No Windows nada muda.
+[target.'cfg(target_os = "macos")'.dependencies]
+slint = { workspace = true, features = ["renderer-femtovg"] }
+
 [features]
 default = ["dfn"]
 dfn = ["voicerune-core/dfn"]

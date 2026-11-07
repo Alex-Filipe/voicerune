@@ -373,6 +373,29 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
 - `window-vibrancy` 0.8.1 (MIT/Apache, sem rede; Mac: `objc2*`): candidato para a Fase 5
   (`NSVisualEffectView`); avaliar lá, com CPU/RAM medidos.
 
+### Mac: renderizador FemtoVG (Fase 5, bloco 3, 2026-11-07)
+- **Achado:** o `renderer-software` não serve para o vidro no Mac: o `softbuffer` 0.4.8 cria a imagem com
+  `CGImageAlphaInfo::NoneSkipFirst` (sem alfa), então a janela é sempre opaca. E gasta a thread da janela:
+  perfil (`sample`) com ~40 % em conversão de cor do vImage (imagem em `DeviceRGB` → cores da tela a cada
+  quadro), ~30 % no desenho da Slint e ~15 % em cópia.
+- **Feito (aprovado pelo Alex: "não vi nada de diferente"):** só no Mac, `slint` com `renderer-femtovg`
+  (`crates/app/Cargo.toml`, dependência por alvo). Vira o renderizador padrão do winit (OpenGL da Apple sobre
+  Metal, conferido pelo `lsof`). Windows sem mudança (não compilado lá depois disso). Crates novas: `femtovg`,
+  `i-slint-renderer-femtovg`, `fnv` (sem rede); binário 43,9 → 44,6 MB; build +24 s.
+- Medido (release, Leve, janela aberta na tela inicial com a onda, 20 s, 2 rodadas cada):
+
+| | Software | FemtoVG |
+|---|---|---|
+| CPU do app | 27,6–28,2 % de 1 núcleo (2,8 % do PC) | 18,5–18,6 % (1,9 % do PC) |
+| Thread da janela | 25,4–25,8 % | 15,1–15,2 % |
+| `phys_footprint` com janela | 38 MB | 111–116 MB (+50 MB gráficos, +21 MB IOSurface) |
+| Só na bandeja (`--bandeja`) | 15 MB, ~2,5 % de 1 núcleo | 16 MB, ~2,5 % |
+
+- A medir: a memória da GPU volta ao fechar a janela? (só bandeja desde o início = 16 MB). A janela ainda custa
+  bem mais que no Windows (~2–3 %); o resto do perfil fica espalhado (driver de GPU, malloc).
+- Próximo: desfoque com `NSVisualEffectView` (`objc2-app-kit`, já na árvore) + véu dos commits `0115b3d`/`a917673`;
+  flyout embaixo do ícone da barra de menu.
+
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
 - Pendências visuais: desfoque só no Mac (Fase 5). A barra de

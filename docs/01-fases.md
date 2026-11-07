@@ -40,7 +40,7 @@ medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 2
 Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
 gravar conferem (ver `05-interface.md`, Configuração salva).
 **Repositório:** público em https://github.com/Alex-Filipe/voicerune desde 2026-11-07 (`main` = fase 4 até aqui).
-**Mac (Fase 5, decidida antes dos presets):** blocos 1 e 2 quase prontos — app roda no Mac com BlackHole (Leve ~57 ms, Forte ~76 ms); falta chamada de verdade. **Próximo (Mac):** bloco 3 (visual: desfoque + custo da janela em Retina). Ver `08-ambiente.md` e `03-audio.md`,
+**Mac (Fase 5, decidida antes dos presets):** blocos 1 e 2 quase prontos — app roda no Mac com BlackHole (Leve ~57 ms, Forte ~76 ms); falta chamada de verdade. **Bloco 3 começado:** janela no Mac desenhada pela GPU (FemtoVG). **Próximo (Mac):** desfoque (`NSVisualEffectView`) + véu, depois flyout embaixo do ícone; conferir no Windows que o build não mudou. Ver `08-ambiente.md` e `03-audio.md`,
 macOS, e o histórico abaixo.
 
 | Fase | Entrega | Critério de pronto | Status |
@@ -241,3 +241,7 @@ macOS, e o histórico abaixo.
   Leve ~57 ms, Forte ~76 ms (Windows: ~98 / ~115 com baixa latência), 0 underruns. CPU com janela no Forte:
   3,4 % do PC, ~23 % de 1 núcleo só na thread da janela (hipótese: renderizador de software em Retina). Ver
   `03-audio.md`, macOS. Falta: teste numa chamada de verdade (Discord/Meet com mic "BlackHole 2ch").
+- 2026-11-07 — **Fase 5, bloco 3 (parte 1):** no Mac o renderizador de software não tem alfa (softbuffer opaco → sem
+  vidro) e gasta ~40 % da thread da janela convertendo cor. Ligado `renderer-femtovg` só no Mac (GPU): janela
+  15 % × 25 % de 1 núcleo (app 1,9 × 2,8 % do PC), memória com janela 111–116 × 38 MB, só bandeja igual (16 × 15 MB);
+  binário +0,7 MB. Alex não viu diferença visual e aprovou. Ver `05-interface.md`, "Mac: renderizador FemtoVG".

@@ -86,3 +86,4 @@
 | 2026-11-07 | Config no Mac em `~/Library/Application Support/VoiceRune/config.ini` (mesmo formato do Windows) | Pasta padrão de dados de app no macOS; `%APPDATA%` não existe lá |
 | 2026-11-07 | "CPU do app" no Mac por `getrusage` (crate `libc`, já na árvore pelo `cpal`/Slint; nenhum crate novo baixado) | Mesma conta do Windows (`GetProcessTimes`): núcleo + usuário de todas as threads, em % do PC |
 | 2026-11-07 | Mac sem backend de baixa latência por ora: fica o `cpal` padrão (CoreAudio) | Escolha do Alex; medido Leve ~57 ms / Forte ~76 ms com BlackHole, abaixo do Windows com baixa latência (~98 / ~115 ms) |
+| 2026-11-07 | Mac: janela desenhada pela GPU (`renderer-femtovg`, só no Mac); Windows segue no software | Software sem alfa no Mac (sem vidro) e −40 % de CPU na janela; custo: +74 MB só com a janela aberta. Alex aprovou (sem diferença visual) |
