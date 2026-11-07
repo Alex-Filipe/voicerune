@@ -13,12 +13,15 @@
 - VS Build Tools 2022 17.14 ✅ — via winget, workload `Microsoft.VisualStudio.Workload.VCTools` (linker MSVC).
 - `cargo build` do workspace passa ✅
 
+## Repositório
+- GitHub (público): https://github.com/Alex-Filipe/voicerune — remoto `origin`, branch `main`.
+
 ## Build
 - `target/` fora do OneDrive: `C:\dev\cargo-target\mic-limpo` (configurado em `.cargo/config.toml`; ficou com o nome antigo para não recompilar as dependências).
 - `cargo build` na raiz.
 
 ## macOS
-- Compilar lá (Claude Code no Mac) ou via CI no GitHub Actions (quando o repo existir).
+- Compilar lá (Claude Code no Mac) ou via CI no GitHub Actions (repo já existe; CI ainda não configurado).
 
 ## Rodar
 - `cargo build --release`; binários em `C:\dev\cargo-target\mic-limpo\release\`:

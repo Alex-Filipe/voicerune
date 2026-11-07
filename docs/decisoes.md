@@ -81,3 +81,4 @@
 | 2026-11-01 | **Desfoque no Windows** (Mica na janela, Acrylic no flyout) pelo winit, sem crate novo; só no Windows 11 22H2+, antes disso fundo sólido. Substitui a decisão de 2026-10-23 | Pedido do Alex ("liquid glass" também no Windows); RAM/CPU do app iguais ao sólido |
 | 2026-11-01 | Janela principal com **Acrylic** (não Mica) e véu mais fino | Com o Mica o Alex não viu diferença do fundo sólido; o Acrylic desfoca o que está atrás, como o "liquid glass" pedido |
 | 2026-11-01 | **Desfeito**: sem desfoque no Windows (volta a decisão de 2026-10-23); código do teste fica nos commits `0115b3d`/`a917673` | Alex viu Mica e Acrylic no app e não gostou ("não combina com o Windows") |
+| 2026-11-07 | Repositório **público** no GitHub (`Alex-Filipe/voicerune`); `main` avançado até a fase 4 e só ele enviado | Escolha do Alex; projeto é open source (MIT); histórico limpo numa branch só |

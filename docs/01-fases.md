@@ -39,6 +39,7 @@ mic antes do app; corte audível da troca não medido ponta a ponta (hipótese ~
 medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 20:08 de 2026-10-21 mostrou
 Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
 gravar conferem (ver `05-interface.md`, Configuração salva).
+**Repositório:** público em https://github.com/Alex-Filipe/voicerune desde 2026-11-07 (`main` = fase 4 até aqui).
 
 | Fase | Entrega | Critério de pronto | Status |
 |---|---|---|---|
