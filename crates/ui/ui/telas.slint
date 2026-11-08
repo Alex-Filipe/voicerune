@@ -54,6 +54,9 @@ export global Dados {
     callback teste-parar();
     callback teste-versao-mudou();
     callback abrir-janela();
+    // Mac: o ícone não tem menu (com menu a Slint não repassa o clique), então "Sair" fica no flyout.
+    in property <bool> sair-no-flyout: false;
+    callback sair();
     // O usuário mexeu num controle (o valor novo já está na propriedade acima).
     callback modo-escolhido();
     callback ganho-mudou();
@@ -1543,6 +1546,17 @@ export component JanelaPrincipal inherits Window {
     }
 }
 
+// Ícone na barra de menus do Mac: sem menu, para o clique chegar ao app (com menu, a Slint 1.18 só
+// abre o menu). Clique abre o flyout, que tem "Abrir ›" e "Sair".
+export component BandejaSemMenu inherits SystemTrayIcon {
+    icon: @image-url("icone.svg");
+    tooltip: "VoiceRune";
+    callback clicado();
+    clicked => {
+        root.clicado();
+    }
+}
+
 // Ícone na bandeja (Shell_NotifyIconW no Windows): clique abre o flyout; botão direito, o menu.
 export component Bandeja inherits SystemTrayIcon {
     icon: @image-url("icone.svg");
@@ -1572,13 +1586,21 @@ export component Bandeja inherits SystemTrayIcon {
 
 export component Flyout inherits Window {
     title: "VoiceRune";
-    no-frame: true;
+    // Mac: com moldura (escondida pelo app: barra transparente, sem botões); sem moldura o vidro do
+    // sistema não aparece. Tem de valer já na criação: mudar depois faz a altura oscilar.
+    no-frame: Platform.os != OperatingSystemType.macos;
     always-on-top: true;
     width: 320px;
-    height: conteudo.preferred-height;
+    // Altura do conteúdo. No Windows, fixa (mínimo = máximo). No Mac, com folga: o conteúdo vai até
+    // o topo (barra de título escondida) e o macOS mede os limites sem a barra (32 pt) enquanto o
+    // winit mede o tamanho com ela; com mínimo = máximo a altura oscila sem parar.
+    property <length> folga: Platform.os == OperatingSystemType.macos ? 40px : 0px;
+    preferred-height: conteudo.preferred-height;
+    min-height: conteudo.preferred-height - folga;
+    max-height: conteudo.preferred-height + folga;
     // Lidas pelo Rust antes de mostrar, para encostar o flyout na barra de tarefas.
     out property <length> largura: self.width;
-    out property <length> altura: self.height;
+    out property <length> altura: conteudo.preferred-height;
     background: Cores.fundo;
     default-font-size: 13px;
     property <float> db: round(Dados.ganho-db);
@@ -1598,6 +1620,8 @@ export component Flyout inherits Window {
     Rectangle {
         border-width: 1px;
         border-color: Cores.borda-janela;
+        // Mac: o sistema arredonda os cantos da janela; o contorno some (fica o do sistema).
+        visible: !Dados.vidro;
     }
 
     conteudo := VerticalLayout {
@@ -1685,6 +1709,17 @@ export component Flyout inherits Window {
                 horizontal-stretch: 1;
                 // Nomes reais são longos ("Voicemeeter Out B1 (VB-Audio ...)"): corta com "…".
                 overflow: elide;
+            }
+
+            if Dados.sair-no-flyout: Rotulo {
+                text: "Sair";
+                color: ta-sair.has-hover ? Cores.texto : Cores.texto2;
+                accessible-role: button;
+                ta-sair := TouchArea {
+                    clicked => {
+                        Dados.sair();
+                    }
+                }
             }
 
             Rotulo {

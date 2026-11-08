@@ -40,7 +40,7 @@ medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 2
 Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
 gravar conferem (ver `05-interface.md`, Configuração salva).
 **Repositório:** público em https://github.com/Alex-Filipe/voicerune desde 2026-11-07 (`main` = fase 4 até aqui).
-**Mac (Fase 5, decidida antes dos presets):** blocos 1 e 2 quase prontos — app roda no Mac com BlackHole (Leve ~57 ms, Forte ~76 ms); falta chamada de verdade. **Bloco 3 em andamento:** janela no Mac desenhada pela GPU (FemtoVG) com o vidro Liquid Glass do macOS 26 (tom dos widgets, aprovado pelo Alex). **Próximo (Mac):** flyout embaixo do ícone da barra de menu; conferir tema claro e arrastar pelo topo; conferir no Windows que o build não mudou. Ver `08-ambiente.md` e `03-audio.md`,
+**Mac (Fase 5, decidida antes dos presets):** blocos 1 e 2 quase prontos — app roda no Mac com BlackHole (Leve ~57 ms, Forte ~76 ms); falta chamada de verdade. **Bloco 3 quase pronto:** janela no Mac desenhada pela GPU (FemtoVG) com o vidro Liquid Glass do macOS 26 (tom dos widgets) e flyout embaixo do ícone da barra de menus (Abrir/Sair nele), aprovados pelo Alex. Falta conferir com o mouse (flyout, arrastar a janela pelo topo) e o tema claro. **Próximo (Mac):** bloco 4 (`.app`: Info.plist, `.icns`, permissão do mic, assinatura ad hoc, Login Items, instância única); conferir no Windows que o build não mudou. Ver `08-ambiente.md` e `03-audio.md`,
 macOS, e o histórico abaixo.
 
 | Fase | Entrega | Critério de pronto | Status |
@@ -251,3 +251,8 @@ macOS, e o histórico abaixo.
   Thread da janela ~15 % e 111 MB, iguais a sem vidro; WindowServer 18–24 % de 1 núcleo com a janela aberta, com ou
   sem vidro (custo da onda, achado novo). Corrigida a sombra do botão de energia desligado. Ver `05-interface.md`,
   "Mac: vidro Liquid Glass".
+- 2026-11-07 — **Fase 5, bloco 3 (parte 3):** flyout no Mac: ícone sem menu (com menu a Slint não repassa o clique),
+  "Sair" no flyout; abre embaixo do ícone (mouse + área útil da tela), com Liquid Glass. Achados: `Focused(false)`
+  inicial fechava o flyout; sem moldura o vidro não aparece (moldura escondida desde a criação, `Platform.os`);
+  altura fixa + conteúdo até o topo oscila ±32 pt (folga de ±40 px só no Mac). Alex aprovou. Não testado com o
+  mouse de verdade. Ver `05-interface.md`, "Mac: flyout da barra de menus".

@@ -420,8 +420,29 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
 - Corrigido junto (vale no Windows também): o botão de energia desligado tinha sombra sem desfoque deslocada
   4 px, que aparecia por trás do fundo translúcido; desligado agora fica sem sombra.
 - **Não conferido:** tema claro; arrastar a janela pela faixa do topo; macOS < 26; build no Windows.
-- Próximo: flyout embaixo do ícone da barra de menu. A medir/melhorar: o WindowServer com a janela aberta
-  (ex.: onda a menos quadros quando a janela não tem foco).
+- A medir/melhorar: o WindowServer com a janela aberta (ex.: onda a menos quadros quando a janela não tem foco).
+
+### Mac: flyout da barra de menus (Fase 5, bloco 3, 2026-11-07)
+- **Feito e aprovado pelo Alex.** Clique no ícone abre o flyout logo abaixo dele (centrado no mouse, 6 pt abaixo
+  da barra de menus, sem sair da área útil da tela: `NSEvent::mouseLocation` + `NSScreen::visibleFrame`, crates
+  `objc2-app-kit`/`objc2-foundation` já na árvore), com o mesmo Liquid Glass e cantos arredondados do sistema.
+- **Ícone sem menu no Mac** (`BandejaSemMenu`): na Slint 1.18 (AppKit), com menu o clique só abre o menu e o
+  `clicked` nunca chega; não dá para ter clique = flyout e botão direito = menu. "Abrir ›" e o novo **"Sair"**
+  (`Dados.sair-no-flyout`, só no Mac) ficam no flyout. Windows sem mudança (menu Abrir/Sair no ícone).
+- Achados:
+  - O winit manda `Focused(false)` antes do `Focused(true)` quando a janela nasce: o flyout fechava na hora.
+    Agora fecha ao perder o foco só depois de tê-lo ganhado (vale no Windows também).
+  - Sem moldura (`no-frame`) o vidro não aparece (a moldura `NSNextStepFrame` não compõe o efeito, nem com
+    camada ligada) e o tema do sistema não chega. No Mac o flyout nasce **com moldura** escondida
+    (`no-frame: Platform.os != macos`; barra transparente, sem botões nem título). Mudar a moldura depois de
+    criada (ex.: por `Dados.vidro`, preenchido depois do `new`) faz a altura oscilar.
+  - Com o conteúdo até o topo (`fullsize_content_view`) e altura fixa (mínimo = máximo), a altura oscila ±32 pt
+    sem parar: o macOS mede os limites sem a barra de título e o winit mede o tamanho com ela. No Mac a altura
+    do flyout tem **folga de ±40 px** (preferida = conteúdo); no Windows segue fixa. Efeito: no Mac dá para
+    esticar o flyout até 40 px pela borda. A mesma conta fez a janela principal encolher 32 pt uma vez
+    (706 → 674), depois estável.
+- **Não conferido** (os testes daqui clicaram pela acessibilidade, sem mover o mouse): posição com o clique de
+  verdade, fechar ao clicar fora, clicar no ícone com o flyout aberto, "Abrir ›" e "Sair". Build no Windows.
 
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.

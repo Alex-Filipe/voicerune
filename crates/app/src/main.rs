@@ -34,7 +34,11 @@ use voicerune_audio::{self as audio, Aviso, Fluxo, Pedido};
 use voicerune_core::escuta::{self, Gravacao, Reproducao, Tocador};
 use voicerune_core::modelo::Tipo;
 use voicerune_core::motor::Controle;
-use voicerune_ui::{empurrar_onda, limpar_onda, onda_vazia, Bandeja, Barra, Dados, Flyout, JanelaPrincipal};
+#[cfg(not(target_os = "macos"))]
+use voicerune_ui::Bandeja;
+#[cfg(target_os = "macos")]
+use voicerune_ui::BandejaSemMenu;
+use voicerune_ui::{empurrar_onda, limpar_onda, onda_vazia, Barra, Dados, Flyout, JanelaPrincipal};
 
 /// Intervalo do medidor; os números (atraso, CPU, falhas) mudam a cada `TICKS_NUMEROS` ticks.
 const MEDIDOR: Duration = Duration::from_millis(33);
@@ -169,6 +173,10 @@ fn com_ui<R>(f: impl FnOnce(&mut Ui) -> R) -> Option<R> {
 
 /// Roda `f` na próxima volta do laço de eventos (fora do callback de quem pediu: uma tela não é
 /// destruída dentro do próprio evento).
+fn sair() {
+    let _ = slint::quit_event_loop();
+}
+
 fn depois(f: impl FnOnce() + 'static) {
     Timer::single_shot(Duration::ZERO, f);
 }
@@ -260,12 +268,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     }));
 
     // A bandeja visível mantém o laço de eventos vivo depois que a janela fecha.
+    #[cfg(not(target_os = "macos"))]
     let bandeja = Bandeja::new()?;
+    #[cfg(not(target_os = "macos"))]
+    {
+        bandeja.on_abrir(abrir_janela);
+        bandeja.on_sair(sair);
+    }
+    // Mac: ícone sem menu (Abrir e Sair ficam no flyout).
+    #[cfg(target_os = "macos")]
+    let bandeja = BandejaSemMenu::new()?;
     bandeja.on_clicado(clicou_icone);
-    bandeja.on_abrir(abrir_janela);
-    bandeja.on_sair(|| {
-        let _ = slint::quit_event_loop();
-    });
     bandeja.show()?;
     if !so_icone {
         abrir_janela();
@@ -378,11 +391,17 @@ fn atributos(a: WindowAttributes) -> WindowAttributes {
         // O vidro vai até o topo: barra de título transparente, sem o texto (o cabeçalho já tem o
         // nome), só com os três botões; o conteúdo desce `Dados.topo` para não ficar embaixo deles.
         use slint::winit_030::winit::platform::macos::WindowAttributesExtMacOS;
-        return a
+        let a = a
             .with_transparent(true)
             .with_titlebar_transparent(true)
             .with_title_hidden(true)
             .with_fullsize_content_view(true);
+        // Flyout: a moldura fica só pelo vidro e pelos cantos arredondados (sem moldura o vidro não
+        // aparece); sem botões. A altura tem folga no Mac (ver `Flyout` em telas.slint).
+        if CRIANDO_FLYOUT.get() {
+            return a.with_titlebar_buttons_hidden(true).with_movable_by_window_background(false);
+        }
+        return a;
     }
     a
 }
@@ -406,18 +425,18 @@ fn vidro() -> bool {
 /// laço de eventos, depois do `show`: tenta de novo a cada 10 ms até ela existir (no máximo 1 s).
 /// Estado "ativo": o desfoque não some quando a janela perde o foco. Sem ele fica só o véu.
 #[cfg(target_os = "macos")]
-fn desfocar<C: ComponentHandle + 'static>(c: &C) {
-    fn tentar<C: ComponentHandle + 'static>(w: slint::Weak<C>, resta: u32) {
+fn desfocar<C: ComponentHandle + 'static>(c: &C, cantos: f64) {
+    fn tentar<C: ComponentHandle + 'static>(w: slint::Weak<C>, cantos: f64, resta: u32) {
         let Some(c) = w.upgrade() else { return };
-        match c.window().with_winit_window(|j| moldura(j).map(desfocar_vista)) {
+        match c.window().with_winit_window(|j| moldura(j).map(|v| desfocar_vista(v, cantos))) {
             Some(Some(Err(e))) => eprintln!("desfoque: {e}"),
             Some(None) => eprintln!("desfoque: janela sem moldura"),
             Some(Some(Ok(()))) => {}
-            None if resta > 0 => Timer::single_shot(Duration::from_millis(10), move || tentar(w, resta - 1)),
+            None if resta > 0 => Timer::single_shot(Duration::from_millis(10), move || tentar(w, cantos, resta - 1)),
             None => eprintln!("desfoque: a janela não apareceu"),
         }
     }
-    tentar(c.as_weak(), 100);
+    tentar(c.as_weak(), cantos, 100);
 }
 
 /// View da moldura (`NSThemeFrame`): a mãe da view do winit. O `window-vibrancy` põe o vidro
@@ -431,11 +450,16 @@ fn moldura(j: &slint::winit_030::winit::window::Window) -> Option<std::ptr::NonN
     let vista = h.ns_view.as_ptr().cast::<AnyObject>();
     // SAFETY: `ns_view` é a NSView viva da janela (o winit a mantém); `superview` só lê.
     let mae: *mut AnyObject = unsafe { msg_send![vista, superview] };
-    std::ptr::NonNull::new(mae.cast())
+    let mae = std::ptr::NonNull::new(mae)?;
+    // Sem moldura (flyout) a moldura (`NSNextStepFrame`) não tem camada e o vidro não aparece; com
+    // moldura (`NSThemeFrame`) já tem.
+    // SAFETY: `mae` é a view viva da moldura; `setWantsLayer:` é chamada na thread principal.
+    let _: () = unsafe { msg_send![mae.as_ptr(), setWantsLayer: true] };
+    Some(mae.cast())
 }
 
 #[cfg(target_os = "macos")]
-fn desfocar_vista(vista: std::ptr::NonNull<std::ffi::c_void>) -> Result<(), window_vibrancy::Error> {
+fn desfocar_vista(vista: std::ptr::NonNull<std::ffi::c_void>, cantos: f64) -> Result<(), window_vibrancy::Error> {
     use raw_window_handle::{AppKitWindowHandle, HandleError, HasWindowHandle, RawWindowHandle, WindowHandle};
     use window_vibrancy::{
         apply_liquid_glass, apply_vibrancy, LiquidGlassOptions, NSGlassEffectViewStyle, NSVisualEffectMaterial,
@@ -450,13 +474,19 @@ fn desfocar_vista(vista: std::ptr::NonNull<std::ffi::c_void>) -> Result<(), wind
     }
     // Liquid Glass (macOS 26+), o mesmo vidro dos widgets do sistema: pega a cor do que está atrás.
     // Antes do 26 o crate devolve erro e fica o desfoque clássico (`HudWindow`, o mais translúcido).
-    apply_liquid_glass(Vista(vista), LiquidGlassOptions::new(NSGlassEffectViewStyle::Regular)).or_else(|_| {
-        apply_vibrancy(Vista(vista), NSVisualEffectMaterial::HudWindow, Some(NSVisualEffectState::Active), None)
+    // `cantos` arredonda o vidro (0 = só os cantos da janela, que o sistema já arredonda).
+    let raio = (cantos > 0.0).then_some(cantos);
+    let mut o = LiquidGlassOptions::new(NSGlassEffectViewStyle::Regular);
+    if let Some(r) = raio {
+        o = o.radius(r);
+    }
+    apply_liquid_glass(Vista(vista), o).or_else(|_| {
+        apply_vibrancy(Vista(vista), NSVisualEffectMaterial::HudWindow, Some(NSVisualEffectState::Active), raio)
     })
 }
 
 #[cfg(not(target_os = "macos"))]
-fn desfocar<C: ComponentHandle + 'static>(_: &C) {}
+fn desfocar<C: ComponentHandle + 'static>(_: &C, _: f64) {}
 
 impl Ui {
     /// Aplica `f` ao `Dados` de cada tela aberta.
@@ -476,6 +506,7 @@ impl Ui {
         d.set_saidas(modelo_de(&self.disp.saidas));
         d.set_tema(self.tema_atual());
         d.set_vidro(vidro());
+        d.set_sair_no_flyout(cfg!(target_os = "macos"));
         // Altura da barra de título do Mac (o conteúdo vai até o topo da janela, ver `atributos`).
         d.set_topo(if vidro() { 28.0 } else { 0.0 });
         d.set_iniciar_disponivel(partida::DISPONIVEL);
@@ -607,6 +638,7 @@ where
             rep.limpo.store(ui.teste.versao == 1, Relaxed);
         }
     }));
+    d.on_sair(sair);
     d.on_abrir_janela(|| {
         depois(|| {
             fechar_flyout(false);
@@ -697,7 +729,7 @@ fn abrir_janela() {
     if let Err(e) = j.show() {
         eprintln!("janela: {e}");
     }
-    desfocar(&j);
+    desfocar(&j, 0.0);
 }
 
 fn fechar_janela() {
@@ -825,9 +857,14 @@ fn abrir_flyout() {
     if let Some(p) = posicao_flyout(f.get_largura(), f.get_altura()) {
         f.window().set_position(p);
     }
-    f.window().on_winit_window_event(|_, e| {
-        if let WindowEvent::Focused(false) = e {
-            depois(|| fechar_flyout(true));
+    // Fecha ao perder o foco, mas só depois de tê-lo ganhado: no Mac o winit manda um
+    // `Focused(false)` antes do `Focused(true)` quando a janela nasce.
+    let ganhou_foco = Cell::new(false);
+    f.window().on_winit_window_event(move |_, e| {
+        match e {
+            WindowEvent::Focused(true) => ganhou_foco.set(true),
+            WindowEvent::Focused(false) if ganhou_foco.get() => depois(|| fechar_flyout(true)),
+            _ => {}
         }
         EventResult::Propagate
     });
@@ -838,7 +875,7 @@ fn abrir_flyout() {
     if let Err(e) = f.show() {
         eprintln!("flyout: {e}");
     }
-    desfocar(&f);
+    desfocar(&f, 0.0);
     f.window().with_winit_window(|w| w.focus_window());
 }
 
@@ -859,7 +896,7 @@ fn fechar_flyout(perdeu_foco: bool) {
 
 /// Onde pôr o flyout: encostado na barra de tarefas, perto do cursor (que está no ícone).
 #[cfg(windows)]
-fn posicao_flyout(largura: f32, altura: f32) -> Option<slint::PhysicalPosition> {
+fn posicao_flyout(largura: f32, altura: f32) -> Option<slint::WindowPosition> {
     use windows::Win32::Foundation::POINT;
     use windows::Win32::Graphics::Gdi::{GetMonitorInfoW, MonitorFromPoint, MONITORINFO, MONITOR_DEFAULTTONEAREST};
     use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
@@ -893,11 +930,32 @@ fn posicao_flyout(largura: f32, altura: f32) -> Option<slint::PhysicalPosition> 
     } else {
         (x, area.bottom - h - m)
     };
-    Some(slint::PhysicalPosition::new(x, y))
+    Some(slint::PhysicalPosition::new(x, y).into())
 }
 
-#[cfg(not(windows))]
-fn posicao_flyout(_largura: f32, _altura: f32) -> Option<slint::PhysicalPosition> {
+/// Mac: embaixo do ícone da barra de menus, centrado no mouse (que está no ícone), sem sair da tela.
+/// O AppKit conta y de baixo para cima a partir da tela principal; o winit, de cima para baixo.
+#[cfg(target_os = "macos")]
+fn posicao_flyout(largura: f32, _altura: f32) -> Option<slint::WindowPosition> {
+    use objc2::MainThreadMarker;
+    use objc2_app_kit::{NSEvent, NSScreen};
+    use objc2_foundation::NSPointInRect;
+    const MARGEM: f64 = 6.0;
+    let mtm = MainThreadMarker::new()?;
+    let mouse = NSEvent::mouseLocation();
+    let telas = NSScreen::screens(mtm);
+    let altura_principal = telas.firstObject()?.frame().size.height;
+    let tela = telas.iter().find(|t| NSPointInRect(mouse, t.frame()))?;
+    // Área útil: abaixo da barra de menus (e fora do Dock).
+    let util = tela.visibleFrame();
+    let w = largura as f64;
+    let x = (mouse.x - w / 2.0).min(util.origin.x + util.size.width - w - MARGEM).max(util.origin.x + MARGEM);
+    let topo = util.origin.y + util.size.height - MARGEM;
+    Some(slint::LogicalPosition::new(x as f32, (altura_principal - topo) as f32).into())
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn posicao_flyout(_largura: f32, _altura: f32) -> Option<slint::WindowPosition> {
     None
 }
 
