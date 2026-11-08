@@ -28,5 +28,10 @@ libc = "0.2.191"
 # (ksni só no Linux); `unstable-winit-030` dá o foco/HWND do flyout (o winit já vinha).
 slint = { version = "1.18.1", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software", "system-tray", "unstable-winit-030"] }
 slint-build = "1.18.1"
+# Desfoque do sistema atrás da janela no Mac (`NSVisualEffectView`); MIT/Apache, sem rede, só `objc2*`.
+window-vibrancy = "0.8.1"
+# Para pôr o desfoque atrás da view do winit (já vinham na árvore pelo winit).
+objc2 = "0.6.5"
+raw-window-handle = "0.6.2"
 # Só no `voicerune-dev icone` (gera o .ico); já vinha na árvore pelo Slint.
 resvg = { version = "0.48.1", default-features = false }

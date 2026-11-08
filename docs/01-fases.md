@@ -40,7 +40,7 @@ medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 2
 Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
 gravar conferem (ver `05-interface.md`, Configuração salva).
 **Repositório:** público em https://github.com/Alex-Filipe/voicerune desde 2026-11-07 (`main` = fase 4 até aqui).
-**Mac (Fase 5, decidida antes dos presets):** blocos 1 e 2 quase prontos — app roda no Mac com BlackHole (Leve ~57 ms, Forte ~76 ms); falta chamada de verdade. **Bloco 3 começado:** janela no Mac desenhada pela GPU (FemtoVG). **Próximo (Mac):** desfoque (`NSVisualEffectView`) + véu, depois flyout embaixo do ícone; conferir no Windows que o build não mudou. Ver `08-ambiente.md` e `03-audio.md`,
+**Mac (Fase 5, decidida antes dos presets):** blocos 1 e 2 quase prontos — app roda no Mac com BlackHole (Leve ~57 ms, Forte ~76 ms); falta chamada de verdade. **Bloco 3 em andamento:** janela no Mac desenhada pela GPU (FemtoVG) com o vidro Liquid Glass do macOS 26 (tom dos widgets, aprovado pelo Alex). **Próximo (Mac):** flyout embaixo do ícone da barra de menu; conferir tema claro e arrastar pelo topo; conferir no Windows que o build não mudou. Ver `08-ambiente.md` e `03-audio.md`,
 macOS, e o histórico abaixo.
 
 | Fase | Entrega | Critério de pronto | Status |
@@ -245,3 +245,9 @@ macOS, e o histórico abaixo.
   vidro) e gasta ~40 % da thread da janela convertendo cor. Ligado `renderer-femtovg` só no Mac (GPU): janela
   15 % × 25 % de 1 núcleo (app 1,9 × 2,8 % do PC), memória com janela 111–116 × 38 MB, só bandeja igual (16 × 15 MB);
   binário +0,7 MB. Alex não viu diferença visual e aprovou. Ver `05-interface.md`, "Mac: renderizador FemtoVG".
+- 2026-11-07 — **Fase 5, bloco 3 (parte 2):** vidro no Mac: janela transparente + Liquid Glass (`NSGlassEffectView`,
+  Regular, sem véu) pelo `window-vibrancy` 0.8.1, posto na moldura da janela (na view do winit ficava por cima do
+  OpenGL); barra de título transparente, conteúdo até o topo. Alex aprovou ("mesmo tom do calendário e do tempo").
+  Thread da janela ~15 % e 111 MB, iguais a sem vidro; WindowServer 18–24 % de 1 núcleo com a janela aberta, com ou
+  sem vidro (custo da onda, achado novo). Corrigida a sombra do botão de energia desligado. Ver `05-interface.md`,
+  "Mac: vidro Liquid Glass".

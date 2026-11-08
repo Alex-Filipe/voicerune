@@ -393,12 +393,39 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
 
 - A medir: a memória da GPU volta ao fechar a janela? (só bandeja desde o início = 16 MB). A janela ainda custa
   bem mais que no Windows (~2–3 %); o resto do perfil fica espalhado (driver de GPU, malloc).
-- Próximo: desfoque com `NSVisualEffectView` (`objc2-app-kit`, já na árvore) + véu dos commits `0115b3d`/`a917673`;
-  flyout embaixo do ícone da barra de menu.
+
+### Mac: vidro Liquid Glass (Fase 5, bloco 3, 2026-11-07)
+- **Feito e aprovado pelo Alex** (pediu "no mesmo tom do calendário e do tempo", os widgets do macOS 26):
+  janela transparente (gancho `atributos`: `with_transparent`) com o **Liquid Glass** do sistema
+  (`NSGlassEffectView`, estilo Regular, sem tinta) atrás, pelo `window-vibrancy` 0.8.1 (MIT/Apache, sem rede).
+  Antes do macOS 26 o crate devolve erro e entra o desfoque clássico (`NSVisualEffectView`, `HudWindow`; não testado).
+  **Sem véu:** `Cores.fundo` = transparente com `Dados.vidro` (só no Mac). Windows sem mudança (fundo sólido).
+- **Achado:** o `window-vibrancy` põe a view do efeito como filha da view que recebe; na view do winit ela fica
+  **por cima** do desenho OpenGL (janela só com o borrão). Solução: passar a view da **moldura** (`superview`
+  da view do winit, `NSThemeFrame`), e o efeito fica atrás da view do winit. Também: o winit só cria a janela
+  no laço de eventos, então `desfocar` tenta a cada 10 ms até ela existir. Dependências diretas `objc2` e
+  `raw-window-handle` (já vinham pelo winit); crates novos baixados: `window-vibrancy`, `windows-version`.
+- **Barra de título** transparente, sem o texto (o cabeçalho já tem o nome), conteúdo até o topo
+  (`with_titlebar_transparent`, `with_title_hidden`, `with_fullsize_content_view`); o conteúdo desce
+  `Dados.topo` = 28 px para não ficar sob os três botões. O tema do app vai ao winit (`with_theme`/`set_theme`),
+  que é o que o vidro segue.
+- **Caminho até aqui (Alex viu cada um):** `UnderWindowBackground` + véu quente → "quase não vejo diferença";
+  `HudWindow` + véu fino → gostou, achou forte; véu médio → pediu o tom dos widgets → Liquid Glass sem véu.
+  Clear (Liquid Glass) deixa o fundo quase nítido; tinta preta só escurece e se afasta dos widgets.
+- Medido: tom (média de cor, fator sobre o papel de parede ao lado): widget do tempo 0,35/0,49/0,55 (R/G/B),
+  VoiceRune 0,41/0,48/0,51. CPU/RAM (release, 20 s): thread da janela ~15 % de 1 núcleo e footprint 111 MB,
+  iguais ao FemtoVG sem vidro. **WindowServer** (o compositor do macOS): ~1 % sem o app, 18–24 % de 1 núcleo
+  com a janela aberta **com ou sem vidro** (2 rodadas cada) — custo da janela que redesenha (onda a 30 Hz),
+  não do vidro; não medido antes. Só bandeja não tem esse custo.
+- Corrigido junto (vale no Windows também): o botão de energia desligado tinha sombra sem desfoque deslocada
+  4 px, que aparecia por trás do fundo translúcido; desligado agora fica sem sombra.
+- **Não conferido:** tema claro; arrastar a janela pela faixa do topo; macOS < 26; build no Windows.
+- Próximo: flyout embaixo do ícone da barra de menu. A medir/melhorar: o WindowServer com a janela aberta
+  (ex.: onda a menos quadros quando a janela não tem foco).
 
 ### Pendências de UI
 - O timer do medidor ainda acorda (sem redesenhar) com a janela minimizada.
-- Pendências visuais: desfoque só no Mac (Fase 5). A barra de
+- Pendências visuais: desfoque só no Mac (Fase 5; feito em 2026-11-07, Liquid Glass). A barra de
   título acompanhou o tema forçado pela lua em 2026-10-23 (antes anotada como não seguindo; não
   revisto pelo Configurações). A lista aberta dos dispositivos é a do Fluent (cinza, marca na cor
   do Windows), fora do estilo vidro. Ícone (VoiceRune, 2026-10-30: runa Wunjo dourada com ondas de voz)

@@ -21,7 +21,10 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use slint::winit_030::winit::{event::WindowEvent, window::WindowAttributes};
+use slint::winit_030::winit::{
+    event::WindowEvent,
+    window::{Theme, WindowAttributes},
+};
 use slint::winit_030::{EventResult, WinitWindowAccessor};
 use slint::{CloseRequestResponse, ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel};
 use voicerune::controlador::{Ajustes, Controlador, Modo};
@@ -156,6 +159,8 @@ thread_local! {
     static UI: RefCell<Option<Ui>> = const { RefCell::new(None) };
     /// Ligado só enquanto o flyout é criado: o gancho do winit (`atributos`) vale só para ele.
     static CRIANDO_FLYOUT: Cell<bool> = const { Cell::new(false) };
+    /// Tema da próxima janela: o winit a cria depois, no laço de eventos, mas lê os atributos no `new`.
+    static TEMA_NOVA: Cell<i32> = const { Cell::new(0) };
 }
 
 fn com_ui<R>(f: impl FnOnce(&mut Ui) -> R) -> Option<R> {
@@ -358,16 +363,100 @@ impl Instancia {
     fn esperar(self) {}
 }
 
-/// Gancho do winit antes de criar cada janela: o flyout sai da barra de tarefas e ganha os cantos
-/// arredondados do Windows 11 (DWM).
+/// Gancho do winit antes de criar cada janela: tema do app; no Mac, janela transparente sobre o
+/// desfoque do sistema; no Windows o flyout sai da barra de tarefas e ganha os cantos arredondados
+/// do Windows 11 (DWM).
 fn atributos(a: WindowAttributes) -> WindowAttributes {
+    let a = a.with_theme(tema_winit(TEMA_NOVA.get()));
     #[cfg(windows)]
     if CRIANDO_FLYOUT.get() {
         use slint::winit_030::winit::platform::windows::{CornerPreference, WindowAttributesExtWindows};
         return a.with_skip_taskbar(true).with_corner_preference(CornerPreference::Round);
     }
+    #[cfg(target_os = "macos")]
+    if vidro() {
+        // O vidro vai até o topo: barra de título transparente, sem o texto (o cabeçalho já tem o
+        // nome), só com os três botões; o conteúdo desce `Dados.topo` para não ficar embaixo deles.
+        use slint::winit_030::winit::platform::macos::WindowAttributesExtMacOS;
+        return a
+            .with_transparent(true)
+            .with_titlebar_transparent(true)
+            .with_title_hidden(true)
+            .with_fullsize_content_view(true);
+    }
     a
 }
+
+/// Tema da janela do sistema (0 = do sistema, 1 claro, 2 escuro): a barra de título e o desfoque
+/// atrás dela seguem este tema, não o `Palette` do Slint, que não o repassa.
+fn tema_winit(tema: i32) -> Option<Theme> {
+    match tema {
+        1 => Some(Theme::Light),
+        2 => Some(Theme::Dark),
+        _ => None,
+    }
+}
+
+/// Desfoque do sistema atrás das janelas: só no Mac (no Windows o Alex escolheu o fundo sólido).
+fn vidro() -> bool {
+    cfg!(target_os = "macos")
+}
+
+/// Põe o vidro do sistema (Liquid Glass ou `NSVisualEffectView`) atrás da janela. O winit só cria a janela no
+/// laço de eventos, depois do `show`: tenta de novo a cada 10 ms até ela existir (no máximo 1 s).
+/// Estado "ativo": o desfoque não some quando a janela perde o foco. Sem ele fica só o véu.
+#[cfg(target_os = "macos")]
+fn desfocar<C: ComponentHandle + 'static>(c: &C) {
+    fn tentar<C: ComponentHandle + 'static>(w: slint::Weak<C>, resta: u32) {
+        let Some(c) = w.upgrade() else { return };
+        match c.window().with_winit_window(|j| moldura(j).map(desfocar_vista)) {
+            Some(Some(Err(e))) => eprintln!("desfoque: {e}"),
+            Some(None) => eprintln!("desfoque: janela sem moldura"),
+            Some(Some(Ok(()))) => {}
+            None if resta > 0 => Timer::single_shot(Duration::from_millis(10), move || tentar(w, resta - 1)),
+            None => eprintln!("desfoque: a janela não apareceu"),
+        }
+    }
+    tentar(c.as_weak(), 100);
+}
+
+/// View da moldura (`NSThemeFrame`): a mãe da view do winit. O `window-vibrancy` põe o vidro
+/// como filha da view que recebe, atrás das outras filhas; na view do winit ele ficaria por cima do
+/// desenho OpenGL (que é da própria view), então vai na moldura, atrás da view do winit.
+#[cfg(target_os = "macos")]
+fn moldura(j: &slint::winit_030::winit::window::Window) -> Option<std::ptr::NonNull<std::ffi::c_void>> {
+    use objc2::{msg_send, runtime::AnyObject};
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    let RawWindowHandle::AppKit(h) = j.window_handle().ok()?.as_raw() else { return None };
+    let vista = h.ns_view.as_ptr().cast::<AnyObject>();
+    // SAFETY: `ns_view` é a NSView viva da janela (o winit a mantém); `superview` só lê.
+    let mae: *mut AnyObject = unsafe { msg_send![vista, superview] };
+    std::ptr::NonNull::new(mae.cast())
+}
+
+#[cfg(target_os = "macos")]
+fn desfocar_vista(vista: std::ptr::NonNull<std::ffi::c_void>) -> Result<(), window_vibrancy::Error> {
+    use raw_window_handle::{AppKitWindowHandle, HandleError, HasWindowHandle, RawWindowHandle, WindowHandle};
+    use window_vibrancy::{
+        apply_liquid_glass, apply_vibrancy, LiquidGlassOptions, NSGlassEffectViewStyle, NSVisualEffectMaterial,
+        NSVisualEffectState,
+    };
+    struct Vista(std::ptr::NonNull<std::ffi::c_void>);
+    impl HasWindowHandle for Vista {
+        fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
+            // SAFETY: a moldura vive enquanto a janela existir, e `Vista` só existe nesta chamada.
+            Ok(unsafe { WindowHandle::borrow_raw(RawWindowHandle::AppKit(AppKitWindowHandle::new(self.0))) })
+        }
+    }
+    // Liquid Glass (macOS 26+), o mesmo vidro dos widgets do sistema: pega a cor do que está atrás.
+    // Antes do 26 o crate devolve erro e fica o desfoque clássico (`HudWindow`, o mais translúcido).
+    apply_liquid_glass(Vista(vista), LiquidGlassOptions::new(NSGlassEffectViewStyle::Regular)).or_else(|_| {
+        apply_vibrancy(Vista(vista), NSVisualEffectMaterial::HudWindow, Some(NSVisualEffectState::Active), None)
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
+fn desfocar<C: ComponentHandle + 'static>(_: &C) {}
 
 impl Ui {
     /// Aplica `f` ao `Dados` de cada tela aberta.
@@ -386,6 +475,9 @@ impl Ui {
         d.set_entradas(modelo_de(&self.disp.entradas));
         d.set_saidas(modelo_de(&self.disp.saidas));
         d.set_tema(self.tema_atual());
+        d.set_vidro(vidro());
+        // Altura da barra de título do Mac (o conteúdo vai até o topo da janela, ver `atributos`).
+        d.set_topo(if vidro() { 28.0 } else { 0.0 });
         d.set_iniciar_disponivel(partida::DISPONIVEL);
         self.mostrar_partida(d);
         mostrar_ajustes(d, &self.pedido, &self.disp);
@@ -477,7 +569,12 @@ where
     d.on_saida_escolhida(ao_mudar(|a, d, disp| a.saida = disp.saidas.get(d.get_saida() as usize).cloned()));
     d.on_baixa_latencia_mudou(ao_mudar(|a, d, _| a.baixa_latencia = d.get_baixa_latencia()));
     d.on_cancelamento_mudou(ao_mudar(|a, d, _| a.ia = d.get_cancelamento()));
-    d.on_tema_escolhido(|| {
+    let w = c.as_weak();
+    d.on_tema_escolhido(move || {
+        if let Some(c) = w.upgrade() {
+            let t = c.global::<Dados>().get_tema();
+            c.window().with_winit_window(|w| w.set_theme(tema_winit(t)));
+        }
         com_ui(agendar_gravacao);
     });
     let w = c.as_weak();
@@ -548,6 +645,7 @@ fn abrir_janela() {
         j.window().with_winit_window(|w| w.focus_window());
         return;
     }
+    TEMA_NOVA.set(com_ui(|ui| ui.tema_atual()).unwrap_or(0));
     let j = match JanelaPrincipal::new() {
         Ok(j) => j,
         Err(e) => return eprintln!("janela: {e}"),
@@ -599,6 +697,7 @@ fn abrir_janela() {
     if let Err(e) = j.show() {
         eprintln!("janela: {e}");
     }
+    desfocar(&j);
 }
 
 fn fechar_janela() {
@@ -707,6 +806,7 @@ fn clicou_icone() {
 }
 
 fn abrir_flyout() {
+    TEMA_NOVA.set(com_ui(|ui| ui.tema_atual()).unwrap_or(0));
     CRIANDO_FLYOUT.set(true);
     let f = Flyout::new();
     CRIANDO_FLYOUT.set(false);
@@ -738,6 +838,7 @@ fn abrir_flyout() {
     if let Err(e) = f.show() {
         eprintln!("flyout: {e}");
     }
+    desfocar(&f);
     f.window().with_winit_window(|w| w.focus_window());
 }
 

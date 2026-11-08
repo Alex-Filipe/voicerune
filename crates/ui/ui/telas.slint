@@ -31,6 +31,10 @@ export global Dados {
     in-out property <bool> iniciar-com-sistema: false;
     in-out property <bool> iniciar-so-bandeja: true;
     in-out property <int> tema: 0; // 0 sistema, 1 claro, 2 escuro
+    // Janela com o vidro do sistema por trás (no Mac): o fundo fica transparente.
+    in property <bool> vidro: false;
+    // Espaço da barra de título quando o conteúdo vai até o topo (Mac).
+    in property <length> topo: 0px;
     in property <string> atraso: "~85 ms";
     in property <string> cpu: "1,4 %";
     in property <int> falhas: 0;
@@ -61,10 +65,12 @@ export global Dados {
     callback iniciar-mudou();
 }
 
-// Cores do mockup: o "vidro" vira um fundo sólido quente; blocos e textos são translúcidos por cima.
+// Cores do mockup: com o vidro do sistema (Mac, Liquid Glass) o fundo é transparente, no tom do que
+// está atrás, como os widgets do macOS; sem ele, um fundo sólido quente. Blocos e textos são
+// translúcidos por cima.
 global Cores {
     out property <bool> escuro: Palette.color-scheme == ColorScheme.dark;
-    out property <color> fundo: escuro ? #322a25 : #f2ebe3;
+    out property <color> fundo: Dados.vidro ? transparent : (escuro ? #322a25 : #f2ebe3);
     // Janelinhas (ajuda, listas) precisam ser opacas.
     out property <color> popup: escuro ? #3d342e : #fbf8f5;
     out property <color> borda-janela: escuro ? #ffffff1f : #0000001a;
@@ -166,7 +172,8 @@ component BotaoEnergia inherits Rectangle {
     background: ligado ? Cores.acento : ta.has-hover ? Cores.bloco-hover.darker(10%) : Cores.bloco-hover;
     drop-shadow-blur: ligado ? 16px : 0px;
     drop-shadow-offset-y: 4px;
-    drop-shadow-color: Cores.acento.transparentize(55%);
+    // Desligado, sem sombra: mesmo sem desfoque ela aparecia deslocada por trás do fundo translúcido.
+    drop-shadow-color: ligado ? Cores.acento.transparentize(55%) : transparent;
     animate background { duration: 200ms; }
     accessible-role: switch;
     accessible-label: "Cancelamento de ruído";
@@ -1488,7 +1495,8 @@ export component JanelaPrincipal inherits Window {
     icon: @image-url("icone.svg");
     preferred-width: 400px;
     min-width: 380px;
-    background: Cores.fundo;
+    // Com vidro o véu vem só do retângulo abaixo (dois véus dobrariam a cor).
+    background: Dados.vidro ? transparent : Cores.fundo;
     default-font-size: 13px;
 
     // Nunca usar ColorScheme.unknown: os widgets e as nossas cores divergiriam (texto some).
@@ -1514,6 +1522,7 @@ export component JanelaPrincipal inherits Window {
 
     VerticalLayout {
         padding: 16px;
+        padding-top: 16px + Dados.topo;
         // Só a página visível é instanciada (abre mais rápido, menos memória).
         if Dados.pagina == 0: PaginaInicio {
             // A lua do rodapé troca entre claro e escuro (Configurações → Tema volta ao do sistema).

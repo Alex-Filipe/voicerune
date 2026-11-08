@@ -32,9 +32,13 @@ libc.workspace = true
 
 # Fase 5 (teste): no Mac a janela é desenhada na GPU (FemtoVG/OpenGL), que vira o renderizador padrão
 # do winit quando ligado. O de software não tem alfa no Mac (softbuffer opaco, sem vidro) e gasta a
-# thread da janela convertendo cor a cada quadro. No Windows nada muda.
+# thread da janela convertendo cor a cada quadro. No Windows nada muda. Atrás dela, o desfoque do
+# sistema (`window-vibrancy`).
 [target.'cfg(target_os = "macos")'.dependencies]
 slint = { workspace = true, features = ["renderer-femtovg"] }
+window-vibrancy.workspace = true
+objc2.workspace = true
+raw-window-handle.workspace = true
 
 [features]
 default = ["dfn"]
