@@ -416,6 +416,20 @@ fn tema_winit(tema: i32) -> Option<Theme> {
     }
 }
 
+/// Tema do sistema, lido direto do SO (o `Palette` do Slint mostra o da janela, que pode estar forçado).
+/// `AppleInterfaceStyle` = "Dark" no escuro; ausente no claro. Fora do Mac: não sabe (vale o `Palette`).
+#[cfg(target_os = "macos")]
+fn sistema_escuro() -> Option<bool> {
+    use objc2_foundation::{ns_string, NSUserDefaults};
+    let estilo = NSUserDefaults::standardUserDefaults().stringForKey(ns_string!("AppleInterfaceStyle"));
+    Some(estilo.is_some_and(|e| e.to_string().eq_ignore_ascii_case("dark")))
+}
+
+#[cfg(not(target_os = "macos"))]
+fn sistema_escuro() -> Option<bool> {
+    None
+}
+
 /// Desfoque do sistema atrás das janelas: só no Mac (no Windows o Alex escolheu o fundo sólido).
 fn vidro() -> bool {
     cfg!(target_os = "macos")
@@ -505,6 +519,11 @@ impl Ui {
         d.set_entradas(modelo_de(&self.disp.entradas));
         d.set_saidas(modelo_de(&self.disp.saidas));
         d.set_tema(self.tema_atual());
+        d.set_sistema(match sistema_escuro() {
+            Some(true) => 2,
+            Some(false) => 1,
+            None => 0,
+        });
         d.set_vidro(vidro());
         d.set_sair_no_flyout(cfg!(target_os = "macos"));
         // Altura da barra de título do Mac (o conteúdo vai até o topo da janela, ver `atributos`).

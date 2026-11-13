@@ -31,6 +31,9 @@ export global Dados {
     in-out property <bool> iniciar-com-sistema: false;
     in-out property <bool> iniciar-so-bandeja: true;
     in-out property <int> tema: 0; // 0 sistema, 1 claro, 2 escuro
+    // Tema do sistema lido pelo Rust (0 = não sabe: vale o Palette ao abrir). Com a janela criada já no
+    // claro/escuro forçado, o Palette não mostra o do sistema (no Mac ele segue o tema da janela).
+    in property <int> sistema: 0; // 1 claro, 2 escuro
     // Janela com o vidro do sistema por trás (no Mac): o fundo fica transparente.
     in property <bool> vidro: false;
     // Espaço da barra de título quando o conteúdo vai até o topo (Mac).
@@ -1510,7 +1513,7 @@ export component JanelaPrincipal inherits Window {
     property <bool> tema-forcado;
     public function aplicar-tema(t: int) {
         if !tema-forcado {
-            sistema-escuro = Palette.color-scheme == ColorScheme.dark;
+            sistema-escuro = Dados.sistema != 0 ? Dados.sistema == 2 : Palette.color-scheme == ColorScheme.dark;
             tema-forcado = true;
         }
         Palette.color-scheme = t == 1 ? ColorScheme.light : t == 2 ? ColorScheme.dark : sistema-escuro ? ColorScheme.dark : ColorScheme.light;
@@ -1613,7 +1616,7 @@ export component Flyout inherits Window {
     property <bool> tema-forcado;
     public function aplicar-tema(t: int) {
         if !tema-forcado {
-            sistema-escuro = Palette.color-scheme == ColorScheme.dark;
+            sistema-escuro = Dados.sistema != 0 ? Dados.sistema == 2 : Palette.color-scheme == ColorScheme.dark;
             tema-forcado = true;
         }
         Palette.color-scheme = t == 1 ? ColorScheme.light : t == 2 ? ColorScheme.dark : sistema-escuro ? ColorScheme.dark : ColorScheme.light;

@@ -424,8 +424,13 @@ Medições (release, 12 threads, janelas de 20 s; % de 1 núcleo, entre parênte
 - **Véu de 65 % (2026-11-13):** Alex achou o vidro sem véu transparente demais. `Cores.fundo` com vidro passou a
   ser a cor sólida do tema (`#322a25` / `#f2ebe3`) a 65 %, na janela e no flyout. Escolhido ao vivo com um seletor
   temporário (0, 20, 35, 50, 65, 80 %), já removido. Medido (release, Forte, janela aberta, 20 s, 1 rodada):
-  sem véu 16,4–17,6 % de 1 núcleo e 138 MB; com véu 16,7–19,7 % e 144 MB (dentro do ruído). **Não conferido:**
-  tema claro com véu; flyout com véu.
+  sem véu 16,4–17,6 % de 1 núcleo e 138 MB; com véu 16,7–19,7 % e 144 MB (dentro do ruído). Alex conferiu claro,
+  escuro e flyout com o mouse: ok.
+- **Bug do "Do sistema" (2026-11-13, corrigido):** com `tema = claro` salvo e o Mac no escuro, escolher "Do sistema"
+  deixava texto/véu claros sobre vidro escuro (cinza). Causa: a janela nasce com o tema forçado e, no Mac, o
+  `Palette` do Slint segue o tema da janela, então `aplicar-tema` guardava "sistema = claro". Agora o Rust lê o
+  tema do sistema (`AppleInterfaceStyle` no `NSUserDefaults`) e passa em `Dados.sistema`; fora do Mac vale o
+  `Palette` como antes. Alex conferiu: ok. Não tratado: mudar o tema do sistema com o app aberto em "Do sistema".
 
 ### Mac: flyout da barra de menus (Fase 5, bloco 3, 2026-11-07)
 - **Feito e aprovado pelo Alex.** Clique no ícone abre o flyout logo abaixo dele (centrado no mouse, 6 pt abaixo

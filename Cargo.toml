@@ -35,6 +35,6 @@ objc2 = "0.6.5"
 raw-window-handle = "0.6.2"
 # Posição do flyout no Mac (mouse e telas do AppKit); já vinham na árvore pelo winit.
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSEvent", "NSScreen"] }
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSGeometry"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSGeometry", "NSString", "NSUserDefaults"] }
 # Só no `voicerune-dev icone` (gera o .ico); já vinha na árvore pelo Slint.
 resvg = { version = "0.48.1", default-features = false }
