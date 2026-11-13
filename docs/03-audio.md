@@ -185,3 +185,5 @@ para o CoreAudio carregar o driver). Backend padrão (`cpal` → CoreAudio), 48 
   como no Windows. O texto da ferramenta ainda diz "VB-Cable" na divisão.
 - CPU com a janela aberta, Forte (10 s): app 34 % de 1 núcleo = 3,4 % do PC; thread da janela ~23 %, IA ~12 %,
   áudio < 1 %. A janela custa bem mais que no Windows (~2–3 %): hipótese = renderizador de software em Retina (2×).
+- **Chamada de verdade (2026-11-13):** Alex usou o app numa entrevista em vídeo pelo navegador (site da Ada), com o
+  mic "BlackHole 2ch", e "funcionou certinho". Relato dele, sem medição (CPU, underruns e qualidade do outro lado não medidos).

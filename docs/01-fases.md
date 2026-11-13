@@ -40,7 +40,7 @@ medidor acorda com a janela minimizada. **Não reproduzido:** o app aberto às 2
 Leve, 0 dB e tema claro com o `config.ini` em Forte, +5 dB, sistema (Alex não mexeu); depois disso, ler e
 gravar conferem (ver `05-interface.md`, Configuração salva).
 **Repositório:** público em https://github.com/Alex-Filipe/voicerune desde 2026-11-07 (`main` = fase 4 até aqui).
-**Mac (Fase 5, decidida antes dos presets):** blocos 1 e 2 quase prontos — app roda no Mac com BlackHole (Leve ~57 ms, Forte ~76 ms); falta chamada de verdade. **Bloco 3 quase pronto:** janela no Mac desenhada pela GPU (FemtoVG) com o vidro Liquid Glass do macOS 26 (tom dos widgets) e flyout embaixo do ícone da barra de menus (Abrir/Sair nele), aprovados pelo Alex. Em 2026-11-13 o Alex achou o vidro transparente demais: ganhou véu de 65 % (escolhido por ele). Falta conferir com o mouse (flyout, arrastar a janela pelo topo) e o tema claro (com o véu). **Próximo (Mac):** bloco 4 (`.app`: Info.plist, `.icns`, permissão do mic, assinatura ad hoc, Login Items, instância única); conferir no Windows que o build não mudou. Ver `08-ambiente.md` e `03-audio.md`,
+**Mac (Fase 5, decidida antes dos presets):** blocos 1 e 2 prontos — app roda no Mac com BlackHole (Leve ~57 ms, Forte ~76 ms) e funcionou numa chamada de verdade (entrevista do Alex, 2026-11-13). **Bloco 3 quase pronto:** janela no Mac desenhada pela GPU (FemtoVG) com o vidro Liquid Glass do macOS 26 (tom dos widgets) e flyout embaixo do ícone da barra de menus (Abrir/Sair nele), aprovados pelo Alex. Em 2026-11-13 o Alex achou o vidro transparente demais: ganhou véu de 65 % (escolhido por ele). Falta conferir com o mouse (flyout, arrastar a janela pelo topo) e o tema claro (com o véu). **Próximo (Mac):** bloco 4 (`.app`: Info.plist, `.icns`, permissão do mic, assinatura ad hoc, Login Items, instância única); conferir no Windows que o build não mudou. Ver `08-ambiente.md` e `03-audio.md`,
 macOS, e o histórico abaixo.
 
 | Fase | Entrega | Critério de pronto | Status |
@@ -259,3 +259,5 @@ macOS, e o histórico abaixo.
 - 2026-11-13 — **Mac: véu sobre o vidro.** Alex achou a janela transparente demais; `Cores.fundo` com vidro virou a
   cor sólida do tema a **65 %** (escolhido ao vivo entre 0–80 % com seletor temporário, já removido). CPU/RAM iguais
   ao sem véu (1 rodada). Não conferidos: tema claro e flyout com véu. Ver `05-interface.md`, "Mac: vidro Liquid Glass".
+- 2026-11-13 — **Fase 5, blocos 1 e 2 concluídos:** Alex usou o app numa entrevista em vídeo pelo navegador (site da
+  Ada), mic "BlackHole 2ch": "funcionou certinho". Relato, sem medição. Ver `03-audio.md`, macOS.
