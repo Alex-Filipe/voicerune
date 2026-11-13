@@ -68,12 +68,14 @@ export global Dados {
     callback iniciar-mudou();
 }
 
-// Cores do mockup: com o vidro do sistema (Mac, Liquid Glass) o fundo é transparente, no tom do que
-// está atrás, como os widgets do macOS; sem ele, um fundo sólido quente. Blocos e textos são
-// translúcidos por cima.
+// Cores do mockup: com o vidro do sistema (Mac, Liquid Glass) o fundo é um véu translúcido da cor sólida
+// sobre o vidro; sem ele, o fundo sólido quente. Blocos e textos são translúcidos por cima.
 global Cores {
     out property <bool> escuro: Palette.color-scheme == ColorScheme.dark;
-    out property <color> fundo: Dados.vidro ? transparent : (escuro ? #322a25 : #f2ebe3);
+    out property <color> solido: escuro ? #322a25 : #f2ebe3;
+    // Com vidro, véu da cor sólida a 65 % por cima (sem véu ficava transparente demais; Alex escolheu
+    // entre 0–80 % em 2026-11-13).
+    out property <color> fundo: Dados.vidro ? solido.with-alpha(0.65) : solido;
     // Janelinhas (ajuda, listas) precisam ser opacas.
     out property <color> popup: escuro ? #3d342e : #fbf8f5;
     out property <color> borda-janela: escuro ? #ffffff1f : #0000001a;
